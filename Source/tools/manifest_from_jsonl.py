@@ -38,11 +38,11 @@ def r2(v):
     return round(float(v), 2)
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('--blend', default='')
     ap.add_argument('--jsonl', default='')
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
 
     if a.jsonl:
         jl = a.jsonl

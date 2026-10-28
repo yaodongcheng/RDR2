@@ -33,9 +33,9 @@ def argv():
 
 
 def load_index():
-  d = json.load(open(INDEX, encoding='utf-8'))
-  tex = {t['id']: t['n'] for t in d['tex']}
-  return d['models'], tex
+    d = json.load(open(INDEX, encoding='utf-8'))
+    tex = {t['id']: t for t in d['tex']}       # id -> {'n': 名字, 'f': tex/xxxxx.png}
+    return d['models'], tex
 
 
 def _slug(name, limit=58):
@@ -44,15 +44,49 @@ def _slug(name, limit=58):
   return s[:limit] or 'noname'
 
 
-def make_material(tid, texname):
+def _img_nodes(m):
+  return [n for n in (m.node_tree.nodes if m and m.use_nodes else [])
+          if n.type == 'TEX_IMAGE']
+
+
+def _set_image(m, fp, texname):
+  """把材质里的贴图换成 fp（名字相同但文件变了时必须刷新，否则还是旧图）。"""
+  nt = m.node_tree
+  nodes = _img_nodes(m)
+  cur = nodes[0] if nodes else None
+  if cur is not None and cur.image and os.path.abspath(bpy.path.abspath(cur.image.filepath)) == os.path.abspath(fp):
+    return
+  img = bpy.data.images.load(fp, check_existing=True)
+  img.colorspace_settings.name = 'sRGB'
+  if cur is None:
+    cur = nt.nodes.new('ShaderNodeTexImage')
+    cur.location = (-380, 200)
+    bsdf = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+    if bsdf is None:
+      return
+    nt.links.new(cur.outputs['Color'], bsdf.inputs['Base Color'])
+  cur.image = img
+  cur.label = texname
+
+
+def make_material(tid, tinfo):
   """按**贴图名字**建/取材质（与 blender_continent._mat_for 同一套命名：`alb_<名字>`）。
 
   2026-10-29 根修（TODO #1）：旧版按 `m_<tid>` 命名，贴图池一变（3,025→5,292）
   `m_352` 就指向别人的图 —— "门长草/草坪发黄"都是这么来的。
+
+  2026-10-29 二改（贴图表按名字重建）：`tex` 表整表重建后，同名材质的**图片文件路径会变**
+  （`tex/0352.png` → `tex/00523.png`），所以已存在的同名材质必须**刷新图片**，不能直接返回。
   """
+  texname = (tinfo or {}).get('n') or ''
+  rel = (tinfo or {}).get('f') or ''
   name = ('alb_' + _slug(texname)) if texname else 'nonalbedo_warmgray'
+  fp = os.path.join(LIB, rel.replace('/', os.sep)) if rel else ''
   m = bpy.data.materials.get(name)
   if m:
+    if texname and fp and os.path.exists(fp):
+      m['albedo'] = texname
+      _set_image(m, fp, texname)
     return m
   m = bpy.data.materials.new(name)
   m.use_nodes = True
@@ -60,15 +94,9 @@ def make_material(tid, texname):
   bsdf = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
   if bsdf is None:
     return m
-  fp = os.path.join(LIB, 'tex', '%04d.png' % tid) if tid is not None and tid >= 0 else ''
   if texname and fp and os.path.exists(fp):
     m['albedo'] = texname
-    t = nt.nodes.new('ShaderNodeTexImage')
-    t.image = bpy.data.images.load(fp, check_existing=True)
-    t.image.colorspace_settings.name = 'sRGB'
-    t.location = (-380, 200)
-    t.label = texname
-    nt.links.new(t.outputs['Color'], bsdf.inputs['Base Color'])
+    _set_image(m, fp, texname)
     bsdf.inputs['Roughness'].default_value = 0.72
     if 'Specular IOR Level' in bsdf.inputs:
       bsdf.inputs['Specular IOR Level'].default_value = 0.25

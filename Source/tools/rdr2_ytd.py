@@ -154,11 +154,55 @@ class Ytd:
         return out
 
     def textures_any(self):
-        """内联布局优先；解不出时退到指针数组布局。"""
+        """内联布局优先；解不出时退到指针数组布局；再不行做全表签名扫描。"""
         t = self.textures()
         if t:
             return t
-        return self.textures_ptr_array()
+        t = self.textures_ptr_array()
+        if t:
+            return t
+        return self.textures_scan()
+
+    def textures_scan(self):
+        """★ 2026-10-29 补：第三种布局 —— 条目**不在**固定基址，步长也不一定是 0xB0。
+
+        实例 `0xc0dd0f37.ytd`（3.08 MB）：2 张纹理，结构体在 0x156100/0x156260（步长 0x160），
+        两种老布局都定位不到。做法：全表 4 字节对齐扫"结构体签名"：
+
+            +0x18 u16 w, +0x1A u16 h  → 2 的幂，4..8192
+            +0x38 u64 gfx 指针        → 落在 GFX 段
+            +0x28 u64 名字指针        → 落在 SYS 段，且内容是**可打印 ASCII**
+            +0x1C u32 fmt             → 非 0
+
+        四个条件同时成立才收，误判率极低（随机字节同时满足这四条的概率可以忽略）。
+        """
+        out = []
+        body = self.body
+        n = len(body)
+        for o in range(0, n - 0x40 + 1, 4):
+            w = struct.unpack_from('<H', body, o + 0x18)[0]
+            if not (4 <= w <= 8192 and (w & (w - 1)) == 0):
+                continue
+            h = struct.unpack_from('<H', body, o + 0x1A)[0]
+            if not (4 <= h <= 8192 and (h & (h - 1)) == 0):
+                continue
+            fmt = struct.unpack_from('<I', body, o + 0x1C)[0]
+            if fmt == 0:
+                continue
+            dptr = struct.unpack_from('<Q', body, o + 0x38)[0]
+            if not (GFX <= dptr < 0x90000000):
+                continue
+            nptr = struct.unpack_from('<Q', body, o + 0x28)[0]
+            if not (SYS <= nptr < GFX):
+                continue
+            nm = self.cstr(nptr)
+            if len(nm) < 3 or not all(32 <= ord(c) < 127 for c in nm):
+                continue
+            out.append(dict(idx=len(out), entry=o, w=w, h=h,
+                            size=self.u32(o + 0x08), fl0c=self.u32(o + 0x0c),
+                            fmt=fmt, f20=self.u32(o + 0x20), f24=self.u32(o + 0x24),
+                            gfx_off=dptr - GFX, name=nm))
+        return out
 
 
 def mip0_bytes(w, h, bpp=1.0):

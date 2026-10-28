@@ -54,23 +54,19 @@
    - `update_1..4` 只扫了 `ydr/yft`，没扫 `ydd`；
    - 也可能是 `_ph/_occ` 之类代理（3,061 里有多少是代理还没逐条核）。
 2. **室内 319 个 hash**：卡在 MLO `rooms/portals` 变换（老阻塞，见 §5 #室内）。
-3. **贴图表 id↔名字↔文件 三者有错位（新发现，最脏的一块）**：
-   `tex` 表被多次重建/排序过、`tid` 还被复用，所以"表里的名字"和"文件里的图"可能不是一个东西。
-   实测两例：`new_gar06_park_terrain`（`0x3744d21b`）源 `.ydr` 要的是
-   `nbx_ground_grass_bay_lsuh_ab` + `nbx_ground_dirt04_ab`，库里 `s` 却是 `[353,352,352,352]`；
-   而 `tex/0352.png` 实测**就是** `nbx_ground_dirt04_ab`（逐像素 diff **0.0**），表里却写着 `p_doornbd39x_ab`。
-   另抽 300 条核对：可比对 83 条里 **82 条一致、1 条不一致**（`id 5233 van_metal_railing_02_abal` diff 40.7）。
-   → **根治**：贴图重新解包，`id` 改成"名字的 hash"（不可变），`.mdl` 子网格**存名字**；
-   在那之前，manifest 里的贴图名只能当线索，不能当结论。
+3. **~~贴图表 id↔名字↔文件 三者有错位~~ → 已彻底重做**（2026-10-29，详见覆盖率核查 §11）：
+   贴图表整表按**名字**重建（`id = 名字排序下标`，`tex/<id>.png` 由 ytd 按名字解出），
+   55,608 个模型全部按**源文件**重绑，`.mdl` 回写 221,494 个子网格；
+   审计 600 模型 / 2,416 子网格 → **绑错 0**。剩余 2,813 个名字（2.0% 引用）所有包里都没有图。
 4. `no_definition` 486 个 hash：来源不明（ytyp 里没有），下一轮用 `archetype_swaps.ymt` 之类查。
 
 ---
 
 ## 一句话状态
 
-**唯一主产物：`deliverable/blender/continent/continent_v9.blend`**（6.81 GiB）
-对象 **147,500** / `ENTITIES` **106,084** / 隐藏 41,413 / 贴图用 **5,505** / 无 albedo **62,467** / manifest → **PASS**。
-模型库 **55,608** / 贴图 **7,074**；缺模型 51,912 hash，其中 **88.1% 是 LOD 合并块（非缺口）**。
+**唯一主产物：`deliverable/blender/continent/continent_v9.blend`**（7.32 GB）
+对象 **147,500** / `ENTITIES` **103,898** / 隐藏 43,599 / 贴图用 **6,967** / 无 albedo **17,682** / manifest → **PASS**。
+模型库 **55,608** / 贴图表 **11,504**（按名字排序定 id；磁盘 ytd 名字索引 128,289）；缺模型 51,912 hash，其中 **88.1% 是 LOD 合并块（非缺口）**。
 
 ---
 
@@ -95,7 +91,7 @@
 
 | 文件 | 大小 | 说明 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v9.blend` | 6.81 GiB | **本轮主产物**：对象 **147,500** / `ENTITIES` **106,084** / 隐藏 **41,413**（地形 30,549、植被 10,860、占位 4）/ 12 类 11 类有对象（`int` 与 v8 同缺）/ 贴图用 **5,505** / 无 albedo **62,467**（v8 66,222）/ manifest → **PASS** |
+| `deliverable/blender/continent/continent_v9.blend` | 7.32 GB | **本轮主产物**：对象 **147,500** / `ENTITIES` **103,898** / 隐藏 **43,599**（地形 30,549、植被 10,860、LOD 2,186、占位 4）/ 12 类 11 类有对象（`int` 与 v8 同缺）/ 贴图用 **6,967** / 无 albedo **17,682**（贴图重做前 62,467）/ manifest → **PASS** |
 | `deliverable/blender/continent/continent_v8.blend` | 6.81 GiB | 上一版，保留作对照（可删） |
 | `.../manifest_continent_v9.json` / `.jsonl` / `manifest.json` | 30.7 MB | 对象级清单 + 汇总（汇总由 `manifest_from_jsonl.py` 0.5 秒反算） |
 | `docs/世界与地编/img/verify/v9_city.png` | — | **v9 俯视验证图**（水已蓝、无纯白块）；同目录 `v8_city.png` 是对照 |
@@ -179,7 +175,7 @@ python tools/normalize_lib_index.py --dry
 |---|---|---|---|
 | **1** | `real_ytyp` 3,061 个 hash 无几何 | 真实 ytyp 定义、包里按 hash 找不到 drawable | 先抽 `.ydd`：archetype 的 +100 字段很像 `drawableDictionary`；见 §0.6 |
 | **2** | 室内 319 个 hash | 146 包已解包、2,301 模型入库、79 包已摆；缺 MLO `rooms/portals` 变换 | 用 3 栋已知房子做三角验证（老阻塞） |
-| 3 | 白块（贴图缺口） | 已找到根因并找回大部分：`.mdl` 只存 tid，`tex` 表被覆盖 → **1,782 张孤儿贴图**（磁盘上有、表里没登记），32.5% 子网格引用越界 tid | ✅ 已用 `tools/register_orphan_textures.py` 按 id 补登记（抽样像素比对 5/5 一致），**20,858 个模型 / 23,099 个实例恢复 albedo**；残余 5,223 个模型仍然全无 albedo（8.5% 子网格 tid=-1）。**根治未做**：`.mdl` 子网格要存贴图名 |
+| 3 | 贴图"根本不是那张图" | ✅ **已彻底重做**（详见覆盖率核查 §11）：从 13 个包抽全 **57,235 个 ytd**（41.1 GB → 落盘 34,622 个），名字索引 **6,431 → 128,289**；55,608 个模型**全部**按源文件重绑（0 失败、几何 100% 一致）；贴图表按名字重建 **11,504 条**（`id = 名字排序下标`）；`.mdl` 回写 **221,494 个子网格**；审计 600 模型 / 2,416 子网格 → **绑错 0** | 残余：**2,813 个名字没有图**（占引用 2.0%），13 个包已抽完，下一步查 `appdata0_update.rpf` 与加密子包 |
 | 4 | 地面贴图"无数据白" | 图内 1.84 M px（1.46%）近白，全在 **y > 3200 的地图北缘**（真实地图外） | 已确诊**不是**城区发白；要不要补由你定（`patch_ground_town_white.py`） |
 | 5 | 城区"白块" | ✅ **已定位并修**：不是地面色图，是"无 albedo 材质"在 Workbench 里用默认 0.8 灰白 | v9 起材质带 `diffuse_color`（暖灰），重建后复看 |
 | 6 | 水面灰板 | ✅ 已修：v9 起水材质带 `diffuse_color` + `surface_render_method='BLENDED'` | 重建后复看 |
@@ -221,9 +217,11 @@ python tools/normalize_lib_index.py --dry
 | 地图外占位盒 | 4 个 `*_tempbox*` → `hide_tag='parked_offmap'` → `HIDDEN_PARKED` |
 | `--bbox` | 已加（`--bbox x0,y0,x1,y1`，坐标 = RDR2 世界米） |
 | 分类正则 | `privy` 不再进植被；`p_ivy_01`/`ragwort_vine` 仍进植被 |
-| 重建 | `continent_v9.blend`（`--rails --full`）+ `--relink` 重挂材质 + manifest：**对象 147,500 / ENTITIES 106,084 / 隐藏 41,413 / 待隐藏未隐藏 0 / 贴图用 5,505 / 无 albedo 62,467 → PASS** |
+| 重建 | `continent_v9.blend`（`--rails --full`）+ `--relink` 重挂材质（**191,158 个材质槽**）+ manifest：**对象 147,500 / ENTITIES 103,898 / 隐藏 43,599 / 待隐藏未隐藏 0 / 贴图用 6,967 / 无 albedo 17,682 → PASS** |
 | 俯视验证图 | `docs/世界与地编/img/verify/v9_city.png`（水蓝、无纯白块）对照 `v8_city.png` |
 | 清单收尾提速 | `tools/manifest_from_jsonl.py`：`write_manifest` 的收尾两遍扫描 20~35 分钟 → **0.5 秒** |
+| **贴图彻底重做** | 抽全 57,235 个 ytd（41.1 GB）→ 名字索引 **128,289**；55,608 模型全量按源重绑；贴图表 **11,504 条**（名字排序定 id）；`.mdl` 回写 **221,494 子网格**；审计 **绑错 0**；relink 换 **191,158 个材质槽** |
+| 已知坑补充 | `--only txd` 抽不到世界贴图（ytd 藏在 props 包里）；`extracthash` 遇到游戏在跑会锁包 |
 | 文档 | 覆盖率核查 §10（含 §10.6 孤儿贴图）、最高原则 §6.4 两次复发 + §6.6、AGENTS §4、tools/README、本文件、README |
 
 ---

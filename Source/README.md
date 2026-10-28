@@ -114,8 +114,8 @@ D 盘侧只剩**链接**（`docs` / `tools` = junction，`README.md` / 3 个 bat
 
 | 文件 | 大小 | 内容 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v9.blend` | 6.81 GiB | 对象 **147,500** / `ENTITIES` **106,084** / 隐藏 **41,413**（`HIDDEN_TERRAIN_CELL` 30,549 + `HIDDEN_VEG` 10,860 + `HIDDEN_PARKED` 4） |
-| 同目录 `manifest.json` / `manifest_continent_v9.json` / `.jsonl` | 30.7 MB | 对象级清单：名/hash/分类/位置/bbox/**贴图名**/隐藏标记；贴图用 **5,505** 种，无 albedo 对象 **62,467**（v8 是 66,222） |
+| `deliverable/blender/continent/continent_v9.blend` | 7.32 GB | 对象 **147,500** / `ENTITIES` **103,898** / 隐藏 **43,599**（`HIDDEN_TERRAIN_CELL` 30,549 + `HIDDEN_VEG` 10,860 + `HIDDEN_LOD` 2,186 + `HIDDEN_PARKED` 4） |
+| 同目录 `manifest.json` / `manifest_continent_v9.json` / `.jsonl` | 30.7 MB | 对象级清单：名/hash/分类/位置/bbox/**贴图名**/隐藏标记；贴图用 **6,967** 种，无 albedo 对象 **17,682**（v8 是 66,222、v9 重绑前 62,467） |
 | `export/world/missing_classified.json` | 9.9 MB | **缺模型分桶**（LOD 块 / 真件 / 包里有无），构建时 `VERIFY` 那行也读它 |
 | 上一版 `continent_v8.blend` | 6.81 GiB | 保留作对照（可直接删） |
 

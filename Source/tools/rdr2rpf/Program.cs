@@ -162,7 +162,9 @@ namespace Rdr2RpfCli
             string outPath = a.Length > 2 ? a[2] : "hashindex.tsv";
             string exts = a.Length > 3 ? a[3] : "ydr,yft";
             int maxDepth = a.Length > 4 ? int.Parse(a[4]) : 6;
-            var want = new HashSet<string>(exts.Split(','), StringComparer.OrdinalIgnoreCase);
+            var want = new HashSet<string>(
+                exts.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries),
+                StringComparer.OrdinalIgnoreCase);
 
             using var fs = new FileStream(arch, FileMode.Open, FileAccess.Read, FileShare.Read,
                                           1 << 20, FileOptions.RandomAccess);
