@@ -1,0 +1,86 @@
+# RDR2 内容包仓库 —— 只同步「模块数据 + 场景」和几个工程文件
+# 其余内容（Assets / AssetSources / AssetPackages / SceneEditData / RuntimeDataCache / bin 等）一律不进库。
+#
+# 与 Taikou 仓库同构：Taikou 管 ModuleData + SceneObj/Main_map，这里多管第二个场景 rdr2_sanit_denis。
+
+# 1. 先忽略仓库根下所有内容
+/*
+# 1.5 放行仓库自身的配置与开发工具
+!/.gitignore
+!/SubModule.xml
+!/git_gui.py
+!/git_assets.py
+!/to_editor_mode.bat
+!/to_game_mode.bat
+# 2. 重新放行要入库的目录（不存在的目录写了也无害，留给后续加内容）
+!/ModuleData/
+!/SceneObj/
+!/Prefabs/
+!/GUI/
+!/ModuleSounds/
+# 3. 深入放行目录内全部文件
+!/ModuleData/**
+!/SceneObj/**
+!/Prefabs/**
+!/GUI/**
+!/ModuleSounds/**
+
+# ===== 4. 生成缓存与编辑器备份：**排除** =====
+# 🔴 以下规则必须排在放行规则**之后** —— gitignore 是「最后一条命中的规则生效」，
+#    写在前面会被上面的 ! 放行盖掉。
+#
+# 4.1 据点距离缓存 —— 引擎运行期产物（只在文件不存在时自建），不是数据源。
+#     库里存一份 = 存一份**陈旧**的：世界改过据点后引擎不重写它（Taikou 雷 53）。
+ModuleData/settlements_distance_cache.bin
+ModuleData/DistanceCaches/**
+#
+# 4.2 shader 编译缓存 —— D3D11 产物，与显卡/驱动/引擎版本绑定，跨机器无意义。
+SceneObj/**/ShaderCache/**
+#
+# 4.3 编辑器自动备份 —— ModKit 保存前的场景快照（SceneObj/Backups/ 下按场景名分目录）。
+#     实测 51 MB（含两份 terrain.bin 副本），属"改坏了的退路"，不是数据源。
+SceneObj/Backups/**
+#
+# 4.4 手工备份文件 —— 批量改动前脚本留的 `*.bak_*`。
+#     用**通配**而不是点名：点名 = 漏网（CLAUDE.md 铁律 26 的实测教训）。
+*.bak*
+#
+# 4.5 🔴 二进制「资源」（`*.bin`）不进主分支 —— 2026-10-28 用户裁定。
+#     涉及：`SceneObj/*/terrain.bin`（地形本体，大地图 47.3 MB + 圣丹尼斯 4.6 MB）、
+#           `SceneObj/*/flora.bin`（植被表）、以及任何将来冒出来的 .bin。
+#     ⇒ 它们走**资源快照**：`python git_assets.py save` 把 *.bin 与 AssetPackages/*.tpac
+#       传到远程 `assets` 分支。那条分支**永远只有一个提交**（每次整个重建再强推），
+#       所以只存当前这一份，历史和仓库都不会越滚越大。GUI 里就是「📦 上传资产 / 📥 下载资产」。
+#     ⚠️ 克隆主分支下来**没有地形**，要 `git_assets.py load` 拉回快照，或在 ModKit 里重新 Import：
+#        `Debug\RD2构造相关\terrain\rdr2_height_4097.png`（大地图）/
+#        `Debug\RD2构造相关\terrain_sdn\rdr2_sdn_height_1537.png`（圣丹尼斯）。
+*.bin
+
+# ===== 5. 编辑器工程 / 导入源 / 编译产物：整目录不进库 =====
+#
+# 5.1 Assets / AssetSources —— ModKit 工程与导入源（实测 2.5 GB / 4.7 GB）。
+#     它们是"用户用 ModKit 导入后重建"的东西，不是可 diff 的源。
+/Assets/**
+/Assets_disabled/**
+/AssetSources/**
+/AssetSources_disabled/**
+#
+# 5.2 AssetPackages —— Publish 出来的 tpac（游戏读的那个）。与 Taikou 一致不进库。
+/AssetPackages/**
+/EmAssetPackages/**
+/EmAssetPackages_disabled/**
+#
+# 5.3 SceneEditData —— 编辑器地形笔刷的 undo 数据（实测 549 MB）。
+/SceneEditData/**
+#
+# 5.4 RuntimeDataCache —— 引擎/编辑器的运行期缓存（实测 2.7 GB）。
+/RuntimeDataCache/**
+#
+# 5.5 bin —— 编译产物。
+/bin/**
+
+# 🔴 **不在上面排除列表里的**（有意保留入库，别顺手加进来）：
+#     SceneObj/*/scene.xscene  —— 场景与实体（圣丹尼斯 6,568 个实例就在里面，纯文本、可 diff）
+#     SceneObj/*/atmosphere.xml / references.txt —— 场景配套（纯文本）
+#     ModuleData/**            —— 世界数据 + 语言 + project.mbproj（全是文本）
+#     判据：文本进库、二进制不进（见 4.5）。
