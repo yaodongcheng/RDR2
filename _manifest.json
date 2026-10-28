@@ -1,0 +1,29 @@
+{
+  "saved_at": "2026-10-28 23:58:29",
+  "files": {
+    "AssetPackages/rdr2_city_test.tpac": {
+      "md5": "0666f796af168c31a01be906dd59c5c4",
+      "bytes": 61517
+    },
+    "AssetPackages/rdr2_sdn_city_test.tpac": {
+      "md5": "60f6a3514ba764e9d806e9a56e6ddd26",
+      "bytes": 5909509
+    },
+    "SceneObj/Main_map/flora.bin": {
+      "md5": "43954f074b3f438a80e6cc97e6e94fea",
+      "bytes": 12
+    },
+    "SceneObj/Main_map/terrain.bin": {
+      "md5": "6f0770c77e38413261888d58293f25c5",
+      "bytes": 49565917
+    },
+    "SceneObj/rdr2_sanit_denis/flora.bin": {
+      "md5": "43954f074b3f438a80e6cc97e6e94fea",
+      "bytes": 12
+    },
+    "SceneObj/rdr2_sanit_denis/terrain.bin": {
+      "md5": "f00d1eff15f9d748b3b66271c55f3627",
+      "bytes": 4789671
+    }
+  }
+}
