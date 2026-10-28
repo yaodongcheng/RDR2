@@ -1,7 +1,8 @@
-# RDR2 内容包仓库 —— 只同步「模块数据 + 场景」和几个工程文件
-# 其余内容（Assets / AssetSources / AssetPackages / SceneEditData / RuntimeDataCache / bin 等）一律不进库。
+# RDR2 内容包仓库 —— 只同步「模块数据 + 场景 + 解析工程文本层」和几个工程文件
+# 其余内容（Assets / AssetSources / SceneEditData / RuntimeDataCache / bin / 图片 / 二进制）一律不进库。
 #
-# 与 Taikou 仓库同构：Taikou 管 ModuleData + SceneObj/Main_map，这里多管第二个场景 rdr2_sanit_denis。
+# 与 Taikou 仓库同构：Taikou 管 ModuleData + SceneObj/Main_map，这里多管第二个场景 rdr2_sanit_denis，
+# 外加 Source/（大镖客2 解包分析工程的 docs + tools 文本层，D:\ 侧是 junction 指回来）。
 
 # 1. 先忽略仓库根下所有内容
 /*
@@ -18,12 +19,15 @@
 !/Prefabs/
 !/GUI/
 !/ModuleSounds/
+!/Source/
 # 3. 深入放行目录内全部文件
 !/ModuleData/**
 !/SceneObj/**
 !/Prefabs/**
 !/GUI/**
 !/ModuleSounds/**
+# Source/ 内部由 Source/.gitignore 接管（只收文本，图片/二进制不进）
+!/Source/**
 
 # ===== 4. 生成缓存与编辑器备份：**排除** =====
 # 🔴 以下规则必须排在放行规则**之后** —— gitignore 是「最后一条命中的规则生效」，

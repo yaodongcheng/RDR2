@@ -1,0 +1,287 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>RDR2 服装 3D 试衣间</title>
+<style>
+:root{--bg:#12161c;--panel:#1a2029;--line:#2b3440;--fg:#e6edf3;--mut:#8b98a6;--acc:#d9a441}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.55 "Microsoft YaHei",system-ui,sans-serif}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+h1{font-size:17px;margin:0}.kpi{color:var(--mut)}.kpi b{color:var(--acc)}
+.wrap{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 60px)}
+aside{border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.bar{padding:8px;border-bottom:1px solid var(--line);display:flex;gap:6px;flex-wrap:wrap}
+input,select{background:#0e1218;border:1px solid var(--line);color:var(--fg);padding:6px 8px;border-radius:6px;font:inherit}
+input{flex:1;min-width:100px}
+.list{overflow:auto;flex:1}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{background:#1c242f;border:1px solid var(--line);color:#c7d2de;padding:3px 9px;border-radius:99px;
+  cursor:pointer;font-size:11.5px;white-space:nowrap}
+.chip:hover{border-color:#43536a}
+.chip.on{background:var(--acc);color:#1a1206;border-color:var(--acc)}
+.chip small{opacity:.7;margin-left:4px}
+.item{display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;border-bottom:1px solid #1d242d}
+.item:hover{background:#1e2732}.item.on{background:#243041}
+.item img{width:24px;height:36px;object-fit:contain;background:#0e1218;border-radius:3px;flex:none}
+.item .n{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#a9b6c4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .s{margin-left:auto;font-size:11px;color:var(--mut);flex:none}
+main{position:relative;overflow:hidden}
+canvas{display:block}
+#hud{position:absolute;left:14px;top:12px;color:#cfd8e3;font-size:12px;line-height:1.6;pointer-events:none;text-shadow:0 1px 2px #000}
+#tools{position:absolute;right:14px;top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+button{background:#1c242f;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:6px;cursor:pointer;font:inherit}
+button.on{background:var(--acc);color:#1a1206;border-color:var(--acc)}
+.empty{color:var(--mut);padding:20px;text-align:center}
+.more{width:100%;background:#1c242f;border:0;border-top:1px solid var(--line);color:#9fb4c9;padding:10px;cursor:pointer;font:inherit}
+.more:hover{background:#243041}
+</style></head><body>
+<header>
+  <h1>荒野大镖客 2 · 服装 3D 试衣间</h1>
+  <span class="kpi">模型 <b id="k1">…</b></span>
+  <span class="kpi">槽位 <b id="k2">…</b></span>
+  <span class="kpi">总体积 <b id="k3">…</b></span>
+</header>
+<div class="wrap">
+  <aside>
+    <div class="bar">
+      <input id="q" placeholder="搜索文件名…">
+      <div class="chips" id="sexes"></div>
+      <div class="chips" id="cats"></div>
+      <select id="slot"><option value="">全部槽位</option></select>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+  <main id="stage">
+    <div id="hud">选一件衣服…</div>
+    <div id="tools">
+      <button data-m="male">男模</button>
+      <button data-m="female">女模</button>
+      <button data-m="none" class="on">只看衣服</button>
+      <button id="wire">线框</button>
+      <button id="reset">重置视角</button>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+  function warn(lines){
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;inset:0;z-index:99;background:#1a0f10;color:#ffb4b4;'+
+      'font:14px/1.8 "Microsoft YaHei",sans-serif;padding:60px;white-space:pre-wrap';
+    d.textContent=[].concat(lines).join(String.fromCharCode(10));
+    document.body.appendChild(d);
+  }
+  window.__warn=warn;
+  if (location.protocol==='file:') {
+    warn(['这个页面不能双击打开。','','请回到项目根目录，双击「打开查看器.bat」，','然后在首页点「服装 3D 试衣间」。','','（file:// 下浏览器会拦截 glb 模型和 ES 模块）']);
+  }
+})();
+</script>
+<script type="importmap">{"imports":{"three":"/world/three.module.js","three/addons/":"/world/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const INDEX = __INDEX__;
+if (!Object.keys(INDEX).length) {
+  window.__warn && window.__warn(['索引是空的：export/clothing3d/index.json 没有内容。','请重新运行 tools/export_clothing3d.py。']);
+}
+const THUMBS = __THUMBS__;
+
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x151a22);
+const cam = new THREE.PerspectiveCamera(35, 1, 0.01, 200);
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0, 1.0, 0);
+scene.add(new THREE.HemisphereLight(0xd6e4ff,0x30281f,2.2));
+const k = new THREE.DirectionalLight(0xffffff,2.6); k.position.set(4,7,5); scene.add(k);
+const f = new THREE.DirectionalLight(0x9ec0ff,1.1); f.position.set(-5,3,-4); scene.add(f);
+const warm = new THREE.DirectionalLight(0xffd9a8,.7); warm.position.set(0,4,-6); scene.add(warm);
+// 环境反射（金属扣子/马刺才有金属感）
+try{
+  const pm = new THREE.PMREMGenerator(renderer);
+  const es = new THREE.Scene(); es.background = new THREE.Color(0x20262e);
+  const add=(c,x,y,z,sx,sy,sz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),new THREE.MeshBasicMaterial({color:c}));m.position.set(x,y,z);es.add(m);};
+  add(0xffffff,0,7,0,14,0.2,14); add(0x9ec0ff,-7,3,0,0.2,8,10); add(0xffd9a8,7,3,0,0.2,8,10);
+  scene.environment = pm.fromScene(es,0.08).texture; pm.dispose();
+}catch(e){}
+const grid = new THREE.GridHelper(4, 20, 0x39424f, 0x252c36); scene.add(grid);
+
+const loader = new GLTFLoader();
+let body=null, garment=null, bodyMode='none', wire=false, current=null;
+
+const MANNEQUIN = {
+  male: '/npc/generic/generic_male_01/generic_male_01.glb',
+  female: '/npc/generic/generic_female_01/generic_female_01.glb',
+};
+
+function fit(){
+  const box = new THREE.Box3();
+  if (garment) box.expandByObject(garment);
+  if (body) box.expandByObject(body);
+  if (box.isEmpty()) box.set(new THREE.Vector3(-0.5,-1,-0.5), new THREE.Vector3(0.5,1,0.5));
+  const size = new THREE.Vector3(), c = new THREE.Vector3();
+  box.getSize(size); box.getCenter(c);
+  const maxD = Math.max(size.x,size.y,size.z)||1;
+  const dir = new THREE.Vector3(0.55,0.25,1).normalize();
+  const tanV = Math.tan(cam.fov*Math.PI/360), tanH = tanV*Math.max(0.6,cam.aspect);
+  let dist=0;
+  for(const sx of [-1,1]) for(const sy of [-1,1]) for(const sz of [-1,1]){
+    const p = new THREE.Vector3(sx*size.x/2, sy*size.y/2, sz*size.z/2);
+    dist = Math.max(dist, p.dot(dir) + Math.abs(p.x)/tanH, p.dot(dir) + Math.abs(p.y)/tanV);
+  }
+  controls.target.copy(c);
+  cam.position.copy(c).addScaledVector(dir, (dist||maxD)*1.45);
+  cam.near = Math.max(0.01,maxD/500); cam.far = maxD*60; cam.updateProjectionMatrix();
+  controls.update();
+  grid.position.y = box.min.y;
+}
+
+function loadBody(){
+  if (body){ scene.remove(body); body=null; }
+  if (bodyMode==='none') return;
+  const mode = bodyMode;          // 防止"先发起加载、后切到无模特"时又把人台加回来
+  loader.load(MANNEQUIN[mode], g=>{
+    if (bodyMode !== mode) return;
+    body = g.scene;
+    body.traverse(o=>{ if(o.isMesh){ o.material = new THREE.MeshStandardMaterial({color:0x9a8f80, metalness:0, roughness:0.9, wireframe:false}); o.material.side=THREE.DoubleSide; }});
+    scene.add(body); fit();
+  });
+}
+
+function loadGarment(item){
+  current = item;
+  if (garment){ scene.remove(garment); garment=null; }
+  const url = '/clothing3d/' + item.glb;
+  document.getElementById('hud').innerHTML = `<b>${item.slot}</b> ${item.file}<br>加载中…`;
+  loader.load(url, g=>{
+    garment = g.scene;
+    garment.traverse(o=>{ if(o.isMesh && o.material){ o.material.side=THREE.DoubleSide; o.material.wireframe=wire; }});
+    scene.add(garment); fit();
+    document.getElementById('hud').innerHTML =
+      `<b>${item.slot}</b> ${item.file}<br>${item.tris.toLocaleString()} 面 · ${item.textures} 贴图 · ${(item.bytes/1024).toFixed(0)} KB`;
+  }, undefined, e=>{
+    document.getElementById('hud').innerHTML = `<b>${item.file}</b><br>加载失败：${url}`;
+    console.error(e);
+  });
+}
+
+// ---- 列表（大类 / 槽位 / 搜索 + 分批渲染，全量可翻到）----
+const CAT_ORDER = ['上装','下装','鞋履','头部','手部','配饰','套装','躯干','身体','其它','排除'];
+const listEl = document.getElementById('list');
+const slotSel = document.getElementById('slot');
+const catsEl = document.getElementById('cats');
+const items = Object.entries(INDEX).map(([k,v])=>({key:k,...v}));
+const catRank = c => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 99 : i; };
+items.sort((a,b)=> (catRank(a.cat)-catRank(b.cat)) || a.slot.localeCompare(b.slot) || a.file.localeCompare(b.file));
+
+const catCount = {};
+for (const i of items) catCount[i.cat] = (catCount[i.cat]||0)+1;
+
+document.getElementById('k1').textContent = items.length;
+document.getElementById('k2').textContent = new Set(items.map(i=>i.slot)).size;
+document.getElementById('k3').textContent = (items.reduce((a,b)=>a+b.bytes,0)/1e9).toFixed(2)+' GB';
+
+let q='', slot='', cat='', sex='';
+const SEX_ORDER = ['男','女','通用'];
+const sexCount = {};
+for (const i of items) sexCount[i.sex] = (sexCount[i.sex]||0)+1;
+function buildSexes(){
+  const all = `<button class="chip ${sex===''?'on':''}" data-sex="">男女全部<small>${items.length}</small></button>`;
+  document.getElementById('sexes').innerHTML = all + SEX_ORDER.filter(x=>sexCount[x]).map(x=>
+    `<button class="chip ${sex===x?'on':''}" data-sex="${x}">${x}装<small>${sexCount[x]}</small></button>`).join('');
+  for (const b of document.querySelectorAll('#sexes .chip')) b.onclick = ()=>{
+    sex = b.dataset.sex; cat=''; slot='';
+    buildSexes(); const qp = new URLSearchParams(location.search);
+if (qp.get('sex') && SEX_ORDER.includes(qp.get('sex'))) sex = qp.get('sex');
+if (qp.get('cat') && CAT_ORDER.includes(qp.get('cat'))) cat = qp.get('cat');
+buildSexes(); buildChips(); buildSlots(); apply();
+  };
+}
+// 大类芯片
+function buildChips(){
+  const all = `<button class="chip ${cat===''?'on':''}" data-cat="">全部<small>${items.length}</small></button>`;
+  catsEl.innerHTML = all + CAT_ORDER.filter(c=>catCount[c]).map(c=>
+    `<button class="chip ${cat===c?'on':''}" data-cat="${c}">${c}<small>${catCount[c]}</small></button>`).join('');
+  for (const b of catsEl.querySelectorAll('.chip')) b.onclick = ()=>{ cat=b.dataset.cat; slot=''; const qp = new URLSearchParams(location.search);
+if (qp.get('sex') && SEX_ORDER.includes(qp.get('sex'))) sex = qp.get('sex');
+if (qp.get('cat') && CAT_ORDER.includes(qp.get('cat'))) cat = qp.get('cat');
+buildSexes(); buildChips(); buildSlots(); apply(); };
+}
+function buildSlots(){
+  const pool = items.filter(i=>(!sex || i.sex===sex) && (!cat || i.cat===cat));
+  const cnt = {}; for (const i of pool) cnt[i.slot]=(cnt[i.slot]||0)+1;
+  const slots = Object.keys(cnt).sort();
+  slotSel.innerHTML = `<option value="">全部槽位（${pool.length}）</option>` +
+    slots.map(s=>`<option value="${s}">${s} (${cnt[s]})</option>`).join('');
+  slotSel.value = slot;
+}
+function filteredRows(){
+  return items.filter(i => (!sex || i.sex===sex) && (!cat || i.cat===cat) && (!slot || i.slot===slot) &&
+    (!q || i.file.toLowerCase().includes(q) || (i.slot||'').toLowerCase().includes(q)));
+}
+let rows = [], shown = 0;
+const PAGE = 200;
+function apply(){
+  rows = filteredRows(); shown = 0; listEl.innerHTML=''; renderMore();
+}
+function renderMore(){
+  const end = Math.min(shown + PAGE, rows.length);
+  const frag = [];
+  for (let i=shown;i<end;i++){
+    const it = rows[i], t = THUMBS[it.file] || '';
+    frag.push(`<div class="item" data-k="${it.key}"><img loading="lazy" src="${t? t+'?v=3':''}" alt="">` +
+      `<span class="n">${it.file}</span><span class="s">${it.slot}</span></div>`);
+  }
+  listEl.insertAdjacentHTML('beforeend', frag.join(''));
+  shown = end;
+  const old = listEl.querySelector('.more'); if (old) old.remove();
+  if (shown < rows.length){
+    const b = document.createElement('button');
+    b.className='more'; b.textContent = `继续加载（已显示 ${shown} / ${rows.length}）`;
+    b.onclick = renderMore;
+    listEl.appendChild(b);
+  } else if (rows.length === 0){
+    listEl.innerHTML = '<div class="empty">没有匹配项</div>';
+  }
+}
+listEl.addEventListener('click', e=>{
+  const el = e.target.closest('.item'); if(!el) return;
+  for (const x of listEl.querySelectorAll('.item')) x.classList.toggle('on', x===el);
+  loadGarment(INDEX[el.dataset.k]);
+});
+listEl.addEventListener('scroll', ()=>{
+  if (shown < rows.length && listEl.scrollTop + listEl.clientHeight > listEl.scrollHeight - 120) renderMore();
+});
+document.getElementById('q').oninput = e=>{ q=e.target.value.trim().toLowerCase(); apply(); };
+slotSel.onchange = e=>{ slot=e.target.value; apply(); };
+
+const qp = new URLSearchParams(location.search);
+if (qp.get('sex') && SEX_ORDER.includes(qp.get('sex'))) sex = qp.get('sex');
+if (qp.get('cat') && CAT_ORDER.includes(qp.get('cat'))) cat = qp.get('cat');
+buildSexes(); buildChips(); buildSlots(); apply();
+
+// ---- 渲染循环 / 尺寸 ----
+function resize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w,h,false);
+  cam.aspect = w / Math.max(1,h);
+  cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+renderer.setAnimationLoop(()=>{ controls.update(); renderer.render(scene,cam); });
+resize(); loadBody();
+
+// URL 直连：?item=coat_mr1_001&body=none
+const qs = new URLSearchParams(location.search);
+const qb = qs.get('body');
+if (qb && ['male','female','none'].includes(qb)) {
+  bodyMode = qb;
+  document.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on', x.dataset.m===qb));
+  loadBody();
+}
+const want = qs.get('item');
+if (want && INDEX[want]) { loadGarment(INDEX[want]); }
+</script></body></html>

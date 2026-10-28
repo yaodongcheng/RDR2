@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>RDR2 过场相机解析</title>
+<style>
+:root{--bg:#0d1015;--panel:#151a22;--line:#28313d;--fg:#e2e9f2;--mut:#8d9aab;--hl:#e0b356;--cine:#3fb6a8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+h1{font-size:17px;margin:0}
+select{background:#0f141a;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 9px;min-width:260px}
+.wrap{display:grid;grid-template-columns:1fr 380px;gap:14px;padding:14px 20px 40px}
+@media(max-width:1100px){.wrap{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.panel h2{margin:0;padding:9px 13px;font-size:13px;border-bottom:1px solid var(--line);color:#c7d2df}
+canvas{display:block;width:100%;background:#0a0d12}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:5px 9px;border-bottom:1px solid #1e2530;text-align:left}
+th{color:var(--mut);font-weight:500}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.note{color:var(--mut);font-size:12px;padding:8px 13px;line-height:1.7}
+.tag{display:inline-block;padding:0 7px;border-radius:4px;border:1px solid var(--line);color:var(--mut);font-size:11px;margin-left:6px}
+.tag.s{color:#e0b356;border-color:#6b542b}
+</style></head><body>
+<header>
+  <h1>过场相机解析 · 从 <code>cuts_*.rpf / .yad</code> 直接解出</h1>
+  <select id="pick"></select>
+  <span class="note" id="meta" style="padding:0"></span>
+</header>
+<div class="wrap">
+  <div class="panel">
+    <h2>机位俯视图（箭头 = 朝向，圆点大小 = 停留时长）</h2>
+    <canvas id="cv" width="900" height="620"></canvas>
+    <div class="note" id="legend"></div>
+  </div>
+  <div>
+    <div class="panel" style="margin-bottom:14px">
+      <h2>分段（每段 = 一个固定机位）</h2>
+      <div id="segs"></div>
+    </div>
+    <div class="panel">
+      <h2>说明</h2>
+      <div class="note">
+        数据来源：<code>work/story/cutscene_all/extracted/cuts_*/</code> 的 <code>.yad</code>。<br>
+        相机轨道特征：骨骼 ≤45，且同时含「位移轨（量级 &gt;1.5 米）+ 旋转轨（量级 ≤1）」。<br>
+        坐标为**过场本地坐标**（米）。段内位移 0 = 固定机位；&gt;0 = 运镜。<br>
+        同一过场里多个固定机位且位置接近 → 通常是同一段表演的多个 take（机位备选），
+        不一定是剪辑出来的分镜；分镜编号在 clip 名里（<code>_shot_N</code>）。
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const DATA = /*__DATA__*/;
+const pick = document.getElementById('pick');
+const entries = DATA.cutscenes;
+entries.forEach((c,i)=>{ const o=document.createElement('option'); o.value=i;
+  o.textContent = `${c.cutscene}  ·  ${c.duration}s · ${c.segments.length} 段`; pick.appendChild(o); });
+pick.onchange = ()=>draw(+pick.value);
+
+function quatYaw(q){ // 从四元数取偏航角（绕 y 轴）
+  if(!q) return 0;
+  const [x,y,z,w]=q;
+  const siny = 2*(w*y + z*x), cosy = 1-2*(y*y + x*x);
+  return Math.atan2(siny, cosy);
+}
+function draw(idx){
+  const c = entries[idx];
+  document.getElementById('meta').textContent =
+    `时长 ${c.duration}s · 段数 ${c.segments.length} · 相机块 ${c.block} · 骨骼 ${c.bones}`;
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const pts = c.segments.filter(s=>s.pos);
+  if(!pts.length){ ctx.fillStyle='#8d9aab'; ctx.fillText('无坐标',20,30); return; }
+  let minx=Math.min(...pts.map(p=>p.pos[0])), maxx=Math.max(...pts.map(p=>p.pos[0]));
+  let miny=Math.min(...pts.map(p=>p.pos[1])), maxy=Math.max(...pts.map(p=>p.pos[1]));
+  const span=Math.max(maxx-minx, maxy-miny, 1)*1.4;
+  const cx=(minx+maxx)/2, cy=(miny+maxy)/2;
+  const sc=Math.min(W,H)/span;
+  const X=x=>(x-cx)*sc+W/2, Y=y=>H/2-(y-cy)*sc;
+  // 网格
+  ctx.strokeStyle='#1b2431'; ctx.lineWidth=1;
+  for(let g=-5;g<=5;g++){ const gx=cx+g*span/10, gy=cy+g*span/10;
+    ctx.beginPath(); ctx.moveTo(X(gx),0); ctx.lineTo(X(gx),H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,Y(gy)); ctx.lineTo(W,Y(gy)); ctx.stroke(); }
+  // 相机点 + 朝向
+  pts.forEach((s,i)=>{
+    const x=X(s.pos[0]), y=Y(s.pos[1]);
+    const yaw=quatYaw(s.quat);
+    const len=36+Math.min(40, s.dur*4);
+    ctx.strokeStyle='rgba(224,179,86,.85)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x,y);
+    ctx.lineTo(x+Math.sin(yaw)*len, y-Math.cos(yaw)*len); ctx.stroke();
+    ctx.fillStyle = s.static ? '#3fb6a8' : '#e0b356';
+    ctx.beginPath(); ctx.arc(x,y,4+Math.min(10,s.dur),0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c7d2df'; ctx.font='12px sans-serif';
+    ctx.fillText(`#${i} ${s.dur}s`, x+8, y-8);
+  });
+  document.getElementById('segs').innerHTML = `<table><tr><th>#</th><th>起点</th><th>时长</th>
+    <th>位置(x,y)</th><th>位移</th></tr>` + c.segments.map(s=>`<tr>
+    <td>${s.i}</td><td class="num">${s.t0}s</td><td class="num">${s.dur}s</td>
+    <td class="num">${s.pos?s.pos.join(', '):'—'}</td>
+    <td>${s.static?'<span class="tag s">固定</span>':'<span class="tag">运镜 '+s.move+'m</span>'}</td>
+    </tr>`).join('')+'</table>';
+}
+draw(0);
+</script></body></html>

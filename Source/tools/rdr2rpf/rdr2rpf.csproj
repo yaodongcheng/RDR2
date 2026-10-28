@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyTitle>rdr2rpf</AssemblyTitle>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>rdr2rpf</AssemblyName>
+    <RootNamespace>Rdr2RpfCli</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- src/*.cs are compiled via default globbing; ignore nothing else. -->
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Ship the native Oodle decoder and hash->name table next to the exe. -->
+    <None Update="oo2core_5_win64.dll" Link="oo2core_5_win64.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="src\names.txt" Link="names.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

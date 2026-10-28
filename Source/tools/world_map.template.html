@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>RDR2 开放世界地图 · 地形 + 官方区划 + 全据点</title>
+<style>
+ html,body{margin:0;height:100%;overflow:hidden;background:#0a0c10;color:#dbe4ef;
+   user-select:none;-webkit-user-select:none;
+   font:13px/1.55 "Microsoft YaHei","Segoe UI",system-ui,sans-serif}
+ #view{position:fixed;inset:0}
+ #view canvas{display:block;cursor:grab;touch-action:none}
+ .pan{background:#10151dd9;border:1px solid #26303f;border-radius:10px}
+ #hud{position:fixed;left:12px;top:12px;padding:10px 13px;max-width:350px;z-index:5}
+ #hud h1{margin:0 0 5px;font-size:14px;color:#8fd3ff}
+ #hud .sub{color:#8fa3b8;font-size:12px}
+ #hud b{color:#ffd479}
+ .row{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px}
+ button{background:#1a2330;color:#cfe0f0;border:1px solid #33415a;border-radius:6px;
+   padding:4px 9px;cursor:pointer;font-size:12px;font-family:inherit}
+ button:hover{background:#233246}
+ button.on{background:#2c6fb5;border-color:#4b9ade;color:#fff}
+ #side{position:fixed;right:12px;top:12px;bottom:12px;width:272px;z-index:5;display:flex;flex-direction:column}
+ #side .hd{padding:10px 12px 6px;font-size:13px;color:#8fd3ff;border-bottom:1px solid #26303f}
+ #side input{width:100%;box-sizing:border-box;margin:8px 0 4px;padding:6px 8px;border-radius:6px;
+   border:1px solid #2b3a4d;background:#0d131b;color:#dbe4ef;font-family:inherit;font-size:12px}
+ #side .list{overflow:auto;padding:4px 6px 10px;flex:1}
+ .it{padding:5px 8px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;gap:6px}
+ .it:hover{background:#1a2431}
+ .it.on{background:#26507d}
+ .it .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .it .n{color:#7f93a8;font-size:11px;flex:none}
+ .ghead{padding:7px 8px 2px;color:#7f93a8;font-size:11px}
+ #info{position:fixed;left:12px;bottom:12px;z-index:5;padding:10px 13px;max-width:460px;
+   max-height:46vh;overflow:auto;display:none}
+ #info h2{margin:0 0 4px;font-size:14px;color:#ffd479}
+ #info .meta{color:#93a7bd;font-size:12px}
+ #tip{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:6;padding:6px 14px;
+   border-radius:8px;background:#101820e6;border:1px solid #26303f;color:#9fb4c9;display:none}
+ #err{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);color:#ff9a9a;
+   background:#12080aee;border:1px solid #5b2a2a;border-radius:8px;padding:14px 18px;display:none;
+   z-index:9;max-width:72%;white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px}
+ .spin{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;padding:10px 20px;
+   border-radius:8px;background:#0d141ce6;border:1px solid #26303f;display:none}
+ .legend{font-size:11px;color:#94a8bd;margin-top:6px;line-height:1.7}
+ .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+</style></head>
+<body>
+<div id="view"></div>
+
+<div id="hud" class="pan">
+  <h1>RDR2 开放世界地图</h1>
+  <div class="sub">地形 <b>__TERS__</b> · 官方区划 <b>__NZ__</b> · 据点 <b>__NT__</b> 个</div>
+  <div class="row">
+    <button id="bTer" class="on">地形</button>
+    <button id="bZone" class="on">官方区划</button>
+    <button id="bPin" class="on">据点标记</button>
+    <button id="bPinAll">全部标记</button>
+  </div>
+  <div class="row" style="border-top:1px solid #26303f;padding-top:6px">
+    <span style="color:#7f93a8;font-size:11px;align-self:center;margin-right:2px">视角</span>
+    <button id="vTop">俯视</button>
+    <button id="vIso" class="on">45°</button>
+    <button id="vLow">低空</button>
+    <button id="bReset">重置</button>
+    <button id="bMesh">地形精度 中</button>
+    <button id="bL2Pref">建筑：真模型</button>
+  </div>
+  <div class="row">
+    <span style="color:#7f93a8;font-size:11px;align-self:center;margin-right:2px">拖拽方向</span>
+    <button id="ivX" title="左右转不动手就点这个">左右反转</button>
+    <button id="ivY" title="上下转不动手就点这个">上下反转</button>
+    <span style="color:#7f93a8;font-size:11px;align-self:center">（默认 = three.js OrbitControls 标准）</span>
+  </div>
+  <div class="legend">
+    <span class="sw" style="background:#d0c09b"></span>陆地
+    <span class="sw" style="background:#7e98a8"></span>水域
+    <span class="sw" style="background:#e0b64d"></span>州界
+    <span class="sw" style="background:#a09a80"></span>地区
+    <span class="sw" style="background:#ff7a59"></span>城镇
+  </div>
+  <div class="sub" style="margin-top:5px;color:#7fd6a0">
+    ✅ <b>真地形</b>：30,697 个游戏地形 patch 拼成（校验 RMSE 15 m）· 配色 = 官方几何（states + 35 个官方水体）
+  </div>
+  <div class="sub" id="stat" style="margin-top:6px;line-height:1.7">
+    <b style="color:#ffd479">左键拖</b> 旋转 · <b style="color:#ffd479">右键拖</b> 平移 · <b style="color:#ffd479">滚轮</b> 缩放<br>
+    <b style="color:#ffd479">双击</b> 设为中心 · <b style="color:#ffd479">↑↓←→</b> 微调 · 拖出画面也不断手感
+  </div>
+  <div class="sub" id="viewinfo" style="margin-top:4px;color:#7fd6a0;font-variant-numeric:tabular-nums"></div>
+</div>
+
+<div id="side" class="pan">
+  <div class="hd">据点 / 城镇（点开才加载模型）</div>
+  <div style="padding:0 10px"><input id="q" placeholder="搜索 valentine / 罗兹 / blackwater"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<div id="info" class="pan"></div>
+<div id="tip"></div>
+<div id="err"></div>
+<div id="spin" class="spin">加载据点灰盒…</div>
+
+<script id="three-src" type="text/plain">__THREE__</script>
+<script id="ter-src" type="application/json">__TER__</script>
+<script id="zone-src" type="application/json">__ZONES__</script>
+<script id="town-src" type="application/json">__TOWNS__</script>
+<script>window.RDR2_TOWNS = __BUILTIN__;</script>
+<script type="module">
+window.onerror = (m,s,l,c,e)=>{const d=document.getElementById('err');
+  d.style.display='block'; d.textContent='JS 错误: '+m+'\n'+(e&&e.stack?e.stack.slice(0,700):'');};
+const MAP_IMG = '__MAPIMG__';
+const TERH_IMG = '__TERHIMG__';
+const TH = __TERHMETA__;                  // 真地形高程图元数据（构建时直接注入对象字面量）
+const TER  = JSON.parse(document.getElementById('ter-src').textContent);
+const ZONE = JSON.parse(document.getElementById('zone-src').textContent);
+const TOWNS= JSON.parse(document.getElementById('town-src').textContent).towns;
+const $ = id=>document.getElementById(id);
+const QS = new URLSearchParams(location.search);   // ★ 提前解析：网格分辨率/自检帧数要在建场景之前就生效
+window.__mesh = QS.has('mesh') ? parseInt(QS.get('mesh')) : 0;
+let shotFrames = QS.has('shot') ? (parseInt(QS.get('shot')) || 60) : -1;
+
+let THREE, scene, cam, renderer, controls, root;
+let GLOB_N=768;
+let boxMesh=null, baseMesh, baseMat, chunkGroup, seaMesh, zoneGroup, pinGroup, pinAll, townGroup, gridHelper;
+let W, DX, ZMIN, ZMAX, CX, CY;
+const labelSprites=[];
+const state = { town:null };
+
+function b64u16(b64){
+  const raw = atob(b64); const n = raw.length/2; const a = new Uint16Array(n);
+  for(let i=0;i<n;i++) a[i] = raw.charCodeAt(2*i) | (raw.charCodeAt(2*i+1)<<8);
+  return a;
+}
+// ★ 真地形高程（来自 levels_*.rpf 的 30697 个地形 patch，见 build_terrain_heightmap.py）
+//   TH: {W,H,x0,y0,x1,y1,zmin,zmax}；HV 行序与 PNG 行序一致（row ↔ y 递增）
+let HV=null, VM=null;   // VM: >=1 表示该格有真实地形（空洞则跳过三角）
+function heightAt(x,y){
+  if(!HV) return 0;
+  const fx=(x-TH.x0)/(TH.x1-TH.x0)*(TH.W-1), fy=(y-TH.y0)/(TH.y1-TH.y0)*(TH.H-1);
+  const c0=Math.max(0,Math.min(TH.W-2,Math.floor(fx))), r0=Math.max(0,Math.min(TH.H-2,Math.floor(fy)));
+  const tx=fx-c0, ty=fy-r0, i=r0*TH.W+c0;
+  const h00=HV[i], h10=HV[i+1], h01=HV[i+TH.W], h11=HV[i+TH.W+1];
+  return (h00*(1-tx)+h10*tx)*(1-ty) + (h01*(1-tx)+h11*tx)*ty;
+}
+function loadHeights(){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const cv=document.createElement('canvas'); cv.width=TH.W; cv.height=TH.H;
+      const cx=cv.getContext('2d'); cx.drawImage(img,0,0);
+      const d=cx.getImageData(0,0,TH.W,TH.H).data;
+      HV=new Float32Array(TH.W*TH.H); VM=new Uint8Array(TH.W*TH.H);
+      const k=(TH.zmax-TH.zmin)/65535;
+      for(let i=0,n=TH.W*TH.H;i<n;i++){
+        HV[i]=(d[i*4]<<8 | d[i*4+1])*k + TH.zmin;
+        VM[i]=d[i*4+2]>128?1:0;
+      }
+      res();
+    };
+    img.onerror=()=>rej(new Error('terrain_h.png 载入失败'));
+    img.src=TERH_IMG;
+  });
+}
+function mix(a,b,t){t=Math.max(0,Math.min(1,t));
+  return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function hexc(c){return '#'+c.toString(16).padStart(6,'0');}
+// ★ RDR2 世界是 Z-up，场景根节点 `root` 绕 X 轴 −90° 转成 three 的 Y-up ⇒
+//   RDR2(x,y,z) 在 three 世界空间里是 (x, z, −y)。相机加入的是 scene（three 世界空间），
+//   所以**相机位置/target 必须先做这个转换**，否则会站在地下、看到倒过来的地图。
+function toW(x,y,z){ return new THREE.Vector3(x, z, -y); }
+
+(async()=>{ try{
+  const url = URL.createObjectURL(new Blob([document.getElementById('three-src').textContent],
+                                           {type:'text/javascript'}));
+  THREE = await import(url);
+
+  DX=TER; CX=(DX.x0+DX.x1)/2; CY=(DX.y0+DX.y1)/2;
+
+  renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:QS.has('shot')});
+  window.__shot=QS.has('shot');
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio||1));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  $('view').appendChild(renderer.domElement);
+
+  scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0c10);
+  cam=new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 10, 120000);
+  scene.add(new THREE.HemisphereLight(0xe8f0ff,0x46505e,1.55));
+  const sun=new THREE.DirectionalLight(0xfff3e0,1.9); sun.position.set(-0.6,1.5,0.9); scene.add(sun);
+  const rim=new THREE.DirectionalLight(0xbcd6ff,0.55); rim.position.set(0.8,0.6,-1); scene.add(rim);
+
+  root=new THREE.Group(); root.rotation.x=-Math.PI/2; scene.add(root);   // RDR2 Z-up -> three Y-up
+
+  await loadHeights();
+  buildBaseMap(); buildZones(); buildPins();
+
+  controls=makeOrbit(cam, renderer.domElement);
+  resetView();
+
+  addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);});
+  renderer.domElement.addEventListener('pointerdown', onPick);
+  buildList(); bindUI(); animate();
+  const qs=QS;
+  if(qs.get('dbg')) window.__dbg=1;
+  if(qs.get('nofly')) window.__nofly=1;
+
+
+  if(qs.get('nozone')) zoneGroup.visible=false;
+  if(qs.get('nobase')) { baseMesh.visible=false; if(seaMesh) seaMesh.visible=false; }
+  if(qs.get('nopin')) { pinGroup.visible=false; pinAll.visible=false; }
+  if(qs.get('cam')){ const a=qs.get('cam').split(',').map(Number);
+    cam.position.copy(toW(a[0],a[1],a[2])); if(a[6]) cam.far=a[6]; if(a[7]) cam.near=a[7];
+    cam.updateProjectionMatrix();
+    controls.target.copy(toW(a[3],a[4],a[5])); controls.sync(); controls.apply(); }
+  if(qs.get('selftest')){
+    setTimeout(()=>{
+      const c=renderer.domElement, R=[];
+      const P=(t,x,y,btn)=>new PointerEvent(t,{clientX:x,clientY:y,button:btn||0,
+        buttons:btn===2?2:1,bubbles:true,cancelable:true,pointerId:1,pointerType:'mouse',isPrimary:true});
+      const drag=(x0,y0,x1,y1,btn)=>{ c.dispatchEvent(P('pointerdown',x0,y0,btn));
+        window.dispatchEvent(P('pointermove',x1,y1,btn)); window.dispatchEvent(P('pointerup',x1,y1,btn)); };
+      let th0=controls.sph.th, ph0=controls.sph.ph;
+      drag(600,400,920,430);                       // ← 只发 pointerdown 在 canvas，move/up 在 window
+      R.push('左键拖(320px): Δ方位='+((controls.sph.th-th0)*180/Math.PI).toFixed(1)+'° Δ俯角='+
+             ((controls.sph.ph-ph0)*180/Math.PI).toFixed(1)+'°');
+      const t0=controls.target.clone(); drag(600,400,720,470,2);
+      R.push('右键拖: 平移='+t0.distanceTo(controls.target).toFixed(0)+' m');
+      const r1=controls.sph.r;
+      c.dispatchEvent(new WheelEvent('wheel',{deltaY:-400,clientX:600,clientY:400,bubbles:true,cancelable:true}));
+      R.push('滚轮放大: '+r1.toFixed(0)+'→'+controls.sph.r.toFixed(0));
+      for(let i=0;i<6;i++) drag(600,200,600,880);
+      const elev=()=>'相机仰高'+(90-controls.sph.ph*180/Math.PI).toFixed(0)+'°';
+      R.push('上钳位: '+elev()+'（最高'+(90-VIEW.phMin*180/Math.PI).toFixed(0)+'°）');
+      for(let i=0;i<8;i++) drag(600,800,600,120);
+      R.push('下钳位: '+elev()+'（最低'+(90-VIEW.phMax*180/Math.PI).toFixed(0)+'°）');
+      for(let i=0;i<8;i++) c.dispatchEvent(new WheelEvent('wheel',{deltaY:-800,clientX:600,clientY:400,bubbles:true,cancelable:true}));
+      R.push('最小视距='+controls.sph.r.toFixed(0)+'m(下限'+VIEW.rMin+')');
+      for(let i=0;i<30;i++) c.dispatchEvent(new WheelEvent('wheel',{deltaY:900,clientX:600,clientY:400,bubbles:true,cancelable:true}));
+      R.push('最大视距='+controls.sph.r.toFixed(0)+'m(上限'+VIEW.rMax+')');
+      resetView();
+      document.title='SELFTEST|'+R.join(' | ');
+      const st=$('stat'); if(st) st.textContent=R.join(' | ');
+    }, 400);
+  }
+  if(qs.get('probe')){
+    // 把几个世界点投到 NDC，并把相机矩阵打到标题上（用 --dump-dom 抓）
+    const pts=[[-301,778,115.6],[-571,268,60],[-1000,1500,150],[0,0,0],[1000,-1000,100]];
+    const out=pts.map(p=>{const v=new THREE.Vector3(p[0],p[1],p[2]).applyMatrix4(root.matrixWorld);
+      const q=v.clone().project(cam);
+      return p.join(',')+'->'+q.toArray().map(x=>x.toFixed(2)).join(',');});
+    document.title='PROBE|'+out.join('|')+'|CAM='+cam.position.toArray().map(v=>v.toFixed(1)).join(',')
+      +'|fov='+cam.fov+'near='+cam.near+'far='+cam.far+'aspect='+cam.aspect.toFixed(3)
+      +'|matw='+cam.matrixWorld.elements.map(v=>v.toFixed(2)).join(',');
+  }
+  if(qs.get('town')) setTimeout(()=>openTown(qs.get('town')), 60);
+  if(qs.get('l2')) setTimeout(()=>{ const b=$('bL2'); if(b) b.click(); }, 900);
+  if(qs.get('view')) setTimeout(()=>setView(qs.get('view')), 90);
+  if(qs.get('drag')){ setTimeout(()=>{ const a=qs.get('drag').split(',').map(Number);
+    const c=renderer.domElement, cx=Math.round(innerWidth*0.45), cy=Math.round(innerHeight*0.5);
+    const P=(t,x,y)=>new PointerEvent(t,{clientX:x,clientY:y,button:0,buttons:1,bubbles:true,
+      cancelable:true,pointerId:1,pointerType:'mouse',isPrimary:true});
+    c.dispatchEvent(P('pointerdown',cx,cy));
+    const N=12; for(let i=1;i<=N;i++)
+      window.dispatchEvent(P('pointermove', cx+a[0]*i/N, cy+a[1]*i/N));
+    window.dispatchEvent(P('pointerup',cx+a[0],cy+a[1])); }, 120); }
+  if(qs.get('all')) { pinAll.visible=true; }
+ }catch(e){ const d=$('err'); d.style.display='block';
+   d.textContent='初始化失败: '+(e&&e.stack||e); } })();
+
+// ---------------------------------------------------------------- 官方底图
+// ⚠️ 重要更正：早前用 `common_0.rpf/data/levels/rdr3/heightmap.dat` 当"世界地形"是**错的**——
+//    严格判据（把官方水体多边形投到该图上）显示水/陆毫无相关性（水体百分位 26~58%，随机=50%），
+//    任何朝向/缩放/平移都救不回来 ⇒ 那份数据不是世界高程，据此渲染出的"水域"自然是错的。
+//    现在底图改为 **纯官方几何**：陆地 = STATE 多边形并集，水体 = 官方 35 个水体多边形，
+//    在 Python 侧栅格化成一张贴图（见 tools/build_world_map.py），保证与官方地图一致。
+function buildBaseMap(){
+  const sx=DX.x1-DX.x0, sy=DX.y1-DX.y0;
+  const tex=new THREE.TextureLoader().load(MAP_IMG);
+  tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+  tex.wrapS=tex.wrapT=THREE.ClampToEdgeWrapping;
+  baseMat=new THREE.MeshLambertMaterial({map:tex});
+
+  const N=Math.min(window.__mesh||768, TH.W);       // 顶点网格边长（默认 768，可用 HUD 切换）
+  GLOB_N=N;
+  const hAt=(sc,sr)=>{                              // 双线性取高程（格坐标）
+    const c0=Math.min(TH.W-2,Math.max(0,Math.floor(sc))), r0=Math.min(TH.H-2,Math.max(0,Math.floor(sr)));
+    const tx=sc-c0, ty=sr-r0, j=r0*TH.W+c0;
+    return (HV[j]*(1-tx)+HV[j+1]*tx)*(1-ty)+(HV[j+TH.W]*(1-tx)+HV[j+TH.W+1]*tx)*ty;
+  };
+  // ★ 分块：每块 ~64×64 格 ⇒ three 可按视锥剔除，只画看得见的块
+  const CN=Math.max(2, Math.min(64, Math.round(N/64)));
+  const per=Math.ceil((N-1)/CN);
+  chunkGroup=new THREE.Group(); root.add(chunkGroup);
+  for(let cy=0;cy<CN;cy++) for(let cx=0;cx<CN;cx++){
+    const c0=cx*per, r0=cy*per;
+    const cw=Math.min(per, N-1-c0), rh=Math.min(per, N-1-r0);
+    if(cw<1||rh<1) continue;
+    const vn=(cw+1)*(rh+1);
+    const P=new Float32Array(vn*3), U=new Float32Array(vn*2);
+    // ★ 必须映射到**图幅比例**：格号 (0..N-1) ↔ 图像坐标 (0..TH.W-1)
+    //   之前误用 (格号)/(TH.W-1)*(TH.W-1) ⇒ 只采样到图幅左下 75% ⇒ 地形/掩码整体缩小，
+    //   于是"官方陆地却渲染成黑块"、"边界对不上"。
+    for(let r=0;r<=rh;r++){
+      const ty=(r0+r)/(N-1);
+      const sr=ty*(TH.H-1);
+      const y=TH.y0+ty*(TH.y1-TH.y0);
+      for(let c=0;c<=cw;c++){
+        const i=r*(cw+1)+c, tx=(c0+c)/(N-1);
+        P[i*3]=TH.x0+tx*(TH.x1-TH.x0);
+        P[i*3+1]=y;
+        P[i*3+2]=hAt(tx*(TH.W-1), sr);
+        U[i*2]=tx; U[i*2+1]=ty;
+      }
+    }
+    const I=new Uint32Array(cw*rh*6); let p=0;
+    const vok=(mc,mr)=>{                       // 该网格点在有效掩码上是否为"有地形"
+      if(!VM) return true;
+      const sc=Math.round(mc/(N-1)*(TH.W-1)), sr=Math.round(mr/(N-1)*(TH.H-1));
+      const c0=Math.min(TH.W-1,Math.max(0,sc)), r0=Math.min(TH.H-1,Math.max(0,sr));
+      return VM[r0*TH.W+c0]===1;
+    };
+    for(let r=0;r<rh;r++) for(let c=0;c<cw;c++){
+      const a0=r*(cw+1)+c, b0=a0+1, d0=(r+1)*(cw+1)+c, e0=d0+1;
+      // ★ 空洞（玩法区外/无地形）直接不生成三角形，露出海面/背景，避免假的鼓包
+      const mc0=c0+c, mr0=r0+r;
+      if(VM && !(vok(mc0,mr0)&&vok(mc0+1,mr0)&&vok(mc0,mr0+1)&&vok(mc0+1,mr0+1))) continue;
+      I[p++]=a0;I[p++]=b0;I[p++]=d0;I[p++]=b0;I[p++]=e0;I[p++]=d0;
+    }
+    if(p===0) continue;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(P,3));
+    g.setAttribute('uv',new THREE.BufferAttribute(U,2));
+    g.setIndex(new THREE.BufferAttribute(I.subarray(0,p),1));
+    g.computeVertexNormals(); g.computeBoundingSphere();
+    const _ch=new THREE.Mesh(g, baseMat);
+    _ch.userData={c0:c0, r0:r0, cw:cw, rh:rh};
+    chunkGroup.add(_ch);
+  }
+  baseMesh=chunkGroup;                              // 统一用 baseMesh.visible 控制
+
+  // 海平面（z=0）：地形里海床在 0 以下，放一层半透明水让它读起来像"水"
+  // 海面放在 −2.5 m：真地形里沼泽/三角洲本来就贴近 0 m，放 0 会与地面斑驳打架
+  seaMesh=new THREE.Mesh(new THREE.PlaneGeometry(sx, sy),
+    new THREE.MeshBasicMaterial({color:0x2b5f88,transparent:true,opacity:0.62,depthWrite:false}));
+  seaMesh.position.set((DX.x0+DX.x1)/2,(DX.y0+DX.y1)/2,-2.5);
+  root.add(seaMesh);
+}
+
+// ---------------------------------------------------------------- 官方区划（只画线 + 标签）
+// 填色（陆地/水体）已经烘进底图 PNG，这里只叠矢量线，省性能也更清晰
+const ZSTYLE={STATE:{c:0xffd479,o:0.85,w:0,label:1.0},
+              DISTRICT:{c:0xa09a80,o:0.34,w:0,label:0},
+              REGION:{c:0x86b8a6,o:0.45,w:0,label:0.8},
+              TOWN:{c:0xff9a6a,o:0.70,w:0,label:0.8}};
+function buildZones(){
+  zoneGroup=new THREE.Group(); root.add(zoneGroup);
+  for(const z of ZONE){
+    const S=ZSTYLE[z.ty]; if(!S) continue;
+    const lp=[];
+    for(const poly of z.p) for(let i=0;i<poly.length;i++){
+      const a=poly[i], b=poly[(i+1)%poly.length];
+      lp.push(a[0],a[1],2, b[0],b[1],2);
+    }
+    if(!lp.length) continue;
+    const lg=new THREE.BufferGeometry();
+    lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+    const ln=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:S.c,
+      transparent:true,opacity:S.o,depthWrite:false}));
+    ln.renderOrder=3; zoneGroup.add(ln);
+    if(S.label>0){
+      const sp=makeLabel(zoneLabel(z.n), S.c, S.label, S.label>0.9?24:16, false);
+      sp.position.set(z.cx, z.cy, S.label>0.9?260:150);
+      zoneGroup.add(sp);
+    }
+  }
+}
+function zoneLabel(n){
+  const M={Ambarino:'Ambarino 安巴里诺',Lemoyne:'Lemoyne 莱莫恩',NewAustin:'New Austin 新奥斯汀',
+    NewHanover:'New Hanover 新汉诺威',NuevoParaiso:'Nuevo Paraiso',WestElizabeth:'West Elizabeth 西伊丽莎白',
+    LowerWestElizabeth:'下西伊丽莎白',UpperWestElizabeth:'上西伊丽莎白',Guarma:'Guarma 瓜马',
+    Heartlands:'Heartlands',Cumberland:'Cumberland',roanoke:'Roanoke',scarlettMeadows:'Scarlett Meadows',
+    BayouNwa:'Bayou Nwa',GrizzliesEast:'Grizzlies East',GrizzliesWest:'Grizzlies West',
+    greatPlains:'Great Plains',TallTrees:'Tall Trees',bigvalley:'Big Valley',ChollaSprings:'Cholla Springs',
+    GaptoothRidge:'Gaptooth Ridge',HennigansStead:'Hennigan\'s Stead',BluewaterMarsh:'Bluewater Marsh',
+    RioBravo:'Rio Bravo',DiezCoronas:'Diez Coronas',Perdido:'Perdido',PuntaOrgullo:'Punta Orgullo'};
+  return M[n]||n;
+}
+
+// ---------------------------------------------------------------- 据点 pin
+function buildPins(){
+  pinGroup=new THREE.Group(); pinGroup.name='pins'; root.add(pinGroup);
+  pinAll=new THREE.Group();   pinAll.name='pinsAll'; pinAll.visible=false; root.add(pinAll);
+  for(const t of TOWNS){
+    if(t.grid) continue;
+    const major=!!t.major;
+    const g = major?pinGroup:pinAll;
+    const big=t.n>=800;
+    const px = major?(big?19:16):13;
+    const sp=makeLabel(t.zh, major?(big?0xff9a6a:0xffd479):0x9fc4e8, 1.0, px, true);
+    sp.position.set(t.cx,t.cy,heightAt(t.cx,t.cy)+(big?80:52));
+    sp.userData.code=t.code; g.add(sp);
+  }
+}
+function makeLabel(text,color,scale,px,dot){
+  const cv=document.createElement('canvas'), ctx=cv.getContext('2d');
+  const fs=Math.max(12,Math.round(px));
+  ctx.font=fs+'px "Microsoft YaHei",sans-serif';
+  const w=Math.ceil(ctx.measureText(text).width)+18, h=fs+18+(dot?6:0);
+  cv.width=w; cv.height=h;
+  const c=cv.getContext('2d'); c.font=fs+'px "Microsoft YaHei",sans-serif';
+  if(dot){c.beginPath(); c.arc(w/2,7,3.4,0,7); c.fillStyle=hexc(color); c.fill();}
+  c.fillStyle='rgba(8,12,17,0.66)'; roundRect(c,1,dot?11:1,w-2,h-(dot?12:2),5); c.fill();
+  c.fillStyle=hexc(color); c.textBaseline='middle'; c.textAlign='center';
+  c.fillText(text,w/2,(dot?11:1)+(h-(dot?12:2))/2);
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,
+                                                      depthWrite:false}));
+  sp.renderOrder=20;
+  sp.userData.asp=w/h; sp.userData.sph=px*scale;      // 期望的屏幕高度(px)*系数
+  labelSprites.push(sp);
+  const k=scale*30; sp.scale.set(k*w/h,k,1);
+  return sp;
+}
+// 让标签在任意缩放下都保持恒定屏幕大小（否则离远了看不见、近了又糊一片）
+function fitLabels(){
+  const hPx=Math.max(200, renderer.domElement.clientHeight);
+  const vFov=cam.fov*Math.PI/180;
+  const wpv=new THREE.Vector3();
+  for(const sp of labelSprites){
+    sp.getWorldPosition(wpv);
+    const d=wpv.distanceTo(cam.position);
+    const wp=2*Math.tan(vFov/2)*d/hPx;
+    const k=Math.max(0.5, sp.userData.sph*wp);
+    sp.scale.set(k*sp.userData.asp, k, 1);
+  }
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+
+// ---------------------------------------------------------------- 据点懒加载（核心：按需 + 单实例）
+function loadScript(src){
+  return new Promise((res,rej)=>{const s=document.createElement('script'); s.src=src;
+    s.onload=res; s.onerror=()=>rej(new Error('无法加载 '+src)); document.head.appendChild(s);});
+}
+// ---- 据点数据三级获取：① 内嵌（具名据点） ② 外部 town_data/ ③ 用户手动选的文件夹 ----
+let DIRFILES=null;
+function ensureDirPicker(){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.multiple=true; inp.webkitdirectory=true; inp.style.display='none';
+  inp.onchange=()=>{ DIRFILES={}; for(const f of inp.files) DIRFILES[f.name]=f;
+    $('tip').style.display='block';
+    $('tip').textContent='已读取 '+inp.files.length+' 个文件；请再点一次该据点';
+    setTimeout(()=>$('tip').style.display='none', 4000); };
+  document.body.appendChild(inp);
+  return inp;
+}
+async function ensureTownData(code){
+  if(window.RDR2_TOWNS[code]) return true;
+  try{ await loadScript('town_data/'+code+'.js'); }catch(e){}
+  if(window.RDR2_TOWNS[code]) return true;
+  if(DIRFILES && DIRFILES[code+'.js']){
+    try{ const txt=await DIRFILES[code+'.js'].text(); (new Function(txt))(); }catch(e){}
+  }
+  return !!window.RDR2_TOWNS[code];
+}
+function disposeTown(){
+  if(!townGroup) return;
+  townGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose();
+    if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); }});
+  root.remove(townGroup); townGroup=null;
+  if(gridHelper){root.remove(gridHelper); gridHelper.geometry.dispose();
+    gridHelper.material.dispose(); gridHelper=null;}
+}
+async function openTown(code){
+  const t=TOWNS.find(x=>x.code===code); if(!t) return;
+  $('spin').style.display='block';
+  $('err').style.display='none';
+  try{
+    const okLoad=await ensureTownData(code);
+    if(!okLoad){
+      // 兜底：让用户选一次 town_data 文件夹（file:// 下目录选择 API 不可用，用 input[webkitdirectory]）
+      $('spin').style.display='none';
+      const d=$('err'); d.style.display='block';
+      d.innerHTML='打不开 <b>'+code+'</b>：本页是「命名据点已内嵌」版，但 <code>'+code+
+        '</code> 属于<b>区域网格</b>，数据在外部 <code>town_data/</code> 里，当前目录找不到。<br><br>'+
+        '① 把 <code>world_map.html</code> 放回 <code>export/levels/world/</code>（与 town_data 同目录）；或<br>'+
+        '② 手动选一次 town_data 文件夹 → <button id="pickDir" style="margin-top:6px">选择 town_data 文件夹</button>';
+      const btn=$('pickDir');
+      if(btn) btn.onclick=()=>{ const inp=(window.__dirInput||(window.__dirInput=ensureDirPicker())); inp.click(); };
+      return;
+    }
+    const ents=window.RDR2_TOWNS[code]||[];
+    disposeTown(); disposeL2(); releaseChunks(); boxMesh=null; HPATCH=null; refineTerrain();  // ★ 切镇先释放上一个 → 内存恒定
+
+    if(seaMesh) seaMesh.visible=false;               // 进镇看地面
+    townGroup=new THREE.Group(); root.add(townGroup);
+    // ★ 实体布局（16 个数）：[0]arch [1..3]xyz [4..7]quat(xyzw) [8,9]scaleXY,scaleZ
+    //                        [10..12]bboxMin [13..15]bboxMax
+    // 早前把 quat 写成 e[3..6]、bbox 写成 e[11..16] ⇒ 越界读到 undefined ⇒ 矩阵变 NaN
+    // ⇒ WebGL 整帧崩掉、画面全黑。这里先做一次有限性过滤，任何脏数据都不得进 GPU。
+    const finite=e=>{ for(let k=1;k<16;k++){ if(!Number.isFinite(e[k])) return false; } return true; };
+    const ZOFF=0;                                     // 真地形可直接用原始高程，不再需要压平
+    disposeL2();                                      // 切镇时释放上一镇的 L2
+    const good=ents.filter(finite);
+    const cap=24000;
+    const use=good.length>cap?good.filter((_,i)=>i%Math.ceil(good.length/cap)===0):good;
+    const inst=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial(),Math.max(1,use.length));
+    inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    inst.frustumCulled=false;
+    const m=new THREE.Matrix4(), q=new THREE.Quaternion(), vp=new THREE.Vector3(),
+          vs=new THREE.Vector3(), vc=new THREE.Vector3(), col=new THREE.Color();
+    let big=0, mid=0, small=0;
+    use.forEach((e,i)=>{
+      const kxy=Math.abs(e[8])||1, kz=Math.abs(e[9])||1;
+      const sx=Math.max(0.25,Math.abs((e[13]-e[10])*kxy)),
+            sy=Math.max(0.25,Math.abs((e[14]-e[11])*kxy)),
+            sZ=Math.max(0.25,Math.abs((e[15]-e[12])*kz));
+      q.set(e[4],e[5],e[6],e[7]);
+      if(q.x===0&&q.y===0&&q.z===0&&q.w===0) q.set(0,0,0,1);
+      vc.set((e[10]+e[13])/2*kxy,(e[11]+e[14])/2*kxy,(e[12]+e[15])/2*kz).applyQuaternion(q);
+      vp.set(e[1]+vc.x, e[2]+vc.y, e[3]+vc.z+ZOFF);   // ZOFF：把该镇抬到平面地图上
+      vs.set(sx,sy,sZ);
+      m.compose(vp,q,vs); inst.setMatrixAt(i,m);
+      const mx=Math.max(sx,sy,sZ);
+      if(sZ<2.5 && mx>12){col.setHex(0x8a9099);big++;}        // 大片地面/甲板
+      else if(sZ>=3.5){col.setHex(0xf2dcab);mid++;}           // 立起来的建筑体块
+      else if(mx>4){col.setHex(0x9ecdf5);small++;}            // 中等物件
+      else {col.setHex(0xe0836a);small++;}                    // 小物件
+      if(sZ<2.5 && mx>12){/*big 已计*/} else if(sZ>=3.5){/*mid 已计*/}
+      inst.setColorAt(i,col);
+    });
+    inst.instanceMatrix.needsUpdate=true;
+    if(inst.instanceColor) inst.instanceColor.needsUpdate=true;
+    townGroup.add(inst);
+    inst.userData.isBox=true;
+    boxMesh=inst;
+    gridHelper=new THREE.GridHelper(Math.max(80,t.bbox[3]-t.bbox[0]),10,0x5c7c9c,0x3a4a58);
+    gridHelper.material.opacity=0.45; gridHelper.material.transparent=true;
+    gridHelper.position.set(t.cx,t.cy,heightAt(t.cx,t.cy)+0.6); root.add(gridHelper);
+    state.town=code;
+    $('info').style.display='block';
+    $('info').innerHTML='<h2>'+t.zh+' <span style="color:#8fa3b8;font-size:12px">('+t.name+')</span></h2>'+
+      '<div class="meta">区域码 <b>'+t.code+'</b> · 实体 <b>'+ents.length+'</b> 个'+
+      (ents.length!==use.length?'（抽样渲染 '+use.length+'）':'')+
+      ' · 大结构 '+big+' / 建筑 '+mid+' / 小物件 '+small+'</div>'+
+      '<div class="meta">中心 ('+t.cx+', '+t.cy+') · 原始标高 '+Math.round(t.cz)+' m · 范围 '+
+      Math.round(t.bbox[3]-t.bbox[0])+'×'+Math.round(t.bbox[4]-t.bbox[1])+' m</div>'+
+      '<div class="meta" style="color:#8fa3b8">地块已按原始高程贴在真地形上（地形来自游戏地形瓦片）</div>'+
+      '<div class="row"><button onclick="flyTo('+t.cx+','+t.cy+','+Math.max(240,(t.bbox[3]-t.bbox[0])*1.4)+')">飞到镇中心</button>'+
+      '<button onclick="clearTown()">清除</button>'+
+      (L2TOWNS[code]?'<button id="bL2" class="on">真模型</button>':'')+'</div>'+
+      '<div class="meta" id="l2note" style="color:#8fd3ff"></div>';
+    const _cs = (L2CHUNK[code] && prefL2) ? 300 : Math.max(240,(t.bbox[3]-t.bbox[0])*1.4);
+    if(!window.__nofly) flyTo(t.cx,t.cy,_cs, t.cz);
+    highlight(code);
+    // ---- 真模型（L2）：有数据的据点**自动加载**（HUD 上可切回灰盒）----
+    if(L2TOWNS[code]){
+      const note=$('l2note');
+      if(!prefL2){
+        if(note) note.textContent='当前是灰盒（archetype 包围盒）。点左上「建筑：真模型」可切真模型。';
+      } else if(L2CHUNK[code]){
+        // ★ 分块流式：只加载摄像头附近的块
+        if(note) note.textContent='圣丹尼斯采用分块流式：先载入共享贴图，再按摄像头视距加载街区（内存上限 60 MB）…';
+        $('spin').style.display='block'; $('spin').textContent='正在载入圣丹尼斯贴图（29 MB）…';
+        ensureL2Shared(code).then(T=>{
+          $('spin').style.display='none';
+          if(!T){ if(note) note.textContent='分块数据没找到（需要 l2/'+code+'/tex.js）'; return; }
+          l2Loaded=new Set(); l2Missing=new Set(); L2CHUNKS={};
+          if(T.hp) loadPatch(T.hp).then(()=>refineTerrain());
+          updateL2Chunks(); updateL2Chunks();
+          if(boxMesh) boxMesh.visible=false;
+          if($('bL2Pref')) $('bL2Pref').classList.add('on');
+        });
+      } else {
+        if(note) note.textContent='正在加载真模型（ydr 网格 + 原生贴图，'+(L2SIZE[code]||'')+'）…';
+        loadL2For(code, note);
+      }
+    }
+  }catch(e){ const d=$('err'); d.style.display='block';
+    d.textContent='打开据点失败: '+code+'\n'+(e&&e.message||e)+
+      '\n\n请确认 town_data/'+code+'.js 与本页同目录。'; }
+  finally{ $('spin').style.display='none'; }
+}
+function clearTown(){ disposeTown(); disposeL2(); releaseChunks();
+  boxMesh=null; HPATCH=null; refineTerrain(); state.town=null; $('info').style.display='none';
+  if(seaMesh) seaMesh.visible=baseMesh.visible;
+  highlight(null); }
+window.clearTown=clearTown;
+
+// ---------------------------------------------------------------- 相机 / 操控
+// 设计目标：**像地图一样好用**
+//   左键拖 = 旋转（绕目标点，俯角被限制在 7°~73°，永远不会贴地/钻到地图下面）
+//   右键拖 或 Shift+左键拖 或 中键拖 = 平移（沿屏幕平面，用相机自己的基向量）
+//   滚轮 = 朝光标缩放（光标下的点尽量不动）；双指捏合同理
+//   双击 = 把该点设为中心；键盘 ↑↓←→ 旋转、+/- 缩放
+const VIEW={ phMin:0.12, phMax:1.28, rMin:80, rMax:46000, rWheel:0.0011 };
+let GROUND=null;   // three 空间 y=0 ↔ RDR2 z=0（**必须延迟创建**：模块求值时 THREE 还没加载完）
+// 拖拽方向开关（默认按 three.js OrbitControls 标准；点一下即可反转，记忆在 localStorage）
+const DIR={x:1,y:1};
+try{ const v=JSON.parse(localStorage.getItem('rdr2map.dir')||'{}');
+     if(v.x===-1) DIR.x=-1; if(v.y===-1) DIR.y=-1; }catch(_){}
+function saveDir(){ try{ localStorage.setItem('rdr2map.dir',JSON.stringify(DIR)); }catch(_){} }
+
+function makeOrbit(camera, dom){
+  const target=new THREE.Vector3();
+  const sph={r:1,th:0,ph:0};
+  let drag=0, lx=0, ly=0, moved=0;
+  const ptrs=new Map(); let pinch=null;
+
+  // ★ 必须用 **Y-up 球坐标**（three 是 Y-up！）
+  //   ph = 与 +Y 轴夹角（0=正上方俯视，π/2=贴地平视）
+  //   th = 绕 Y 轴的方位角
+  // 早期按 Z-up 写 ⇒ 左右拖拽变成绕一根**水平轴翻滚**，地图会翻跟头 = "没法正常旋转"
+  // 与 three.js OrbitControls **完全同构**（照抄它的约定，保证"手感就是标准"）：
+  //   theta = atan2(x, z)          phi = acos(y / r)
+  //   position: x = r·sinφ·sinθ    y = r·cosφ    z = r·sinφ·cosθ
+  //   拖拽：   theta -= dx·k       phi -= dy·k
+  // ★ 上一版是"抓住地图拖"（Google Maps 式），与 OrbitControls/Blender 式正好左右+上下都相反
+  function sync(){
+    const off=new THREE.Vector3().subVectors(camera.position,target);
+    sph.r=Math.max(1,off.length());
+    sph.th=Math.atan2(off.x,off.z);
+    sph.ph=Math.acos(Math.max(-1,Math.min(1,off.y/sph.r)));
+  }
+  function apply(){
+    sph.ph=Math.max(VIEW.phMin,Math.min(VIEW.phMax,sph.ph));
+    sph.r =Math.max(VIEW.rMin ,Math.min(VIEW.rMax ,sph.r));
+    camera.position.set(target.x+sph.r*Math.sin(sph.ph)*Math.sin(sph.th),
+                        target.y+sph.r*Math.cos(sph.ph),
+                        target.z+sph.r*Math.sin(sph.ph)*Math.cos(sph.th));
+    camera.lookAt(target);
+    updateViewInfo();
+  }
+  function basis(){
+    const f=new THREE.Vector3(); camera.getWorldDirection(f); f.y=0;
+    if(f.lengthSq()<1e-9) f.set(0,0,-1);
+    f.normalize();
+    const r=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),f).normalize();
+    return [f,r];
+  }
+  function panPixels(dx,dy){
+    const k=sph.r*2*Math.tan(camera.fov*Math.PI/360)/Math.max(240,dom.clientHeight);
+    const b=basis();
+    target.addScaledVector(b[1],-dx*k).addScaledVector(b[0],dy*k);
+  }
+  function groundPoint(cx,cy){
+    if(!GROUND) GROUND=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+    const rect=dom.getBoundingClientRect();
+    const rc=new THREE.Raycaster();
+    rc.setFromCamera({x:((cx-rect.left)/rect.width)*2-1, y:-((cy-rect.top)/rect.height)*2+1}, camera);
+    const p=new THREE.Vector3();
+    return rc.ray.intersectPlane(GROUND,p)?p:null;
+  }
+  function zoom(factor, cx, cy){
+    const before=(cx!=null)?groundPoint(cx,cy):null;
+    const oldR=sph.r;
+    sph.r=Math.max(VIEW.rMin,Math.min(VIEW.rMax, sph.r*factor));
+    if(before){ const t=(1-sph.r/oldR); target.lerp(before, Math.max(-0.45,Math.min(0.45,t))); }
+    apply();
+  }
+
+  function onDown(e){
+    if(e.target!==dom) return;                 // 点在 HUD/侧栏上不接管
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===2){ drag=0; const p=[...ptrs.values()];
+      pinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y), mx:(p[0].x+p[1].x)/2, my:(p[0].y+p[1].y)/2};
+      return; }
+    drag=(e.button===2||e.button===1||e.shiftKey)?2:1;    // 2=平移 1=旋转
+    lx=e.clientX; ly=e.clientY; moved=0;
+    dom.style.cursor = drag===1?'grabbing':'move';
+  }
+  function onMove(e){
+    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size>=2 && pinch){
+      const p=[...ptrs.values()];
+      const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+      const mx=(p[0].x+p[1].x)/2, my=(p[0].y+p[1].y)/2;
+      if(pinch.d>4) zoom(pinch.d/Math.max(4,d), mx, my);
+      const b=basis();
+      const k=sph.r*2*Math.tan(camera.fov*Math.PI/360)/Math.max(240,dom.clientHeight);
+      target.addScaledVector(b[1],-(mx-pinch.mx)*k).addScaledVector(b[0],(my-pinch.my)*k);
+      pinch.d=d; pinch.mx=mx; pinch.my=my; apply(); return;
+    }
+    if(!drag) return;
+    const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+    moved+=Math.abs(dx)+Math.abs(dy);
+    if(drag===1){
+      // ★ 与 OrbitControls 逐字一致：rotateLeft(2π·dx/h) / rotateUp(2π·dy/h)，两轴都用 clientHeight
+      const rot = 2*Math.PI/Math.max(240, dom.clientHeight);
+      sph.th -= dx*DIR.x*rot;
+      sph.ph -= dy*DIR.y*rot;
+    } else panPixels(dx,dy);
+    apply();
+  }
+  function onUp(e){
+    ptrs.delete(e.pointerId);
+    if(ptrs.size<2) pinch=null;
+    drag=0; dom.style.cursor='grab';
+  }
+  function onWheel(e){
+    e.preventDefault();
+    zoom(Math.pow(0.90, -e.deltaY/100), e.clientX, e.clientY);  // 每格约 10%（滚轮上=放大）
+  }
+  function onDbl(e){
+    const g=groundPoint(e.clientX,e.clientY);
+    if(g){ target.copy(g); zoom(0.72, null); }
+  }
+  dom.style.cursor='grab'; dom.style.touchAction='none';
+  dom.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);          // 监听 window：拖出画布也不丢
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  window.addEventListener('blur', ()=>{ drag=0; ptrs.clear(); pinch=null; });
+  dom.addEventListener('wheel', onWheel, {passive:false});
+  dom.addEventListener('dblclick', onDbl);
+  dom.addEventListener('contextmenu', e=>e.preventDefault());
+  window.addEventListener('keydown', e=>{
+    const k=e.key, st=e.shiftKey?120:40;
+    if(k==='ArrowLeft'){ sph.th+=0.10; apply(); }
+    else if(k==='ArrowRight'){ sph.th-=0.10; apply(); }
+    else if(k==='ArrowUp'){ sph.ph=Math.max(VIEW.phMin,sph.ph-0.07); apply(); }
+    else if(k==='ArrowDown'){ sph.ph=Math.min(VIEW.phMax,sph.ph+0.07); apply(); }
+    else if(k==='+'||k==='='){ zoom(0.80); } else if(k==='-'||k==='_'){ zoom(1/0.80); }
+    else return;
+    e.preventDefault();
+  });
+  sync(); apply();
+  return {target,sync,apply,get sph(){return sph;},rotated(){return moved>3;}};
+}
+
+function updateViewInfo(){
+  if(!controls) return;
+  const el=$('viewinfo'); if(!el) return;
+  const f=new THREE.Vector3(); cam.getWorldDirection(f);
+  // three → RDR2：北 = +Y_rdr = −Z_three，东 = +X
+  let hdg=Math.atan2(f.x, -f.z)*180/Math.PI; if(hdg<0) hdg+=360;
+  const tilt=Math.asin(Math.max(-1,Math.min(1,-f.y)))*180/Math.PI;
+  el.textContent='方位 '+hdg.toFixed(0)+'° · 俯角 '+tilt.toFixed(0)+'° · 视距 '+Math.round(controls.sph.r)+' m';
+}
+
+function flyTo(x,y,span,cz){
+  const d=Math.max(220,span*1.35);
+  const gz=heightAt(x,y);
+  controls.target.copy(toW(x,y,gz));
+  cam.position.copy(toW(x-d*0.42, y-d*0.82, gz+d*0.62));
+  controls.sync(); controls.apply();
+}
+window.flyTo=flyTo;
+// 大陆（不含瓜马岛）的包围盒 —— 默认取景以它为中心，北朝上
+function mainlandCenter(){
+  let m=null;
+  for(const z of ZONE){
+    if(z.ty!=='STATE' || z.n==='Guarma') continue;
+    const b=z.b;
+    m=m? [Math.min(m[0],b[0]),Math.min(m[1],b[1]),Math.max(m[2],b[2]),Math.max(m[3],b[3])]
+       : [b[0],b[1],b[2],b[3]];
+  }
+  if(!m) return {cx:CX, cy:CY, w:DX.x1-DX.x0, h:DX.y1-DX.y0};
+  return {cx:(m[0]+m[2])/2, cy:(m[1]+m[3])/2, w:m[2]-m[0], h:m[3]-m[1]};
+}
+function resetView(){
+  const M=mainlandCenter();
+  const r=Math.max(M.w, M.h)*1.35;
+  const gz=heightAt(M.cx, M.cy);
+  controls.target.copy(toW(M.cx, M.cy, gz));
+  // 正南方上空 ⇒ after OrbitControls 约定 x=0 时航向正好是「北」，地图正着看
+  cam.position.set(controls.target.x, controls.target.y+0.95*r, controls.target.z+0.31*r);
+  controls.sync(); controls.apply();
+}
+function setView(kind){
+  const t=controls.target;                     // 已经是 three 世界坐标（Y-up）
+  const town=state.town?TOWNS.find(z=>z.code===state.town):null;
+  const r=Math.max(240, town ? (town.bbox[3]-town.bbox[0])*1.9
+                             : Math.max(DX.x1-DX.x0, DX.y1-DX.y0)*1.18);
+  // 单位方向向量：[x, y(向上), z]；z 为 +（南 = RDR2 −Y）
+  const dirs={ top:[0,0.999,0.02],              // 正俯视（= 官方地图视角）
+               iso:[0.10,0.93,0.35],            // 接近俯视的斜视（默认）
+               low:[-0.25,0.55,0.80] };         // 低空斜视
+  const d=dirs[kind]||dirs.iso;
+  cam.position.set(t.x+d[0]*r, t.y+d[1]*r, t.z+d[2]*r);
+  controls.sync(); controls.apply();
+}
+function topView(){ setView('top'); }
+
+// ---------------------------------------------------------------- 局部精地形（开镇时把顶点高度换成 4 m 精度）
+let HPATCH=null;   // {x0,y0,x1,y1,n,zmin,zmax,px:Uint8ClampedArray}
+function loadPatch(hp){
+  return new Promise(res=>{
+    if(!hp||!hp.b64){ HPATCH=null; return res(null); }
+    const im=new Image();
+    im.onload=()=>{ const cv=document.createElement('canvas'); cv.width=hp.n; cv.height=hp.n;
+      const cx=cv.getContext('2d'); cx.drawImage(im,0,0);
+      HPATCH={x0:hp.x0,y0:hp.y0,x1:hp.x1,y1:hp.y1,n:hp.n,zmin:hp.zmin,zmax:hp.zmax,
+              px:cx.getImageData(0,0,hp.n,hp.n).data};
+      res(HPATCH); };
+    im.onerror=()=>{ HPATCH=null; res(null); };
+    im.src='data:image/png;base64,'+hp.b64;
+  });
+}
+function groundZ(x,y){                       // 镇区范围内用 4 m 精地形，否则用全局 12 m 高程图
+  const H=HPATCH;
+  if(H && x>=H.x0 && x<=H.x1 && y>=H.y0 && y<=H.y1){
+    const sc=(x-H.x0)/(H.x1-H.x0)*(H.n-1), sr=(y-H.y0)/(H.y1-H.y0)*(H.n-1);
+    const c0=Math.min(H.n-2,Math.max(0,Math.floor(sc))), r0=Math.min(H.n-2,Math.max(0,Math.floor(sr)));
+    const tx=sc-c0, ty=sr-r0, k=(H.zmax-H.zmin)/65535;
+    const g=(r,c)=>{ const i=((r*H.n)+c)*4; return ((H.px[i]<<8)|H.px[i+1])*k+H.zmin; };
+    return (g(r0,c0)*(1-tx)+g(r0,c0+1)*tx)*(1-ty) + (g(r0+1,c0)*(1-tx)+g(r0+1,c0+1)*tx)*ty;
+  }
+  return heightAt(x,y);
+}
+function refineTerrain(){
+  // 开镇时：① 顶点高度换成 4 m 精地形（含建筑底座校准场） ② 落进补丁范围内的地形块**细分 3 倍**
+  // 不做细分的话，16 m/格的粗三角形会直接切进建筑（看起来就是"陷进地里"）
+  if(!chunkGroup) return;
+  const S=3;
+  for(const ch of chunkGroup.children){
+    const u=ch.userData; if(!u) continue;
+    const P0=ch.geometry.attributes.position;
+    const bx0=P0.getX(0), by0=P0.getY(0), bx1=P0.getX(u.cw), by1=P0.getY(u.rh*(u.cw+1));
+    const hit = HPATCH && !(bx1<HPATCH.x0||bx0>HPATCH.x1||by1<HPATCH.y0||by0>HPATCH.y1);
+    if(!hit){
+      if(u.fine){ ch.geometry.dispose(); ch.geometry=u.geom0; u.fine=false; }
+      continue;
+    }
+    if(u.fine) continue;
+    if(!u.geom0) u.geom0=ch.geometry;
+    const cw=u.cw*S, rh=u.rh*S;
+    const pos=new Float32Array((cw+1)*(rh+1)*3), uv=new Float32Array((cw+1)*(rh+1)*2);
+    for(let r=0;r<=rh;r++){
+      const ty=(u.r0+r/S)/(GLOB_N-1);
+      const y=TH.y0+ty*(TH.y1-TH.y0);
+      for(let c=0;c<=cw;c++){
+        const tx=(u.c0+c/S)/(GLOB_N-1);
+        const x=TH.x0+tx*(TH.x1-TH.x0);
+        const i=r*(cw+1)+c;
+        pos[i*3]=x; pos[i*3+1]=y; pos[i*3+2]=groundZ(x,y);
+        uv[i*2]=tx; uv[i*2+1]=ty;
+      }
+    }
+    const idx=new Uint32Array(cw*rh*6); let p=0;
+    for(let r=0;r<rh;r++) for(let c=0;c<cw;c++){
+      const a0=r*(cw+1)+c,b0=a0+1,d0=(r+1)*(cw+1)+c,e0=d0+1;
+      idx[p++]=a0;idx[p++]=b0;idx[p++]=d0;idx[p++]=b0;idx[p++]=e0;idx[p++]=d0;
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    g.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+    g.setIndex(new THREE.BufferAttribute(idx,1));
+    g.computeVertexNormals(); g.computeBoundingSphere();
+    ch.geometry=g; u.fine=true;
+  }
+}
+
+// ---------------------------------------------------------------- L2：真模型（有数据的据点才启用）
+const L2TOWNS={val:1, ann:1, sdn:1};   // 已产出真模型（ydr 网格 + 原生贴图）的据点
+const L2SIZE={val:'22 MB', ann:'44 MB', sdn:'分块流式'};   // 包体大小（提示用）
+// ★ 分块流式的据点：数据在 l2/<code>/，按摄像机视距按需加载（游戏做法）
+const L2CHUNK={ sdn:1 };
+let L2TEX=null, L2CHUNKS=null, l2Loaded=null, l2Missing=null, _chunkTick=0;
+let _q=[], _pumping=false;
+
+function rdrCam(){                        // 相机在 RDR2 坐标下的位置
+  const v=new THREE.Vector3(); cam.getWorldPosition(v);
+  return {x:v.x, y:-v.z};                 // three(x,y,z) ← RDR2(x,y,z)→(x,z,−y)
+}
+async function ensureL2Shared(code){
+  if(L2TEX) return L2TEX;
+  try{ await loadScript('l2/'+code+'/tex.js'); }catch(e){}
+  L2TEX=(window.RDR2_L2TEX||{})[code]||null;
+  if(L2TEX){                     // ★ 立刻初始化：否则 animate 会在窗口期调到 null
+    l2Loaded=l2Loaded||new Set(); l2Missing=l2Missing||new Set(); L2CHUNKS=L2CHUNKS||{};
+  }
+  return L2TEX;
+}
+function chunkKey(k0,k1){ return k0+'_'+k1; }
+async function addChunk(code,k0,k1){
+  const key=chunkKey(k0,k1);
+  if(l2Loaded.has(key)||l2Missing.has(key)) return;
+  l2Loaded.add(key);
+  try{ await loadScript('l2/'+code+'/c'+key+'.js'); }
+  catch(e){ l2Loaded.delete(key); l2Missing.add(key); return; }
+  const D=(window.RDR2_L2C||{})[code+':'+key];
+  if(!D){ l2Missing.add(key); return; }
+  if(state.town!==code){ return; }
+  const g=buildL2(D, L2TEX.tex, L2TEX.tex_names);
+  L2CHUNKS[key]={g:g};
+  root.add(g);
+  if($('l2note')) $('l2note').textContent='✅ 真模型（流式）：已加载 '+l2Loaded.size+' 块 / '
+    +'可见 '+Object.values(L2CHUNKS).filter(c=>c.g.visible).length+' 块';
+}
+async function pumpChunks(){                 // ★ 并发度 3：近的先出画面，又不至于一次性解析太多
+  if(_pumping) return; _pumping=true;
+  const run=async()=>{ while(_q.length && state.town && L2CHUNK[state.town]){
+    const [i,j]=_q.shift(); await addChunk(state.town, i, j); } };
+  await Promise.all([run(),run(),run()]);
+  _pumping=false;
+}
+function dropChunk(key){
+  const c=L2CHUNKS[key]; if(!c) return;
+  c.g.traverse(o=>{ if(o.geometry) o.geometry.dispose();
+    if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+      if(m.map) m.map.dispose(); m.dispose(); }); } });
+  root.remove(c.g); delete L2CHUNKS[key]; l2Loaded.delete(key);
+}
+const L2BUDGET = 140*1024*1024;          // 已加载块的总字节上限
+const L2MAXN   = 14;                      // 同时最多保留多少块
+function loadedBytes(){ let t=0; for(const k of Object.keys(L2CHUNKS||{}))
+  t += ((L2TEX&&L2TEX.sizes&&L2TEX.sizes[k])||0); return t; }
+function chunkDist(key, p){
+  if(!L2CHUNKS || !L2CHUNKS[key]) return Infinity;
+  let best=Infinity;
+  for(const m of L2CHUNKS[key].g.children){ const v=new THREE.Vector3();
+    m.getWorldPosition(v);
+    best=Math.min(best, Math.hypot(v.x-p.x, -v.z-p.y)); }
+  return best;
+}
+function updateL2Chunks(){
+  if(!state.town || !L2CHUNK[state.town] || !L2TEX || !l2Loaded || !L2CHUNKS) return;
+  const cs=L2TEX.chunk, ct=L2TEX.center, p=rdrCam();
+  const distC=Math.hypot(p.x-ct[0], p.y-ct[1]);
+  const LOAD=Math.min(1100, Math.max(340, distC*1.15 + 160));
+  const KEEP=LOAD + 260;
+  // 候选：范围内、未加载、未确认缺失，按距离排序
+  const k0a=Math.floor((p.x-ct[0]-LOAD)/cs), k0b=Math.floor((p.x-ct[0]+LOAD)/cs);
+  const k1a=Math.floor((p.y-ct[1]-LOAD)/cs), k1b=Math.floor((p.y-ct[1]+LOAD)/cs);
+  const cand=[];
+  for(let i=k0a;i<=k0b;i++) for(let j=k1a;j<=k1b;j++){
+    const key=chunkKey(i,j);
+    if(l2Loaded.has(key)||l2Missing.has(key)) continue;
+    const cx=ct[0]+(i+0.5)*cs, cy=ct[1]+(j+0.5)*cs;
+    const d=Math.hypot(cx-p.x, cy-p.y);
+    if(d<LOAD) cand.push([d,i,j,key]);
+  }
+  cand.sort((a,b)=>a[0]-b[0]);
+  _q=[];
+  for(const [d,i,j,key] of cand){
+    const sz=(L2TEX.sizes&&L2TEX.sizes[key])||6*1024*1024;
+    // ★ 预算满 ⇒ **踢掉"比这个候选更远"的已加载块来腾地方**（按距离换页）
+    let guard=0;
+    while((loadedBytes()+sz > L2BUDGET || Object.keys(L2CHUNKS).length >= L2MAXN)
+          && Object.keys(L2CHUNKS).length && guard++<40){
+      let farKey=null, farD=-1;
+      for(const k of Object.keys(L2CHUNKS)){ const dd=chunkDist(k,p);
+        if(dd>farD){ farD=dd; farKey=k; } }
+      if(farKey===null || farD <= d) break;     // 已加载的都比候选近 ⇒ 不换
+      dropChunk(farKey);
+    }
+    if(loadedBytes()+sz > L2BUDGET || Object.keys(L2CHUNKS).length >= L2MAXN) continue;
+    _q.push([i,j]);
+  }
+  pumpChunks();
+  // 超出 KEEP 的卸载
+  for(const key of Object.keys(L2CHUNKS)){
+    if(chunkDist(key,p) > KEEP) dropChunk(key);
+  }
+}
+let l2Group=null, l2On=true;
+let prefL2=true;                                  // 默认开：打开据点自动上真模型
+try{ if(localStorage.getItem('rdr2map.l2')==='0') prefL2=false; }catch(_){}
+function loadL2For(code, note){
+  if(l2Group) { l2Group.visible=false; }                 // 已有别的镇的 L2
+  $('spin').style.display='block'; $('spin').textContent='正在加载真模型（'+(L2SIZE[code]||'') + '）…';
+  const b=$('bL2Pref');
+  return ensureL2(code).then(D=>{
+    $('spin').style.display='none';
+    if(!D){ if(note) note.textContent='真模型数据没找到（需要 l2/'+code+'.js）'; return; }
+    if(state.town!==code) return;
+    disposeL2();
+    l2Group=buildL2(D); l2On=true; l2Group.visible=true;
+    if(boxMesh) boxMesh.visible=false;
+    root.add(l2Group);
+    if(D.hp) loadPatch(D.hp).then(()=>refineTerrain());   // ★ 换成 4 m 精地形
+    if(note) note.textContent='✅ 真模型已加载：'+Object.keys(D.models).length+' 个网格 / '
+      +l2Group.children.length+' 个实例（真 UV + 原生贴图）';
+    if(b) b.classList.add('on');
+  }).catch(e=>{ $('spin').style.display='none';
+    if(note) note.textContent='真模型加载失败：'+e; });
+}
+async function ensureL2(code){
+  if(window.RDR2_L2 && window.RDR2_L2[code]) return window.RDR2_L2[code];
+  try{ await loadScript('l2/'+code+'.js'); }catch(e){}
+  return (window.RDR2_L2||{})[code]||null;
+}
+function releaseChunks(){
+  if(L2CHUNKS){ for(const k of Object.keys(L2CHUNKS)) dropChunk(k); }
+  L2CHUNKS=null; l2Loaded=null; l2Missing=null;
+}
+function disposeL2(){
+  if(!l2Group) return;
+  l2Group.traverse(o=>{ if(o.geometry) o.geometry.dispose();
+    if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+      if(m.map) m.map.dispose(); m.dispose(); }); } });
+  root.remove(l2Group); l2Group=null;
+}
+function b64buf(b64){ const bin=atob(b64), n=bin.length, u=new Uint8Array(n);
+  for(let i=0;i<n;i++) u[i]=bin.charCodeAt(i); return u.buffer; }
+function buildL2(D, TEX, TEXN){
+  const grp=new THREE.Group(); const texC={}, matC={}, geoC={};
+  const TT=TEX||D.tex, TN=TEXN||D.tex_names;
+  const texFor=nm=>{ if(nm in texC) return texC[nm];
+    const e=TT[nm]; if(!e||!e.b64){ texC[nm]=null; return null; }
+    const t=new THREE.TextureLoader().load('data:image/png;base64,'+e.b64);
+    t.colorSpace=THREE.SRGBColorSpace; texC[nm]=t; return t; };
+  const matFor=(idx,shader)=>{ const key=idx+'|'+(shader||'');
+    if(matC[key]) return matC[key];
+    const t=texFor(TN[idx]);
+    const decal=/decal/i.test(shader||'');
+    const m=new THREE.MeshLambertMaterial({side:THREE.DoubleSide});
+    if(t) m.map=t; else m.color.setHex(0xc9b89a);
+    if(decal){ m.transparent=true; m.depthWrite=false; m.polygonOffset=true;
+      m.polygonOffsetFactor=-1; m.polygonOffsetUnits=-1; }
+    matC[key]=m; return m; };
+  for(const it of D.insts){
+    const nm=it[0], M=D.models[nm]; if(!M) continue;
+    let G=geoC[nm];
+    if(!G){
+      // 量化二进制解码（u16 → float）—— 比 JSON.parse 快得多、内存也省
+      const q=new Uint16Array(b64buf(M.pp)), pos=new Float32Array(M.vc*3);
+      for(let k=0;k<M.vc;k++){ const s=k*3;
+        pos[s]  =q[s]  /65535*M.psc[0]+M.pmin[0];
+        pos[s+1]=q[s+1]/65535*M.psc[1]+M.pmin[1];
+        pos[s+2]=q[s+2]/65535*M.psc[2]+M.pmin[2]; }
+      const uq=new Uint16Array(b64buf(M.uv)), uvf=new Float32Array(M.vc*2);
+      for(let k=0;k<uvf.length;k++) uvf[k]=uq[k]/65535;
+      const idx=M.i32?new Uint32Array(b64buf(M.i)):new Uint16Array(b64buf(M.i));
+      const g=new THREE.BufferGeometry();
+      g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+      g.setAttribute('uv',new THREE.BufferAttribute(uvf,2));
+      g.setIndex(new THREE.BufferAttribute(idx,1)); g.computeVertexNormals();
+      M.g.forEach((gg,k)=>g.addGroup(gg[0],gg[1],k));
+      G={g:g, mats:M.g.map(gg=>matFor(gg[2], gg[3]))}; geoC[nm]=G;
+    }
+    const mesh=new THREE.Mesh(G.g, G.mats);
+    mesh.position.set(it[1],it[2],it[3]);
+    mesh.quaternion.set(it[4],it[5],it[6],it[7]);
+    mesh.scale.set(it[8]||1, it[9]||1, it[10]||1);
+    grp.add(mesh);
+  }
+  return grp;
+}
+
+// ---------------------------------------------------------------- 拾取 / UI
+let raycaster=null;
+function onPick(e){
+  if(e.button!==0) return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  const nx=((e.clientX-rect.left)/rect.width)*2-1, ny=-((e.clientY-rect.top)/rect.height)*2+1;
+  const sx=e.clientX, sy=e.clientY;
+  const up=ev=>{ renderer.domElement.removeEventListener('pointerup',up);
+    if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>5) return;
+    if(!raycaster) raycaster=new THREE.Raycaster();
+    raycaster.setFromCamera({x:nx,y:ny},cam);
+    const pools=pinGroup.children.concat(pinAll.visible?pinAll.children:[]);
+    const hit=raycaster.intersectObjects(pools,false);
+    if(hit.length){const c=hit[0].object.userData.code; if(c) openTown(c);} };
+  renderer.domElement.addEventListener('pointerup',up);
+}
+function buildList(){
+  const L=$('list'); L.innerHTML='';
+  const named=TOWNS.filter(t=>!t.grid).sort((a,b)=>b.n-a.n);
+  const grid =TOWNS.filter(t=>t.grid).sort((a,b)=>b.n-a.n);
+  add(named,'城镇 / 据点 · '+named.length);
+  add(grid,'区域网格（默认隐藏标记）· '+grid.length);
+  function add(arr,title){
+    const h=document.createElement('div'); h.className='ghead'; h.textContent=title; L.appendChild(h);
+    for(const t of arr){
+      const d=document.createElement('div'); d.className='it'; d.dataset.code=t.code;
+      d.dataset.k=(t.zh+' '+t.name+' '+t.code).toLowerCase();
+      d.innerHTML='<span class="nm">'+t.zh+' <span style="color:#6c8095">'+t.code+'</span></span>'+
+                  '<span class="n">'+t.n+'</span>';
+      d.onclick=()=>openTown(t.code); L.appendChild(d);
+    }
+  }
+}
+function highlight(code){ document.querySelectorAll('#list .it').forEach(el=>
+  el.classList.toggle('on', el.dataset.code===code)); }
+function bindUI(){
+  $('q').addEventListener('input',e=>{ const v=e.target.value.trim().toLowerCase();
+    document.querySelectorAll('#list .it').forEach(el=>{
+      el.style.display = (!v || el.dataset.k.indexOf(v)>=0) ? '' : 'none'; });
+    document.querySelectorAll('#list .ghead').forEach(h=>h.style.display = v?'none':''); });
+  $('bTer').onclick=e=>{ baseMesh.visible=!baseMesh.visible;
+    if(seaMesh) seaMesh.visible=baseMesh.visible;
+    e.target.classList.toggle('on',baseMesh.visible); };
+  $('bZone').onclick=e=>{ zoneGroup.visible=!zoneGroup.visible; e.target.classList.toggle('on',zoneGroup.visible); };
+  $('bPin').onclick=e=>{ pinGroup.visible=!pinGroup.visible; e.target.classList.toggle('on',pinGroup.visible); };
+  $('bPinAll').onclick=e=>{ pinAll.visible=!pinAll.visible; e.target.classList.toggle('on',pinAll.visible); };
+  $('vTop').onclick=e=>{ setView('top'); markView(e); };
+  $('vIso').onclick=e=>{ setView('iso'); markView(e); };
+  $('vLow').onclick=e=>{ setView('low'); markView(e); };
+  $('bReset').onclick=e=>{ resetView(); markView($('vIso')); };
+  function markView(btn){ ['vTop','vIso','vLow'].forEach(i=>$(i).classList.toggle('on', $(i)===btn)); }
+  function markDir(){ $('ivX').classList.toggle('on', DIR.x<0); $('ivY').classList.toggle('on', DIR.y<0); }
+  $('ivX').onclick=()=>{ DIR.x=-DIR.x; saveDir(); markDir(); };
+  $('ivY').onclick=()=>{ DIR.y=-DIR.y; saveDir(); markDir(); };
+  markDir();
+  // 建筑：真模型 / 灰盒
+  const setL2Btn=()=>{ const b=$('bL2Pref'); if(!b) return;
+    b.textContent='建筑：'+(prefL2?'真模型':'灰盒'); b.classList.toggle('on',prefL2); };
+  $('bL2Pref').onclick=()=>{
+    prefL2=!prefL2; try{ localStorage.setItem('rdr2map.l2', prefL2?'1':'0'); }catch(_){}
+    setL2Btn();
+    if(state.town && L2TOWNS[state.town]){
+      if(prefL2){ loadL2For(state.town, $('l2note')); }
+      else { disposeL2(); if(boxMesh) boxMesh.visible=true;
+        const n=$('l2note'); if(n) n.textContent='当前是灰盒（archetype 包围盒）。'; }
+    }
+  };
+  setL2Btn();
+  const cur=window.__mesh||768;
+  $('bMesh').textContent='地形精度 '+(cur<=512?'低':cur<=768?'中':'高');
+  $('bMesh').onclick=()=>{ const u=new URL(location.href);
+    const c=window.__mesh||768, nxt=c<=512?768:(c<=768?1024:512);
+    u.searchParams.set('mesh', nxt); location.href=u.toString(); };
+}
+// ?shot=N：只渲染 N 帧就停（自检用，让 headless 的虚拟时间能推进并退出）
+function animate(){
+  if(shotFrames===0) return;
+  if(shotFrames>0) shotFrames--;
+  requestAnimationFrame(animate);
+  try{ fitLabels(); if((++_chunkTick % 12)===0) updateL2Chunks(); renderer.render(scene,cam);
+    if(window.__dbg){ const st=document.getElementById('stat');
+      st.textContent='DBG cam='+cam.position.toArray().map(v=>v.toFixed(0))+' tgt='+
+        controls.target.toArray().map(v=>v.toFixed(0))+' tris='+renderer.info.render.triangles+
+        ' calls='+renderer.info.render.calls+' terr='+baseMesh.visible+' town='+(townGroup?townGroup.children.length:-1); } }
+  catch(e){ window.__rerr=String((e&&e.stack)||e);
+    if(!window.__rerrShown){ window.__rerrShown=1;
+      const d=document.getElementById('err'); if(d){ d.style.display='block';
+        d.textContent='渲染异常（其它功能仍可用）：'+window.__rerr.slice(0,400); } } } }
+</script></body></html>

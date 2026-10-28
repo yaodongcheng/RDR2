@@ -1,0 +1,8 @@
+# Source/ 的换行与编码规矩
+#
+# 🔴 .bat / .cmd 是 **GBK 编码的 cmd 脚本**（不是 UTF-8）。git 一旦做换行转换
+#    或加 BOM，cmd 里中文 echo 会乱码，甚至第一条命令就认不出（AGENTS.md §4 踩过）。
+#    -text = "别动这个文件的字节和换行"，原样存、原样取回。
+*.bat -text
+*.cmd -text
+*.ps1 -text

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>分镜构图集 · 470 个过场</title>
+<style>
+:root{--bg:#0d1015;--panel:#151a22;--line:#28313d;--fg:#e2e9f2;--mut:#8d9aab;--hl:#e0b356}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif}
+header{padding:13px 20px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+h1{font-size:16px;margin:0}
+select,input{background:#0f141a;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+select{min-width:300px} input{width:200px}
+.meta{color:var(--mut);font-size:12.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px;padding:14px 20px 40px}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+</style></head><body>
+<header>
+  <h1>分镜构图集</h1>
+  <select id="pick"></select>
+  <input id="q" placeholder="过滤：任务/过场名">
+  <span class="meta" id="info"></span>
+</header>
+<div class="grid" id="grid"></div>
+<script>
+const DATA = /*__DATA__*/;
+const pick = document.getElementById('pick');
+const grid = document.getElementById('grid');
+const q = document.getElementById('q');
+
+function yawOf(qq){
+  if(!qq) return 0;
+  const [x,y,z,w]=qq;
+  return Math.atan2(2*(w*y+z*x), 1-2*(y*y+x*x));
+}
+function drawPanel(seg, i){
+  const W=380, H=270, cx=W/2, cy=H*0.55, scale=34, fov=45*Math.PI/180;
+  const yaw=yawOf(seg.quat);
+  const P=(dx,dy)=>[cx + (dx*Math.cos(yaw)-dy*Math.sin(yaw))*scale,
+                    cy - (dx*Math.sin(yaw)+dy*Math.cos(yaw))*scale];
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const g=c.getContext('2d');
+  g.fillStyle='#0b0e13'; g.fillRect(0,0,W,H);
+  const L=P(-Math.tan(fov/2)*6, 6), R=P(Math.tan(fov/2)*6, 6);
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(L[0],L[1]); g.lineTo(R[0],R[1]); g.closePath();
+  g.fillStyle='rgba(63,182,168,.22)'; g.fill();
+  g.strokeStyle='#e0b356'; g.lineWidth=2;
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.sin(yaw)*44, cy-Math.cos(yaw)*44); g.stroke();
+  g.fillStyle='#e0b356'; g.beginPath(); g.arc(cx,cy,6,0,7); g.fill();
+  const acts=seg.actors||[], n=Math.max(1,acts.length);
+  acts.forEach((a,k)=>{
+    const ang=(k-(n-1)/2)*(n>1?26/(n-1):0), d=(k%2===0?3.2:2.4);
+    let [x,y]=P(d*Math.sin(ang*Math.PI/180), d*Math.cos(ang*Math.PI/180));
+    x=Math.min(Math.max(x,26),W-26); y=Math.min(Math.max(y,52),H-16);
+    g.fillStyle='#2f6d68'; g.strokeStyle='#7fd3c8';
+    g.beginPath(); g.arc(x,y,10,0,7); g.fill(); g.stroke();
+    g.fillStyle='#dff'; g.font='10px sans-serif'; g.textAlign='center';
+    g.fillText(a.slice(0,4), x, y+3.5);
+  });
+  (seg.props||[]).forEach((p,k)=>{
+    const [x,y]=P(-2.6+k*1.1, 1.6);
+    g.fillStyle='#8a6f3a'; g.fillRect(Math.min(Math.max(x,8),W-8)-4, Math.min(Math.max(y,50),H-12)-4, 8, 8);
+  });
+  g.textAlign='left'; g.fillStyle='#c7d2df'; g.font='12px sans-serif';
+  g.fillText(`镜 ${i+1} · ${seg.dur.toFixed(1)}s · t=${seg.t0.toFixed(1)}s`, 10, 20);
+  g.fillStyle='#8d9aab'; g.font='10.5px sans-serif';
+  g.fillText(`机位 (${seg.pos[0].toFixed(1)}, ${seg.pos[1].toFixed(1)}) · 朝向 ${(yaw*180/Math.PI).toFixed(0)}°`, 10, 36);
+  const box=document.createElement('div'); box.className='p'; box.appendChild(c);
+  return box;
+}
+function show(item){
+  document.getElementById('info').textContent =
+    `${item.cutscene} · ${item.script||''} · ${item.duration||'?'}s · ${item.segments.length} 段 · 台词 ${item.lines} 句`;
+  grid.innerHTML='';
+  item.segments.forEach((s,i)=>grid.appendChild(drawPanel(s,i)));
+}
+function fillPick(){
+  const f=q.value.trim().toLowerCase();
+  const list=DATA.filter(x=>!f || (x.cutscene+' '+(x.script||'')).toLowerCase().includes(f));
+  pick.innerHTML=list.map((x,i)=>`<option value="${DATA.indexOf(x)}">${x.cutscene} · ${x.script||''} · ${x.segments.length}段</option>`).join('');
+  if(list.length) show(list[0]);
+}
+pick.onchange=()=>show(DATA[+pick.value]);
+q.addEventListener('input',fillPick);
+fillPick();
+</script></body></html>

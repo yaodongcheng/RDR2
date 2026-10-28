@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>RDR2 过场反拆解</title>
+<style>
+:root{--bg:#0e1116;--panel:#151a22;--panel2:#1c232d;--line:#2a3340;--txt:#dfe6ef;
+--dim:#8b98a8;--cine:#3fb6a8;--play:#5a6577;--hl:#e6b455;--bad:#d05555}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif}
+header{padding:14px 20px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#171d26,#0e1116)}
+h1{margin:0 0 4px;font-size:19px;letter-spacing:.5px}
+.sub{color:var(--dim);font-size:12.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:12.5px;color:var(--dim)}
+.chip b{color:var(--txt);font-weight:600}
+.wrap{display:grid;grid-template-columns:minmax(420px,44%) 1fr;gap:14px;padding:14px 20px 40px;align-items:start}
+@media(max-width:1180px){.wrap{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.panel h2{margin:0;padding:10px 13px;font-size:13.5px;border-bottom:1px solid var(--line);color:#c7d2df;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.panel h2 span{font-weight:400;color:var(--dim);font-size:12px}
+video{width:100%;display:block;background:#000}
+#tl{position:relative;height:46px;background:#0b0e13;border-top:1px solid var(--line);cursor:pointer;user-select:none}
+#tl .seg{position:absolute;top:0;height:22px;opacity:.85}
+#tl .seg.cine{background:var(--cine)}
+#tl .seg.play{background:var(--play);opacity:.5}
+#tl .dl{position:absolute;top:25px;height:7px;background:var(--hl);border-radius:2px;opacity:.75}
+#tl #cur{position:absolute;top:0;width:2px;height:46px;background:#fff;box-shadow:0 0 6px #fff;pointer-events:none}
+.tllegend{display:flex;gap:14px;padding:6px 12px;font-size:12px;color:var(--dim);border-top:1px solid var(--line);flex-wrap:wrap}
+.tllegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.tools input[type=search]{flex:1;min-width:120px;background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 9px}
+.tools select,.tools label{background:#0f141a;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 8px;font-size:12.5px}
+.tools label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.list{max-height:calc(100vh - 340px);overflow:auto}
+.row{display:grid;grid-template-columns:64px 1fr;gap:9px;padding:7px 12px;border-bottom:1px solid #1e2530;cursor:pointer}
+.row:hover{background:#1a2230}
+.row.active{background:#233047;box-shadow:inset 3px 0 0 var(--hl)}
+.row .t{color:#7f8ea1;font-size:12px;font-variant-numeric:tabular-nums}
+.row .sp{color:var(--hl);font-weight:600;margin-right:6px}
+.row .zh{color:#93a1b2;font-size:12.5px;margin-top:2px}
+.row .evidence{color:#6f7d8e;font-size:11.5px;margin-top:2px}
+.badge{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;border:1px solid var(--line);color:var(--dim);margin-left:6px;vertical-align:1px}
+.badge.cine{color:var(--cine);border-color:#2b6b64}
+.badge.bank{color:#e08b4a;border-color:#6b4a2b}
+.badge.unm{color:#c96a6a;border-color:#6b2b2b}
+.badge.bad{color:#ff9a9a;border-color:#7a2f2f;background:#2a1414}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:8px;padding:11px}
+.shot{background:var(--panel2);border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;position:relative}
+.shot.play{border-color:#3a4351;opacity:.86}
+.shot img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#000}
+.shot .cap{padding:5px 7px;font-size:11.5px;color:var(--dim);line-height:1.45}
+.shot .cap b{color:var(--txt);font-weight:600}
+.shot .tag{position:absolute;top:5px;left:5px;font-size:10.5px;padding:1px 6px;border-radius:4px;background:#0e1116cc;color:var(--cine)}
+.shot .tag.play{color:#aab4c2}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:5px 9px;border-bottom:1px solid #1e2530;text-align:left}
+th{color:var(--dim);font-weight:500;position:sticky;top:0;background:var(--panel)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:#20293a;border-radius:3px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--cine)}
+.sec{padding:12px 14px;border-top:1px solid var(--line)}
+.sec h3{margin:0 0 8px;font-size:13px;color:#c7d2df}
+.note{color:var(--dim);font-size:12px;line-height:1.7}
+.note code{background:#0f141a;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+a{color:#7fb4ff}
+.srow{cursor:pointer}
+.srow:hover{background:#1a2230}
+</style>
+</head>
+<body>
+<header>
+  <h1>荒野大镖客 2 · 过场反拆解</h1>
+  <div class="sub" id="sub"></div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>录屏播放器 <span id="vtime">00:00.00</span></h2>
+    <video id="v" controls preload="metadata"></video>
+    <div id="tl"></div>
+    <div class="tllegend">
+      <span><i style="background:var(--cine)"></i>过场（有黑边）</span>
+      <span><i style="background:var(--play)"></i>操作</span>
+      <span><i style="background:var(--hl)"></i>台词</span>
+      <span>点时间轴跳转</span>
+    </div>
+    <div class="tools">
+      <input type="search" id="q" placeholder="搜台词 / 说话人 / 任务…">
+      <select id="fk">
+        <option value="">全部类型</option>
+        <option value="dialogue">剧本对白</option>
+        <option value="bank">音频库台词</option>
+        <option value="objective">任务目标</option>
+        <option value="narration">旁白/章节</option>
+        <option value="unmatched">未收录</option>
+        <option value="ui">界面文本</option>
+      </select>
+      <select id="fs"><option value="">全部说话人</option></select>
+      <label><input type="checkbox" id="fonly"> 只看过场</label>
+      <label><input type="checkbox" id="fbad"> 只看冲突</label>
+      <span id="cnt" class="note"></span>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="sec">
+      <h3>数据文件</h3>
+      <div class="note">
+        <a href="dialogue.json">dialogue.json</a> · <a href="dialogue.csv">dialogue.csv</a>（每句：起止/说话人/任务/剧本原文/置信度/字幕名字冲突）<br>
+        <a href="shots.json">shots.json</a> · <a href="shots.csv">shots.csv</a>（每镜头：起止/时长/过场或操作/台词/缩略图）<br>
+        <a href="summary.json">summary.json</a>（每条视频的分段/角色/任务覆盖/缺口）
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel" style="margin-bottom:14px">
+      <h2>过场段 <span id="segn"></span></h2>
+      <div id="segs"></div>
+      <div class="sec"><h3>镜头节奏</h3><div class="note" id="pace"></div></div>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <h2>角色出场 <span>台词数 / 过场台词数</span></h2>
+      <div id="cast" style="max-height:300px;overflow:auto"></div>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <h2>任务覆盖 <span>录屏命中多少句剧本台词</span></h2>
+      <div id="mis"></div>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <h2>镜头表 <span id="shotn"></span></h2>
+      <div class="grid" id="shots"></div>
+    </div>
+    <div class="panel">
+      <h2>缺口 <span>剧本里有、这段录屏没出现的台词</span></h2>
+      <div id="miss" style="max-height:340px;overflow:auto"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+const VIDEOS = DATA.videos || [];
+let cur = 0;
+const v = document.getElementById('v');
+const fmt = t => String(Math.floor(t/60)).padStart(2,'0')+':'+(t%60).toFixed(2).padStart(5,'0');
+const KIND = {dialogue:'剧本',bank:'音频库',objective:'目标',narration:'旁白',ui:'界面',unmatched:'未收录'};
+
+const V = () => VIDEOS[cur];
+const S = () => V().summary;
+const INFO = () => V().info;
+const rowsNow = () => DATA.rows.filter(r => r.video === V().slug);
+const shotsNow = () => DATA.shots.filter(s => s.video === V().slug);
+
+let dur = 1;
+function setVideo(){
+  const vv = V();
+  v.src = vv.src;
+  dur = (INFO().duration || 1);
+  document.getElementById('sub').textContent =
+    `${vv.slug} · ${INFO().width}×${INFO().height} · ${INFO().fps}fps · ${fmt(INFO().duration)} · 生成于 ${DATA.generated}`
+    + (VIDEOS.length>1 ? ` · 共 ${VIDEOS.length} 段录屏` : '');
+  const s = S(), t = s.totals;
+  document.getElementById('chips').innerHTML = [
+    ['镜头', t.shots], ['过场镜头', t.cinematic_shots], ['过场段', t.cutscene_segments],
+    ['过场时长', (t.cutscene_time/60).toFixed(1)+' 分钟'],
+    ['字幕行', t.subtitle_lines],
+    ['已认出说话人', rowsNow().filter(r=>r.speaker_final).length],
+    ['说话人冲突', rowsNow().filter(r=>r.speaker_conflict).length],
+  ].map(([k,x])=>`<span class="chip">${k} <b>${x}</b></span>`).join('');
+  renderAll();
+}
+
+function renderTimeline(){
+  const tl = document.getElementById('tl');
+  let html = '';
+  shotsNow().forEach(s=>{
+    const l = s.t0/dur*100, w = Math.max(0.06, s.dur/dur*100);
+    html += `<div class="seg ${s.cinematic?'cine':'play'}" style="left:${l}%;width:${w}%" title="#${s.id} ${fmt(s.t0)} ${s.dur}s"></div>`;
+  });
+  rowsNow().forEach(r=>{
+    const l = r.t0/dur*100, w = Math.max(0.05, (r.t1-r.t0)/dur*100);
+    html += `<div class="dl" style="left:${l}%;width:${w}%" title="${(r.text||'').replace(/"/g,'')}"></div>`;
+  });
+  tl.innerHTML = html + '<div id="cur" style="left:0"></div>';
+  tl.onclick = e=>{
+    const b = tl.getBoundingClientRect();
+    v.currentTime = Math.max(0, Math.min(dur-0.2, (e.clientX-b.left)/b.width*dur));
+    v.play();
+  };
+}
+
+function renderList(){
+  const q = document.getElementById('q').value.trim();
+  const fk = document.getElementById('fk').value;
+  const fs = document.getElementById('fs').value;
+  const only = document.getElementById('fonly').checked;
+  const bad = document.getElementById('fbad').checked;
+  const all = rowsNow();
+  const out = all.filter(r=>{
+    if (fk && r.kind!==fk) return false;
+    if (fs && r.speaker_final!==fs) return false;
+    if (only && !r.cinematic) return false;
+    if (bad && !r.speaker_conflict) return false;
+    if (q){
+      const hay = [r.text, r.speaker_final, r.match&&r.match.title, r.match&&r.match.zh].filter(Boolean).join(' ');
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  document.getElementById('cnt').textContent = `${out.length} / ${all.length} 句`;
+  document.getElementById('list').innerHTML = out.map(r=>{
+    const m = r.match||{};
+    const cls = r.kind==='dialogue'?'':(r.kind==='bank'?'bank':'unm');
+    const txt = (r.speaker_final?`<span class="sp">${r.speaker_final}</span>`:'') + (r.body||r.text);
+    let zh = '';
+    if (m.zh && m.zh !== (r.body||r.text)){
+      const strip = x => (x||'').replace(/[^\u4e00-\u9fff]/g,'');
+      if (strip(m.zh) !== strip(r.body||'')) zh = `<div class="zh">剧本：${m.zh}</div>`;
+    }
+    let ev = '';
+    if (r.speaker_evidence && r.speaker_evidence.screen)
+      ev = `<div class="evidence">画面字幕：${r.speaker_evidence.screen}${r.speaker_evidence.strong?'（强证据）':'（弱）'}</div>`;
+    const tag = r.cinematic?'<span class="badge cine">过场</span>':'';
+    const kd = r.kind!=='dialogue'?`<span class="badge ${cls}">${KIND[r.kind]||r.kind}</span>`:'';
+    const mm = m.mission?`<span class="badge">${m.mission}${m.title?' '+m.title:''}</span>`:'';
+    const sc = (m.score!==undefined)?`<span class="badge">匹配 ${m.score}</span>`:'';
+    const bad2 = r.speaker_conflict?'<span class="badge bad">说话人冲突</span>':'';
+    return `<div class="row" data-t="${r.t0}">
+      <div class="t">${fmt(r.t0)}</div>
+      <div><div>${txt}${tag}${kd}${mm}${sc}${bad2}</div>${zh}${ev}</div></div>`;
+  }).join('');
+  document.querySelectorAll('.row').forEach(el=>el.onclick=()=>{
+    v.currentTime = parseFloat(el.dataset.t)+0.01; v.play();
+  });
+}
+
+function renderAll(){
+  const s = S(), t = s.totals;
+  renderTimeline();
+  renderList();
+  const sps = [...new Set(rowsNow().map(r=>r.speaker_final).filter(Boolean))].sort();
+  document.getElementById('fs').innerHTML = '<option value="">全部说话人</option>' +
+    sps.map(x=>`<option>${x}</option>`).join('');
+
+  document.getElementById('segn').textContent = `${s.segments.length} 段`;
+  document.getElementById('segs').innerHTML = `<table><tr><th>#</th><th>起</th><th>时长</th><th>镜头</th><th>台词</th><th>出场</th></tr>` +
+    s.segments.map(g=>`<tr class="srow" data-t="${g.t0}"><td>${g.id}</td><td>${fmt(g.t0)}</td>
+     <td class="num">${g.dur}s</td><td class="num">${g.shots}</td><td class="num">${g.lines}</td>
+     <td style="color:#93a1b2">${(g.speakers||[]).join(' · ')}</td></tr>`).join('') + '</table>';
+  document.querySelectorAll('.srow').forEach(el=>el.onclick=()=>{v.currentTime=parseFloat(el.dataset.t)+0.01;v.play();});
+
+  document.getElementById('pace').innerHTML =
+    `过场镜头中位 <code>${s.pace.cine_shot_median}s</code>（每分钟 ${s.pace.cine_cuts_per_min} 个镜头）· `
+    + `操作镜头中位 <code>${s.pace.gameplay_shot_median}s</code> · 最短 <code>${s.pace.shortest}s</code> / 最长 <code>${s.pace.longest}s</code><br>`
+    + `过场合计 <b>${(t.cutscene_time/60).toFixed(1)} 分钟</b> / 操作 ${(t.gameplay_time/60).toFixed(1)} 分钟`;
+
+  document.getElementById('cast').innerHTML = `<table><tr><th>角色</th><th>台词</th><th>其中过场</th><th>首次</th><th>末次</th></tr>` +
+    s.cast.map(c=>`<tr><td>${c.name}</td><td class="num">${c.lines}</td><td class="num">${c.cine}</td>
+    <td>${fmt(c.first)}</td><td>${fmt(c.last)}</td></tr>`).join('') + '</table>';
+
+  document.getElementById('mis').innerHTML = `<table><tr><th>任务</th><th>录屏命中</th><th>剧本总句数</th><th>覆盖</th></tr>` +
+    s.missions.map(m=>`<tr><td>${m.mission}</td><td class="num">${m.seen}</td><td class="num">${m.total}</td>
+    <td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="flex:1"><i style="width:${Math.min(100,m.pct)}%"></i></div><span class="num">${m.pct}%</span></div></td></tr>`).join('') + '</table>';
+
+  const sh = shotsNow();
+  document.getElementById('shotn').textContent = `${sh.length} 个`;
+  document.getElementById('shots').innerHTML = sh.map(x=>`
+    <div class="shot ${x.cinematic?'':'play'}" data-t="${x.t0}">
+      <span class="tag ${x.cinematic?'':'play'}">${x.cinematic?'过场':'操作'}</span>
+      <img loading="lazy" src="${x.thumb||''}" alt="">
+      <div class="cap"><b>#${x.id}</b> ${fmt(x.t0)} · ${x.dur}s · ${x.lines} 句<br>
+        ${(x.speakers||[]).join(' ')||'—'}</div>
+    </div>`).join('');
+  document.querySelectorAll('.shot').forEach(el=>el.onclick=()=>{v.currentTime=parseFloat(el.dataset.t)+0.01;v.play();});
+
+  const MISS = V().missing || {};
+  document.getElementById('miss').innerHTML = Object.keys(MISS).length ?
+    Object.entries(MISS).map(([mid,list])=>`<div class="sec" style="padding:9px 13px">
+      <h3>${mid} · 缺 ${list.length} 句</h3><div class="note" style="max-height:150px;overflow:auto">
+      ${list.slice(0,120).map(x=>`${x.speaker?'<b style="color:#e6b455">'+x.speaker+'</b>：':''}${x.zh}`).join('<br>')}
+      ${list.length>120?'<br>…':''}</div></div>`).join('')
+    : '<div class="sec note">无</div>';
+}
+
+['q','fk','fs','fonly','fbad'].forEach(id=>document.getElementById(id).addEventListener('input',renderList));
+
+const curLine = document.getElementById('cur');
+let lastActive = null;
+v.addEventListener('timeupdate', ()=>{
+  const t = v.currentTime;
+  document.getElementById('vtime').textContent = fmt(t);
+  const c = document.getElementById('cur');
+  if (c) c.style.left = (t/dur*100)+'%';
+  let hit = null;
+  for (const r of rowsNow()){ if (t>=r.t0-0.05 && t<=r.t1+0.05){ hit=r; break; } }
+  document.querySelectorAll('.row').forEach(el=>{
+    const on = hit && Math.abs(parseFloat(el.dataset.t)-hit.t0)<0.02;
+    el.classList.toggle('active', !!on);
+    if (on && lastActive!==hit.t0) el.scrollIntoView({block:'nearest'});
+  });
+  if (hit) lastActive = hit.t0;
+});
+
+if (VIDEOS.length > 1){
+  const sel = document.createElement('select');
+  sel.style.cssText = 'margin-top:10px;background:#0f141a;color:#dfe6ef;border:1px solid #2a3340;border-radius:6px;padding:5px 9px';
+  sel.innerHTML = VIDEOS.map((x,i)=>`<option value="${i}">${x.slug}</option>`).join('');
+  sel.onchange = ()=>{ cur = +sel.value; v.pause(); lastActive=null; setVideo(); };
+  document.querySelector('header').appendChild(sel);
+}
+setVideo();
+</script>
+</body>
+</html>
