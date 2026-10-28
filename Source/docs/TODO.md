@@ -62,8 +62,9 @@
 
 ## 一句话状态
 
-**唯一主产物：`deliverable/blender/continent/continent_v9.blend`**（本轮重建；数字见 §2 与同目录 `manifest_v9.json`）。
-模型库 **55,608** / 贴图 **5,292**；缺模型 51,912 hash，其中 **88.1% 是 LOD 合并块（非缺口）**。
+**唯一主产物：`deliverable/blender/continent/continent_v9.blend`**（6.81 GiB）
+对象 **147,500** / `ENTITIES` **106,084** / 隐藏 41,413 / 贴图用 **5,505** / 无 albedo **62,467** / manifest → **PASS**。
+模型库 **55,608** / 贴图 **7,074**；缺模型 51,912 hash，其中 **88.1% 是 LOD 合并块（非缺口）**。
 
 ---
 
@@ -88,16 +89,17 @@
 
 | 文件 | 大小 | 说明 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v9.blend` | 见 manifest | **本轮主产物**（材质按贴图名 + 逐子网格槽位 + 地图外占位盒隐藏） |
-| `deliverable/blender/continent/continent_v8.blend` | 6.81 GiB | 上一版，保留作对照（2026-10-29 清理时可删） |
-| `.../manifest*.json(l)` | ~30 MB | 对象级清单 + 汇总 |
+| `deliverable/blender/continent/continent_v9.blend` | 6.81 GiB | **本轮主产物**：对象 **147,500** / `ENTITIES` **106,084** / 隐藏 **41,413**（地形 30,549、植被 10,860、占位 4）/ 12 类 11 类有对象（`int` 与 v8 同缺）/ 贴图用 **5,505** / 无 albedo **62,467**（v8 66,222）/ manifest → **PASS** |
+| `deliverable/blender/continent/continent_v8.blend` | 6.81 GiB | 上一版，保留作对照（可删） |
+| `.../manifest_continent_v9.json` / `.jsonl` / `manifest.json` | 30.7 MB | 对象级清单 + 汇总（汇总由 `manifest_from_jsonl.py` 0.5 秒反算） |
+| `docs/世界与地编/img/verify/v9_city.png` | — | **v9 俯视验证图**（水已蓝、无纯白块）；同目录 `v8_city.png` 是对照 |
 | `export/world/missing_classified.json` | 9.9 MB | **缺模型的分类明细**（逐 hash：桶/名字/来源 ytyp/bbox） |
 | `export/levels/town/archetype_assetnames.json` | 13.2 MB | 96,141 条 archetype：hash → assetName/bbox/来源 ytyp |
 | `work/rpf_index/all.tsv` | 7.1 MB | RPF 全量 drawable 索引（包 + hash + 大小 + 名字） |
 | `deliverable/blender/sdn_full2/sdn_full2.blend` | 1.30 GiB | 圣丹尼斯单城 r=2000（历史管线产物，只作证据） |
-| `deliverable/blender/willard/willard_full.blend` | 1.03 GiB | 夏洛蒂家 |
+| `deliverable/blender/willard/willard_full.blend` | 1.03 GiB | 夏洛蒂家（**旧管线产物**：对象全 `e_<hash>`、Water 仍是 2048² 网格） |
 | `deliverable/blender/guarma/guarma.blend` | 0.29 GiB | 瓜马岛 |
-| `assets/lib_native/` | — | 模型 **55,608** / 贴图 **5,292** |
+| `assets/lib_native/` | — | 模型 **55,608** / 贴图 **7,074**（含 1,782 张按 id 补登记的孤儿贴图） |
 
 ### 建议删除（等你点头，脚本可一次性清）
 
@@ -213,8 +215,10 @@ python tools/normalize_lib_index.py --dry
 | 地图外占位盒 | 4 个 `*_tempbox*` → `hide_tag='parked_offmap'` → `HIDDEN_PARKED` |
 | `--bbox` | 已加（`--bbox x0,y0,x1,y1`，坐标 = RDR2 世界米） |
 | 分类正则 | `privy` 不再进植被；`p_ivy_01`/`ragwort_vine` 仍进植被 |
-| 重建 | `continent_v9.blend`（`--rails --full`）+ manifest + VERIFY |
-| 文档 | 覆盖率核查 §10（推翻 5 万缺口）、最高原则 §六、AGENTS §4、本文件、README |
+| 重建 | `continent_v9.blend`（`--rails --full`）+ `--relink` 重挂材质 + manifest：**对象 147,500 / ENTITIES 106,084 / 隐藏 41,413 / 待隐藏未隐藏 0 / 贴图用 5,505 / 无 albedo 62,467 → PASS** |
+| 俯视验证图 | `docs/世界与地编/img/verify/v9_city.png`（水蓝、无纯白块）对照 `v8_city.png` |
+| 清单收尾提速 | `tools/manifest_from_jsonl.py`：`write_manifest` 的收尾两遍扫描 20~35 分钟 → **0.5 秒** |
+| 文档 | 覆盖率核查 §10（含 §10.6 孤儿贴图）、最高原则 §6.4 两次复发 + §6.6、AGENTS §4、tools/README、本文件、README |
 
 ---
 
