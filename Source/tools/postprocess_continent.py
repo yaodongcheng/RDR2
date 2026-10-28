@@ -37,6 +37,12 @@ def main():
   out = bpy.data.filepath
   print('[pp] 文件', out)
 
+  # 2026-10-29：贴图表补登记了 1,782 条孤儿贴图（id 5292..7073，见 register_orphan_textures.py）
+  # 之后，已存盘 blend 的材质必须按新 index 重挂一次 —— 只换材质引用，不动几何/变换/隐藏。
+  if '--relink' in a:
+    print('\n=== [pp] 0/4 按当前 index 重挂材质（relink_materials） ===')
+    run('relink_materials', [])
+
   if '--manifest-only' in a:
     print('\n=== [pp] 只重建清单 + 校验（不重跑分类/删植被/隐藏） ===')
     run('write_manifest', ['--out', out])

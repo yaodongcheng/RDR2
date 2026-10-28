@@ -37,7 +37,10 @@ RULES = [
         r'ground_?decal|grounddecal|shadow|shad_', re.I)),
     ('veg', '植被', re.compile(
         r'p_tree|_tree|bush|shrub|p_fern|_fern|p_grass|_grass|p_plant|_plant|cactus|p_palm|'
-        r'p_reed|_reed|lily|vine|ivy|foliage|weed|sapling|flower', re.I)),
+        # `vine`/`ivy` 前面不能紧跟字母：旧写法把 `cal_privy_01`（厕所）分进了植被（TODO #8）。
+        # 用 `(?<![a-z])` 而不是 `\b`：`p_ivy_01` / `ragwort_vine` 里前面是下划线，
+        # `\b` 不成立（下划线算单词字符），会把真的常春藤/藤蔓也漏掉。
+        r'p_reed|_reed|lily|(?<![a-z])vine|(?<![a-z])ivy|foliage|weed|sapling|flower', re.I)),
     ('rock', '岩石地形', re.compile(
         r'rock|boulder|cliff|stone_|outcrop|sandstone|gravelpile|_cliff', re.I)),
     ('veh', '载具', re.compile(

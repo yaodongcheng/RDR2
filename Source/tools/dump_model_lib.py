@@ -127,7 +127,9 @@ def write_model(M, h, outdir, tex):
         out += SUB.pack(tid & 0xffffffff, v, n, o1, o2, o3, o4)
     out += payload
 
-    hx = hex(h)
+    # key / 文件名一律 `0x` + 8 位补零 hex：hex() 不补零会让 0x04ac59bc 变成 0x4ac59bc，
+    # 构建时按 '0x%08x' 查表就查不到（最高原则 §6.4 那个坑，2026-10-29 修复）。
+    hx = '0x%08x' % h
     d = os.path.join(outdir, hx[2:4])
     os.makedirs(d, exist_ok=True)
     with open(os.path.join(d, hx + '.mdl'), 'wb') as f:

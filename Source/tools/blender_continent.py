@@ -43,6 +43,13 @@ def parse():
   ap.add_argument('--max-entities', type=int, default=0)
   ap.add_argument('--step', type=float, default=0)   # 0 = 原始 4 m
   ap.add_argument('--only-tile', default='')
+  # 按世界坐标范围裁剪（TODO #7）。坐标系 = RDR2 原生 X 东 / Y 北 / Z 上，单位米。
+  # ⚠️ 区域产物原则上应由全集 crop_blend.py 裁出来（最高原则 §二.2）；--bbox 是
+  # 「小范围试验」用的快速子集，不替代裁剪管线。
+  # 写法：`--bbox 2950 2150 3030 2230` 或 `--bbox 2950,2150,3030,2230`（必须是**一个**参数）。
+  # 注意别在 cmd 里传逗号版本后又加空格 —— cmd 会把逗号当分隔符（已知坑）。
+  ap.add_argument('--bbox', nargs='+', default=[],
+                  help='只装这个矩形内的实体：x0 y0 x1 y1（米，RDR2 世界坐标）')
   ap.add_argument('--shots', default='')
   ap.add_argument('--res', default='1920x1080')
   # 2026-10-29：pad 改成**默认关**（最高原则 6.2）：城区压平会在公园顶穿 1.4~1.9 m、
@@ -479,29 +486,57 @@ MAGIC = b'RMDL1' + bytes(3)
 SUB = struct.Struct('<I I I I I I I')
 
 
+def _tex_name(texmeta, tid):
+  """贴图 id → 贴图名字（库里存了名字；tid 越界/负数 → ''）"""
+  if 0 <= tid < len(texmeta):
+    return (texmeta[tid].get('n') or '').strip()
+  return ''
+
+
+def _mat_slug(name, limit=58):
+  import re as _re
+  s = _re.sub(r'[^0-9A-Za-z_.-]+', '_', name or '').strip('_')
+  return s[:limit] or 'noname'
+
+
 def _mat_for(tid, texmeta, matcache, libdir):
-  if tid in matcache:
-    return matcache[tid]
-  mat = bpy.data.materials.new('m_%d' % tid)
+  """一个 albedo 一张材质，**按贴图名字缓存**（不按 tid）。
+
+  2026-10-29 根修（TODO #1）：以前材质名是 `m_<tid>`、缓存键也是 tid。
+  贴图池一扩（3,025 → 5,292），已存盘 blend 里的 `m_352` 就指向了别人的图 ——
+  「门长草」「草坪发黄」都是这个。现在名字进材质名（`alb_<贴图名>`），
+  relink / 核对都能按名字对齐，池子再变也不会串号（最高原则 §6.3/§6.4）。
+  """
+  name = _tex_name(texmeta, tid)
+  key = ('tex', name) if name else ('nonalbedo',)
+  hit = matcache.get(key)
+  if hit is not None:
+    return hit
+  mat = bpy.data.materials.new(('alb_' + _mat_slug(name)) if name else 'nonalbedo_warmgray')
+  if name:
+    mat['albedo'] = name            # 可读信息留在材质上，方便核库
   mat.use_nodes = True
   bsdf = mat.node_tree.nodes['Principled BSDF']
-  if tid >= 0 and tid < len(texmeta):
+  img_ok = False
+  if name and 0 <= tid < len(texmeta):
     path = os.path.join(libdir, texmeta[tid]['f'])
     if os.path.exists(path):
       img = bpy.data.images.load(path, check_existing=True)
       img.colorspace_settings.name = 'sRGB'
       node = mat.node_tree.nodes.new('ShaderNodeTexImage')
       node.image = img
+      node.label = name
       mat.node_tree.links.new(node.outputs['Color'], bsdf.inputs['Base Color'])
-    else:
-      # 索引里有这条贴图，但文件缺失（解包漏了）→ 同样给中性色，避免整片纯白
-      bsdf.inputs['Base Color'].default_value = (0.30, 0.27, 0.23, 1.0)
-  else:
-    # submesh 没有 albedo（tex_id = -1）：不要用默认 0.8 灰白，那会渲染成刺眼白块。
-    # 按 RDR2 这类无贴图件的常见用途（木/石/玻璃/小件）给一个中性暖灰。
+      img_ok = True
+  if not img_ok:
+    # 没有 albedo（或索引里有但文件缺失）→ 中性暖灰，不用默认 0.8 纯白（那会满屏白块）
     bsdf.inputs['Base Color'].default_value = (0.30, 0.27, 0.23, 1.0)
+    # Workbench / Solid 只看 diffuse_color（不看节点树）：不设它就还是默认 0.8 灰白，
+    # 于是"无 albedo"的件在默认视图里全是一片白 —— 这就是"城区地面发白/白块"的根因之一。
+    mat.diffuse_color = (0.30, 0.27, 0.23, 1.0)
   bsdf.inputs['Roughness'].default_value = 0.85
-  matcache[tid] = mat
+  mat.roughness = 0.85
+  matcache[key] = mat
   return mat
 
 
@@ -567,21 +602,21 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   uvl = me.uv_layers.new(name='UVMap')
   uvl.data.foreach_set('uv', U[F.ravel()].ravel())
 
-  # 材质：每个贴图一个 slot
-  slot_of_tid = {}
+  # 材质：**一个子网格一个槽**，槽序 == 子网格序，不做槽去重。
+  # 2026-10-29 根修（TODO #1）：以前按 tid 去重 → 槽数 ≠ 子网格数，
+  # 外部脚本（relink_materials）没法把「第 i 个子网格」映射到材质槽，
+  # 59,385 个网格被跳过。现在槽 i 恒等于 valid_subs[i]，可按索引重挂。
   mats = []
   for (tid, vc, ic) in valid_subs:
-    if tid not in slot_of_tid:
-      slot_of_tid[tid] = len(mats)
-      mats.append(_mat_for(tid, texmeta, matcache, libdir))
+    mats.append(_mat_for(tid, texmeta, matcache, libdir))
   for m in mats:
     me.materials.append(m)
 
   mi = np.empty(nf, np.int32)
   p0 = 0
-  for (tid, vc, ic) in valid_subs:
+  for slot, (tid, vc, ic) in enumerate(valid_subs):
     cnt = ic // 3
-    mi[p0:p0 + cnt] = slot_of_tid[tid]
+    mi[p0:p0 + cnt] = slot
     p0 += cnt
   me.polygons.foreach_set('material_index', mi)
   me.update()
@@ -617,11 +652,14 @@ def _ntex_mat(col):
   b = m.node_tree.nodes['Principled BSDF']
   b.inputs['Base Color'].default_value = col
   b.inputs['Roughness'].default_value = 0.95
+  m.diffuse_color = col          # Workbench / Solid 用这个色，不设就变默认灰白
+  m.roughness = 0.95
   _NTEX_MATS[key] = m
   return m
 
 
-def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails=False):
+def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails=False,
+                   bbox=None):
   # 名字表：给"无贴图模型"按类别上色用
   def _joaat(t):
     h = 0
@@ -652,8 +690,18 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
   total = 0
   seen = 0            # 遍历到的实体条数（= 实体表总行数，除非 --only-tile/--max-entities）
   no_model = 0        # 库里没有这个 hash → 该实体缺模型
+  no_model_bucket = {}  # 缺模型的分类桶（lod_block / real_ytyp / rpf_available / no_definition）
+  bucket_of = {}
+  mcp = os.path.join(ROOT, 'export/world/missing_classified.json')
+  if os.path.exists(mcp):
+    try:
+      for k, v in (json.load(open(mcp, encoding='utf-8')).get('per_hash') or {}).items():
+        bucket_of[int(k, 16)] = v.get('bucket', '?')
+    except Exception as e:
+      print('（missing_classified.json 读不了，缺模型不分类：%s）' % e)
   no_mesh = 0         # 库里有 index，但 .mdl 读不出来/无有效三角面
   skipped_flat = 0
+  outside = 0         # --bbox 之外（按实体原点判；精确裁剪请用 crop_blend.py）
   # 地表分块网格（terrain 包里的 *_r_c_69.ydr 之类）与 H4 地形重复，必须剔掉
   src = {}
   mp = os.path.join(ROOT, 'export/world/continent/models.json')
@@ -676,10 +724,16 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       if max_ent and total >= max_ent:
         break
       seen += 1
+      if bbox and not (bbox[0] <= e[1] <= bbox[2] and bbox[1] <= e[2] <= bbox[3]):
+        outside += 1
+        continue
       hx = '0x%08x' % e[0]   # 必须补零：hex() 会丢前导 0（e_777d697 就是这来的）
       ent = models.get(hx)
       if not ent:
         no_model += 1
+        b = bucket_of.get(e[0])
+        if b:
+          no_model_bucket[b] = no_model_bucket.get(b, 0) + 1
         continue
       # 铁路豁免：道砟/枕木/钢轨/桥/道岔本来就是"又扁又宽"的长条件，
       # 会被 TERRAIN_CELL / cell / flat_wide 当成地表贴片丢掉（实测 1,024/1,359）。
@@ -698,6 +752,10 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       flat_wide = (dz < 2.0 and max(dx, dy) >= 16) or max(dx, dy) > 45
       if cell and not is_rail:
         hide_tag = 'terrain_cell'; skipped_flat += 1
+      # RDR2 关卡设计把占位盒"停"在地图外 1 km（z ≈ −1002）：wll_tempbox2 / wli_tempbox /
+      # wld_tempbox3 / wdl_tempbox4（TODO #9）。数据不改，只标记后藏进 HIDDEN_PARKED。
+      if e[3] < -500.0:
+        hide_tag = 'parked_offmap'
       if flat_wide and not is_rail:
         # 只做标记，不再丢弃（大跨度建筑如车站 45.4m 曾被误剔）
         if (not in_town(e[1], e[2])) or abs(e[3] - ground_z(e[1], e[2])) > 3.0:
@@ -730,11 +788,18 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       if is_rail:
         rail_made += 1
     print(' %s 实体 %d 网格 %d' % (fn, total, len(meshcache)))
-  print('ENTITIES %d / 唯一网格 %d / 跳过扁平贴片 %d（标记不删）' % (made, len(meshcache), skipped_flat))
+  print('ENTITIES %d / 唯一网格 %d / 跳过扁平贴片 %d（标记不删）%s'
+        % (made, len(meshcache), skipped_flat,
+           (' / bbox 外 %d' % outside) if bbox else ''))
   print('ENTITY 覆盖：遍历 %d 条，缺模型 %d，库有但网格无效 %d，落地 %d'
         % (seen, no_model, no_mesh, made))
   BUILD_STATS.update({'seen': seen, 'no_model': no_model, 'no_mesh': no_mesh,
-                      'made': made})
+                      'made': made, 'outside': outside, 'buckets': no_model_bucket})
+  if no_model_bucket:
+    tot = sum(no_model_bucket.values())
+    print('缺模型分类：' + ' / '.join('%s %d' % (k, v) for k, v in
+                                    sorted(no_model_bucket.items(), key=lambda kv: -kv[1]))
+          + '（已分类 %d / 缺 %d）' % (tot, no_model))
   if rails:
     print('RAILS %d（--rails 生效；关闭时这批会被 flat_wide 剔掉）' % rail_made)
   return ent_col
@@ -760,14 +825,27 @@ def water(step=8.0):
   mat.use_nodes = True
   bsdf = mat.node_tree.nodes.get('Principled BSDF')
   if bsdf:
-    bsdf.inputs['Base Color'].default_value = (0.09, 0.22, 0.38, 1)
-    bsdf.inputs['Roughness'].default_value = 0.15
-    if 'Alpha' in bsdf.inputs:
-      bsdf.inputs['Alpha'].default_value = 0.85
+    bsdf.inputs['Base Color'].default_value = (0.055, 0.135, 0.235, 1)
+    bsdf.inputs['Roughness'].default_value = 0.08
+    for k, v in (('IOR', 1.333), ('Alpha', 0.72)):
+      if k in bsdf.inputs:
+        bsdf.inputs[k].default_value = v
+  # Blender 4.2+/5.x 用 surface_render_method；旧版是 blend_method。两个都试，
+  # 只写 blend_method 在 5.2 上会被忽略 → 水面渲染成不透明灰板（TODO #3 的现象）。
+  for attr, val in (('surface_render_method', 'BLENDED'), ('blend_method', 'BLEND')):
+    try:
+      setattr(mat, attr, val)
+    except Exception:
+      pass
   try:
-    mat.blend_method = 'BLEND'
+    mat.use_backface_culling = False
   except Exception:
     pass
+  # Workbench / Solid 模式不看节点树，只看材质的「视口显示色」；
+  # 不设这个的话水面在默认视图里是一块**灰板**（TODO #3 的现象就是这么来的）。
+  mat.diffuse_color = (0.10, 0.25, 0.42, 0.85)
+  mat.roughness = 0.12
+  mat['note'] = '非真值：单平面 + 中性水色（最高原则 §6.5）；水位 z=40.5 来自 water.xml'
   me.materials.append(mat)
   ob = bpy.data.objects.new('Water', me)
   bpy.context.scene.collection.objects.link(ob)
@@ -844,8 +922,23 @@ def main():
   terrain(a.step, use_pad=USE_PAD)
   water()
   if a.lib and not a.terrain_only:
+    bb = None
+    if a.bbox:
+      try:
+        parts = []
+        for tok in a.bbox:
+          parts.extend(t for t in tok.replace(';', ',').split(',') if t.strip())
+        v = [float(x) for x in parts]
+        if len(v) != 4:
+          raise ValueError('需要 4 个数 x0 y0 x1 y1')
+        bb = (min(v[0], v[2]), min(v[1], v[3]), max(v[0], v[2]), max(v[1], v[3]))
+      except Exception as e:
+        print('--bbox 解析失败（%s），忽略这个开关' % e)
+        bb = None
+      if bb:
+        print('BBOX x[%.0f,%.0f] y[%.0f,%.0f]' % bb)
     print('BUILD ENTITIES from', a.lib)
-    build_entities(a.lib, TILES, a.max_entities, a.only_tile, not a.no_conj_quat, a.rails)
+    build_entities(a.lib, TILES, a.max_entities, a.only_tile, not a.no_conj_quat, a.rails, bb)
 
   os.makedirs(os.path.dirname(a.out), exist_ok=True)
   if a.shots:
@@ -928,6 +1021,10 @@ def verify(out):
            'PASS' if ok else 'FAIL'))
   cls = s.get('classes', {})
   print('[full] 分类明细 %s' % ', '.join('%s:%d' % (k, cls[k]) for k in sorted(cls)))
+  bk = BUILD_STATS.get('buckets') or {}
+  if bk:
+    print('[full] 缺模型拆分（见 docs/世界与地编/RDR2_整图覆盖率核查_20261026.md §10）：%s'
+          % ', '.join('%s:%d' % (k, bk[k]) for k in sorted(bk, key=lambda x: -bk[x])))
   print('[full] 清单 %s（对象级 %s）' % (p, s.get('objects_file', '')))
   return ok
 

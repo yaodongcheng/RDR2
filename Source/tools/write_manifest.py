@@ -37,6 +37,7 @@ CLASSES = ('rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
            'junk', 'prop', 'int', 'unknown')
 HIDDEN_COL = 'HIDDEN_TERRAIN_CELL'
 HIDDEN_VEG = 'HIDDEN_VEG'
+HIDDEN_PARKED = 'HIDDEN_PARKED'
 
 # 「应删未删」要用和 strip_vegetation 完全同一个正则（口径不一致会互相打脸：
 # classify 的 veg 类还把常春藤/盆栽/种植园算进去，那些是**故意保留**的）。
@@ -77,9 +78,15 @@ def tex_names():
 
 
 def _mat_tex(mat, names):
-  """材质 → 贴图名；返回 (名字, 是否兜底纯色)。"""
+  """材质 → 贴图名；返回 (名字, 是否兜底纯色)。
+
+  2026-10-29 起构建按**贴图名字**建材质（`alb_<name>` / `nonalbedo_warmgray`），
+  旧的 `m_<tid>` 只在更早的 blend 里存在，两条都认。
+  """
   n = mat.name
-  if n.startswith('ntex_'):
+  if n.startswith('alb_'):
+    return n[4:], False
+  if n.startswith('nonalbedo') or n.startswith('ntex_'):
     return '', True
   if n.startswith('m_'):
     try:
@@ -144,6 +151,8 @@ def obj_class(ob):
       cat = 'hidden_terrain'
     elif c.name == HIDDEN_VEG:
       cat = 'veg_hidden'
+    elif c.name == HIDDEN_PARKED:
+      cat = 'parked_hidden'
   if not cat:
     nm = ob.name
     if nm == 'Terrain' or nm.startswith('terrain'):
@@ -239,6 +248,29 @@ def main():
         print('[mf] 已写 %d / %d（%.0fs）' % (i + 1, len(objs), time.time() - t0))
 
   veg_left = 0
+  veg_miss = 0
+  # 2026-10-29：这两段原本在 Blender 里扫 `collection.all_objects`（每次访问都重算），
+  # 14.7 万对象实测卡住 **20~35 分钟**（jsonl 早已写完）。改成：jsonl 写完就交给
+  # `manifest_from_jsonl.py` 用同一份数据、同一套口径反算（0.5 秒），
+  # 只有它不可用时才退回下面的现场统计。
+  try:
+    import manifest_from_jsonl as _MF
+    _MF.main(['--jsonl', jl_path])
+    s = json.load(open(js_path, encoding='utf-8'))
+    print('[mf] 对象清单 %s（%.1f MB，%.0fs）' % (
+      jl_path, os.path.getsize(jl_path) / 1e6, time.time() - t0))
+    print('[mf] 汇总 %s（由 manifest_from_jsonl 反算）' % js_path)
+    print('[mf] ENTITIES %d / 分类 %d/%d %s / 隐藏 %d（地形 %d、植被 %d、占位 %d）/ '
+          '待隐藏未隐藏 %d / 贴图用 %d / 无 albedo %d'
+          % (s.get('entities', 0), s.get('classes_n', 0), 12,
+             ','.join(s.get('classes', {})), s.get('hidden', 0),
+             s.get('hidden_terrain', 0), s.get('veg_hidden', 0), s.get('parked_hidden', 0),
+             s.get('veg_should_delete', 0), s.get('textures_used', 0),
+             s.get('no_albedo_objects', 0)))
+    return s
+  except Exception as _e:
+    print('[mf] manifest_from_jsonl 不可用（%s），退回内置汇总（会很慢）' % _e)
+
   for o in (ents.all_objects if ents else []):
     for c in o.users_collection:
       if c.name.startswith('veg|'):
@@ -267,6 +299,7 @@ def main():
     'hidden': hidden_cnt,
     'hidden_terrain': cls_cnt.get('hidden_terrain', 0),
     'veg_hidden': cls_cnt.get('veg_hidden', 0),
+    'parked_hidden': cls_cnt.get('parked_hidden', 0),
     'veg_left': veg_left,
     'veg_should_delete': veg_miss,
     'materials': len(mat_cnt),

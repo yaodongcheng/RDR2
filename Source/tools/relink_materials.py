@@ -38,8 +38,19 @@ def load_index():
   return d['models'], tex
 
 
+def _slug(name, limit=58):
+  import re as _re
+  s = _re.sub(r'[^0-9A-Za-z_.-]+', '_', (name or '')).strip('_')
+  return s[:limit] or 'noname'
+
+
 def make_material(tid, texname):
-  name = 'm_%d' % tid
+  """按**贴图名字**建/取材质（与 blender_continent._mat_for 同一套命名：`alb_<名字>`）。
+
+  2026-10-29 根修（TODO #1）：旧版按 `m_<tid>` 命名，贴图池一变（3,025→5,292）
+  `m_352` 就指向别人的图 —— "门长草/草坪发黄"都是这么来的。
+  """
+  name = ('alb_' + _slug(texname)) if texname else 'nonalbedo_warmgray'
   m = bpy.data.materials.get(name)
   if m:
     return m
@@ -49,15 +60,23 @@ def make_material(tid, texname):
   bsdf = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
   if bsdf is None:
     return m
-  fp = os.path.join(LIB, 'tex', '%04d.png' % tid)
-  if os.path.exists(fp):
+  fp = os.path.join(LIB, 'tex', '%04d.png' % tid) if tid is not None and tid >= 0 else ''
+  if texname and fp and os.path.exists(fp):
+    m['albedo'] = texname
     t = nt.nodes.new('ShaderNodeTexImage')
     t.image = bpy.data.images.load(fp, check_existing=True)
+    t.image.colorspace_settings.name = 'sRGB'
     t.location = (-380, 200)
+    t.label = texname
     nt.links.new(t.outputs['Color'], bsdf.inputs['Base Color'])
     bsdf.inputs['Roughness'].default_value = 0.72
     if 'Specular IOR Level' in bsdf.inputs:
       bsdf.inputs['Specular IOR Level'].default_value = 0.25
+  else:
+    bsdf.inputs['Base Color'].default_value = (0.30, 0.27, 0.23, 1.0)
+    bsdf.inputs['Roughness'].default_value = 0.85
+    m.diffuse_color = (0.30, 0.27, 0.23, 1.0)   # Workbench/Solid 用的视口色，别留默认灰白
+  m.roughness = 0.85
   return m
 
 
@@ -88,17 +107,10 @@ def main():
       continue
     s = e.get('s') or []
     me = ob.data
-    # 构建期按"贴图去重"建槽：同一个 tid 只建一个材质槽，槽序=首次出现顺序。
-    # 所以目标槽 = s 里按首次出现去重后的 tid 序列。
-    uniq = []
-    for tid, _vc, _ic in s:
-      if tid < 0:
-        if None not in uniq:
-          uniq.append(None)
-        continue
-      if tid not in uniq:
-        uniq.append(tid)
-    targets = [None if t is None else make_material(t, tex.get(t)) for t in uniq]
+    # 目标槽：**一个子网格一个槽，槽序 == 子网格序**（2026-10-29 起构建不再做槽去重）。
+    # 老 blend（去重版）的槽数会 ≠ 子网格数 → 走 `mism` 分支跳过，不硬挂（避免又串号）。
+    targets = [make_material(tid, tex.get(tid)) if tid is not None and tid >= 0
+               else None for tid, _vc, _ic in s]
     if a.dry:
       done += 1
       continue

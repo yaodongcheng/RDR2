@@ -26,6 +26,28 @@
 - `fill_model_lib.py`
 - `make_ground_mask.py`
 
+## 模型库缺口诊断 / RPF 全量索引（2026-10-29 新增，7 个）
+
+> 结论先看 `docs/世界与地编/RDR2_整图覆盖率核查_20261026.md` §10：
+> 「未命名 5 万」里 46,532 个是 **LOD 合并块**，不是缺口。这一组脚本就是产出那条结论的工具链。
+
+- `ytyp_assetnames.py`    1,026 个 ytyp → 96,141 条 archetype（`hash / assetName / bbox / 来源文件`）。
+  证明了 `+88 == +112 100%`（`assetName` 与 `name` 同值，没有第二个名字可挖）
+- `rpf_index.py`          调 `rdr2rpf hashindex`：原地读嵌套 TOC（不解 57 GB）→ `work/rpf_index/all.tsv`
+  （18 个顶层包 / 4,021 个 RPF / 74,449 个 drawable 条目）
+- `extract_by_hash.py`    按 **RPF 条目 hash** 抽 drawable（调 `rdr2rpf extracthash`），可断点续跑
+- `audit_missing_models.py`  **缺模型分桶**（`lod_block / real_ytyp / rpf_available / no_definition`）
+  + 据点严格框拆分 → `export/world/missing_classified.json`（构建时 `VERIFY` 那行也读它）
+- `normalize_lib_index.py`  以磁盘 `.mdl` 为准重建 `lib_native/index.json`（key 一律 `0x%08x`）。
+  **本轮回收获 367 个「库里有、场景里没有」的模型**
+- `audit_ground_contact.py`  任意 blend 的贴地/浮空/陷地数值审计（射线到 Terrain，出中位/MAE/三档占比）
+- `register_orphan_textures.py`  把 `tex/` 里**磁盘有、tex 表没登记**的孤儿贴图按 id 补登记
+  （本机 1,782 张；名字用 `tex<id>` + `x:1` 标记）→ 20,858 个模型恢复 albedo
+- `patch_ground_town_white.py`  地面色图「无数据白」体检/补洞（默认 `--probe`，写盘前先备份原图）
+
+> 配套 C# 侧（`tools/rdr2rpf/Program.cs`）新增两个命令：
+> `hashindex <rpf> <out.tsv> [exts] [maxDepth]`、`extracthash <rpf> <hashlist> <outdir> [exts]`。
+
 ## 外延地形 / 空洞诊断（2026-10-22 新增，6 个）
 
 > 修「地形右上角虚空」用的一条链路，顺序执行：

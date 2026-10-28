@@ -164,7 +164,11 @@ ENTITIES <n> / 12 类 <k>/12 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | Blender 日志要等退出才刷新 | 跑 10 分钟日志还是空白的（心跳失效） | `-b` 后加 `--python tools/_unbuffer.py`，把内嵌 Python 的 stdout 改成行缓冲 |
 | `strip_vegetation` 逐个删对象 | 9,676 个要 10 分钟以上（28 GB 场景里每次 remove 都触发集合维护） | 默认 `--mode hide`：移集合约 1.5 分钟，且不丢数据（最高原则 6.1）；确实要删才 `--mode delete` |
 | 长时间盯着构建 | 分不清"在算"和"卡死" | `.\tools\watch_build.ps1`：给出日志行数增量/最后写入秒数/内存/CPU 累计，判定 RUNNING·BUSY·STALLED·EXITED |
-| **贴图只存 tid 不存名字** | 贴图池一重建/一扩充，`s` 里的 id 全部错位 → v6 里**门被绑成草地**（`roa_clover_grass_br_01_te`）、大片发黑 | 库里/model 记录必须有**名字**；绑定一律走 `rebind_textures.py` 按名字解析，禁 fuzzy、禁按 id 索引 |
+| **贴图只存 tid 不存名字** | 贴图池一重建/一扩充，`s` 里的 id 全部错位 → v6 里**门被绑成草地**（`roa_clover_grass_br_01_te`）、大片发黑 | 库里/model 记录必须有**名字**；绑定一律走 `rebind_textures.py` 按名字解析，禁 fuzzy、禁按 id 索引。**2026-10-29 起构建也按名字建材质**（`alb_<贴图名>`），并改成**一个子网格一个材质槽**（不再按 tid 去重） |
+| **`hex()` 不补零（6.4 复发）** | `dump_model_lib.write_model()` 用 `hex(h)` 造文件名 → index 里同时有 `0x4ac59bc` / `0x04ac59bc`；**367 个模型只有不补零的键**，构建按 `'0x%08x'` 查不到 → 算成"缺模型" | 文件名/JSON 键/对象名一律 `'0x%08x'`；已用 `tools/normalize_lib_index.py` 以磁盘 `.mdl` 为准重建过 index |
+| **Workbench/Solid 不看节点树** | 材质只设了 `Principled BSDF` 的颜色，默认视图里却是**一片白**（Workbench 用 `mat.diffuse_color`，默认 0.8 灰白）→ 被误判成"城区地面发白/白块" | 每个材质都设 `mat.diffuse_color`（无 albedo → 暖灰 0.30/0.27/0.23；水面 → 蓝）+ `mat.roughness` |
+| **把 LOD 合并块当缺口** | 「未命名 5 万」其实是 46,532 个 LOD 合并块（`*_lod_combine_metadata*`），磁盘上无独立资源 | 先跑 `tools/audit_missing_models.py` 分桶；`lod_block` 不计缺口、不装、不删（最高原则 §6.6） |
+| **`uv run python` 没有第三方库** | 里跑 `numpy`/`PIL` 直接 `ModuleNotFoundError`（uv 起的是空环境；项目没有 pyproject） | 需要 numpy/PIL 的脚本用系统 `python`（3.12 已装）；小脚本才用 `uv run python` |
 | 模型库没有 ydr 源 | 4.8 万个模型只知道 hash 和 id，无法重绑 → 44.9% 对象无 albedo | 先拿 `原型 hash → asset 名`（ymap 原型表）再抽 ydr；`export/world/continent/models.json` 是有源的那 10,893 条 |
 
 ---
