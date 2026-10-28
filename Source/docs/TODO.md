@@ -46,13 +46,10 @@
 
 ## 0.6 真正的下一步（都不在本管线里，需要新数据源）
 
-1. **`real_ytyp` 3,061 个 hash**：真实 ytyp 定义（bbox 中位 7.4 m）但 RPF 里按 hash 找不到 drawable。
-   下一轮要查的四个方向，按可能性排序：
-   - **`drawableDictionary`**：archetype 结构里 +100 字段（对 96,141 条都能在 names.txt 里解析）
-     很可能是 `.ydd` 字典名 → 抽 `.ydd` 再取里面的 drawable（当前只按 hash 找 `.ydr/.yft`）；
-   - 索引只做了 `depth ≤ 6`、且只认 RPF8 格式；先把失败/跳过的包列出来（当前无告警，但没统计）；
-   - `update_1..4` 只扫了 `ydr/yft`，没扫 `ydd`；
-   - 也可能是 `_ph/_occ` 之类代理（3,061 里有多少是代理还没逐条核）。
+1. **~~`real_ytyp` 3,061 个 hash~~ → 已在 `.ydd` 里找到并入库**（2026-10-29，见覆盖率核查 §12）：
+   16,766 个 `.ydd`（1.6 GB）→ 62,499 个子 drawable hash；3,061 个 real_ytyp **全部命中**，
+   入库 **3,229 个模型 / 224.4 万面**。缺模型 51,912 → **48,683 hash / 49,370 实例**，
+   其中 **94.3% 是 LOD 合并块**（设计上不装）。剩 `rpf_available` 1,770 hash 只有无几何代理。
 2. **室内 319 个 hash**：卡在 MLO `rooms/portals` 变换（老阻塞，见 §5 #室内）。
 3. **~~贴图表 id↔名字↔文件 三者有错位~~ → 已彻底重做**（2026-10-29，详见覆盖率核查 §11）：
    贴图表整表按**名字**重建（`id = 名字排序下标`，`tex/<id>.png` 由 ytd 按名字解出），
@@ -173,7 +170,7 @@ python tools/normalize_lib_index.py --dry
 
 | # | 事项 | 现状（数据） | 下一步 |
 |---|---|---|---|
-| **1** | `real_ytyp` 3,061 个 hash 无几何 | 真实 ytyp 定义、包里按 hash 找不到 drawable | 先抽 `.ydd`：archetype 的 +100 字段很像 `drawableDictionary`；见 §0.6 |
+| ~~**1**~~ | ~~`real_ytyp` 3,061 个 hash 无几何~~ | ✅ **已解决**（覆盖率核查 §12）：它们被打包在 `.ydd` 字典里（子 drawable 用自己的 hash，所以按 hash 找 `.ydr` 永远找不到）。16,766 个 `.ydd` → 62,499 个子 drawable hash，**3,061 个全部命中**；`tools/ingest_ydd_models.py` 入库 **3,229 个模型 / 3,918 子网格 / 224.4 万面**；缺模型 51,912 → **48,683 hash**（94.3% 是 LOD 块） | 残余 `rpf_available` 1,770 hash 只有 `_ph/_occ` 代理，装不了 |
 | **2** | 室内 319 个 hash | 146 包已解包、2,301 模型入库、79 包已摆；缺 MLO `rooms/portals` 变换 | 用 3 栋已知房子做三角验证（老阻塞） |
 | 3 | 贴图"根本不是那张图" | ✅ **已彻底重做**（详见覆盖率核查 §11）：从 13 个包抽全 **57,235 个 ytd**（41.1 GB → 落盘 34,622 个），名字索引 **6,431 → 128,289**；55,608 个模型**全部**按源文件重绑（0 失败、几何 100% 一致）；贴图表按名字重建 **11,504 条**（`id = 名字排序下标`）；`.mdl` 回写 **221,494 个子网格**；审计 600 模型 / 2,416 子网格 → **绑错 0** | 残余：**2,813 个名字没有图**（占引用 2.0%），13 个包已抽完，下一步查 `appdata0_update.rpf` 与加密子包 |
 | 4 | 地面贴图"无数据白" | 图内 1.84 M px（1.46%）近白，全在 **y > 3200 的地图北缘**（真实地图外） | 已确诊**不是**城区发白；要不要补由你定（`patch_ground_town_white.py`） |
@@ -208,7 +205,7 @@ python tools/normalize_lib_index.py --dry
 |---|---|
 | ytyp 按对解析 | 1,026 个 ytyp / **96,141** 条 archetype；证明 `name == assetName`（0 条不同） |
 | RPF 全量索引 | **4,021** 个 RPF（含嵌套）/ **74,449** 个 drawable 条目 / 7.1 MB TSV |
-| 缺模型分类 | 51,912 hash → `lod_block` 46,532 / `real_ytyp` 3,061 / `rpf_available` 1,833 / `no_definition` 486 |
+| 缺模型分类（重跑后） | 48,683 hash / 49,370 实例：`lod_block` 46,532（94.3%，非缺口）/ `rpf_available` 1,770 / `no_definition` 306 / `real_ytyp` 12 —— 原 51,912 里的 3,229 个已从 `.ydd` 入库 |`r`n| 缺模型分类（历史口径） | 51,912 hash → `lod_block` 46,532 / `real_ytyp` 3,061 / `rpf_available` 1,833 / `no_definition` 486 |
 | 按 hash 抽件 | 新建 `extracthash`，抽出 6 个（缺模型里只剩 8 个没抽过） |
 | 入库 | 再入库 1 个（其余 1,831 个 load 返回 None：`_vfx/_slod/_lights`，无几何） |
 | index 规范化 | 3,430 个非规范 key → 全部 `0x%08x`；**找回 367 个此前查不到的模型** |
