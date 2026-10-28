@@ -8,7 +8,7 @@
 
 > 从游戏资产解包 → 全大陆 3D 重建（Blender）→ 网页预览 → 剧情 / 任务 / 角色数据整理。
 > 本文是**唯一入口**：有什么、在哪、怎么用、还缺什么。
-> 最后更新：**2026-10-29**（§0 已整体替换为当日状态；更早的 10-26/27 记录见 `docs/交接与状态/`）。
+> 最后更新：**2026-10-28**（§0 已整体替换为当日状态；更早的 10-26/27 记录见 `docs/交接与状态/`）。
 
 ---
 
@@ -27,6 +27,7 @@ H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source
 
 D:\BrainMaker\大镖客2解包分析\
 ├─ README.md     → 符号链接，指向 Source\README.md（这里改不了内容，改的是真身）
+├─ AGENTS.md     → **路标**（普通文件，仅 3 行：「规则真身 = docs\AGENTS.md」；不含规则）
 ├─ docs          → junction → Source\docs
 ├─ tools         → junction → Source\tools
 ├─ export\ deliverable\ assets\ raw\ archive\ …   原地不动（都是二进制/可重建）
@@ -48,6 +49,9 @@ D:\BrainMaker\大镖客2解包分析\
   foreach ($f in @('打开查看器.bat','打开大陆_流畅.bat','打开夏洛蒂家_完整.bat')) {
       New-Item -ItemType SymbolicLink -Path "$D\$f" -Target "$S\launchers\$f" }
   ```
+
+  另外在 D 盘根放一个**几行的 `AGENTS.md` 路标**（内容只有「规则真身 = `docs\AGENTS.md`，布局 = `README.md`」）——
+  让落在数据根目录的 agent 能自动找到规则。**路标里不许写规则**（写了就与 `docs\AGENTS.md` 分叉）。
 - **四条根文档搬进 docs 了**：`docs/AGENTS.md`、`docs/TODO.md`、`docs/STRUCTURE.md`、
   `docs/README_骑砍2交接.md`（D 盘根目录只留一个 README 路标）。
 
@@ -104,7 +108,7 @@ D 盘侧只剩**链接**（`docs` / `tools` = junction，`README.md` / 3 个 bat
 
 ---
 
-## 0. 当前状态（2026-10-29）
+## 0. 当前状态（2026-10-28）
 
 ### 0.1 唯一主产物
 

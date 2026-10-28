@@ -33,8 +33,10 @@
 # ---- ③ 目录级收回：即使里面是文本也不进 ----
 # 第三方参考源码（2307 个文件，可从 GitHub 重下）
 tools/ref/**
-# .NET 构建中间产物（bin/ 要留：里面的 names.txt 是 hash→资产名 的唯一字典）
-tools/rdr2rpf/obj/**
+# .NET 构建中间产物（**所有工程**的 obj/，2026-10-28 补：原来只写了 rdr2rpf，
+# 导致 conv_dump / pso_dump / pso_xml 的 project.assets.json 等 17 个文件漏进库）
+# 🔴 bin/ 不排 —— 里面的 names.txt / strings.txt 是 hash→资产名 的唯一字典
+**/obj/**
 **/__pycache__/**
 
 # ---- ④ 备份文件不进来 ----

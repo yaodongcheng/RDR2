@@ -1,7 +1,33 @@
-# TODO —— 交接版（2026-10-29 22:00）
+# TODO —— 交接版（2026-10-28 23:30）
 
 > 交接顺序：1) 本文件 2) `AGENTS.md`（长任务/禁开大文件/已知坑）3) `docs/最高原则_单一管线与分块即裁剪.md`（五条禁令）
 > 历史 TODO 在 `docs/交接与状态/TODO.md`。
+
+---
+
+## 0.5 最重要的下一步（2026-10-28 23:30 重排）
+
+**结论：补全模型库** —— 把 ytyp 的 `assetName` 解出来、回填 `archetypes.json`、按 hash 从 RPF 抽件、入库、重建。
+
+四步与验收已写在 `docs/世界与地编/RDR2_整图覆盖率核查_20261026.md` §7，**别从头再设计一遍**：
+
+| 步 | 做什么 | 判据 |
+|---|---|---|
+| 1 | `tools/ytyp_archetypes.py` 增存 `assetName` 并回填 `export/levels/town/archetypes.json` | 49,595 种 archetype 里有 assetName |
+| 2 | RPF 按 hash 定位 drawable（`rdr2rpf find` 支不支持裸 hash 待验） | 抽得到 `.ydr` |
+| 3 | `dump_model_lib.py` 入库 | `index.json` 模型数上升 |
+| 4 | `blender_continent.py --rails --full` 重建 | **未命名实例 50,007 → <5,000；圣丹尼斯 2,124 → <300** |
+
+**为什么是它** —— 一件事同时解三个缺口：
+
+1. 大陆 **50,007 个「未命名 archetype」实例**（≈4.4 万大件摆不出来）；
+2. 本文件 #4（4.4 万模型无 albedo）与 #5（52,807 实体缺模型）；
+3. **骑砍2 侧的圣丹尼斯缺口**：源 `.ymap` 半径内约 **24,000** 实体，导出瓦片只有 **6,568**。
+   ⚠️ 这一条是**高度可能同根**（模型库缺件 → 导出侧取不到几何就跳过），但**尚未证实**；
+   第 1~2 步做完，**先看瓦片实例数涨没涨**就能定性（涨 = 同根，不涨 = 导出侧另有过滤，
+   见骑砍2 侧 `H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\LivingWorldNpcs\plans\大镖客2还原\00-总纲.md` 的「下一步 TODO」第 1 项）。
+
+**为什么不先做 #1（材质仍是旧 tid）**：它只需跑一遍现成脚本 + 7~10 分钟存盘，但**模型补齐后反正要重建 blend，材质会一起重生成** —— 现在做等于白做一次。真要现在看效果，再跑也不迟。
 
 ---
 
@@ -132,13 +158,14 @@ uv run python tools/ingest_extracted_models.py
 | **1** | **blend 里材质仍是旧 tid** | 重绑后库已正确（草坪 s=[2607 草, 2606 土]），但 blend 里是 `m_352`门皮/`m_353`门皮；`relink_materials` 只改了 11,199 槽，**59,385 个网格因槽数≠子网格数被跳过**（后已改成"首次出现去重"对齐，跑过一次未存盘即被叫停） | ①重跑 `relink_materials.py`（这次的去重对齐版本）；②根修：构建时**每个子网格一个材质、按贴图名字建**，不做槽去重 |
 | 2 | 城区地面发白 | 地面色图城区≈纯白（(2434,−1207) 实测 RGB 236,240,240） | 重烘色图，或用路面/草地网格覆盖；不许猜色（禁 6.3） |
 | 3 | 水面灰色平板 | 1 个 quad，z=40.5，无材质 | 加半透明水材质（纯显示，不动水位） |
-| 4 | 4.4 万模型无 albedo | 库内 48,594 个模型无 ydr 源；按"hash==joaat(文件名)"扫盘只对上 **9,780**（20%） | 拿 ymap/ytyp 原型表求 `原型 hash → asset 名`（fivefury 缺 native 模块**不可用**，需自写 ytyp 解析） |
-| 5 | 缺模型 52,807（实体口径） | levels_0~7 已扫完；`textures_0/1`+`packs` 已验证无更多世界贴图 | 同 #4 |
+| 4 | 4.4 万模型无 albedo | 库内 48,594 个模型无 ydr 源；按"hash==joaat(文件名)"扫盘只对上 **9,780**（20%） | 🔴 **不是"要自写 ytyp 解析"** —— 定义段早解析过（`tools/ytyp_archetypes.py` 扫 1,026 个 ytyp，49,595 种已进 `archetypes.json`）。缺的是**把 `assetName` 抽出来回填**。四步见 §0.5 |
+| 5 | 缺模型 52,807（实体口径） | levels_0~7 已扫完；`textures_0/1`+`packs` 已验证无更多世界贴图 | 与 #4 **同一件事**，见 §0.5。⚠️ 骑砍2 侧同根：圣丹尼斯源 24,000 实体、导出瓦片只有 6,568 |
 | 6 | willard 陷地未验证 | `willard_full.blend` 已跑 `blender_fit_ground.py`（613 顶点） | 用 `render_check.py` 数值化验证 |
 | 7 | `--bbox` 未做 | 只有 `--only-tile` | 加 `--bbox x0,y0,x1,y1` |
 | 8 | `classify` 的 `ivy` 误命中 `privy` | `cal_privy_01`（厕所）被分进 veg | 正则加边界 |
 | 9 | 两个异常对象 | `wll_tempbox2` / `wli_tempbox` 在 z ≈ −1001 m | 查来源后修正或隐藏 |
 | 10 | 远景 LOD 与真实几何重叠 | 2,187 个已进 `HIDDEN_LOD`（未删） | 保持默认隐藏 + N 面板开关即可 |
+| 11 | 资源快照还没上传 | 本机有 2×`terrain.bin` + 2×`flora.bin` + 2×`*.tpac` = 57.6 MB；远程只有 `main` 分支 | GUI 点「📦 上传资产」= `python git_assets.py save`（`assets` 分支永远只存一份） |
 
 ### 已作废的旧条目（别再查）
 
@@ -166,6 +193,7 @@ uv run python tools/ingest_extracted_models.py
 | 渲染检查 | `render_check.py`（Workbench+TEXTURE，几秒一张俯视图） |
 | 清理 | 释放 49.94 GiB（旧 blend 全删） |
 | 工具基建 | `run.cmd`、`read_text.py`、`_unbuffer.py`、`watch_build.ps1` |
+| 文本层入库（2026-10-28） | `docs/`、`tools/`、根文档、3 个启动器搬进骑砍2 mod 仓库 `Modules\RDR2\Source\`；D 盘留 junction / 符号链接，**脚本里的绝对路径一行没改**。511 个文件 / 21.5 MB，已提交 `68766b7`、`8555a4a` |
 
 ---
 

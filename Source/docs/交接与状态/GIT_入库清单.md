@@ -1,4 +1,4 @@
-# GIT 入库清单 —— 三个入口 + 一本账（2026-10-29 定稿）
+# GIT 入库清单 —— 三个入口 + 一本账（2026-10-28 定稿）
 
 > 🔴 **2026-10-28 更新**：本文的**分类口径仍然有效**（哪些是文本、哪些是账本、哪些不进库、怎么恢复），
 > 但「在哪建仓库」已改：文本层搬进了骑砍2 mod 仓库 `Modules\RDR2\Source\`，
@@ -9,14 +9,19 @@
 > 目的：把"将来要进 git 的东西"在**不搬家、不改路径**的前提下圈死，避免每次 `git init` 都要重新挑一遍，
 > 也避免下一次"清理"把不该删的删掉（见 `docs/交接与状态/资源清理清单.md`）。
 >
-> 配套文件：根目录 `.gitignore`（白名单式）+ `.gitattributes`（.bat 不做换行转换）。
+> 配套文件（**现行**）：`Source\.gitignore`（白名单式）+ `Source\.gitattributes`（`.bat` 不做换行转换）。
+> ~~根目录 `.gitignore` / `.gitattributes`~~ 已于 2026-10-28 删除，规则已并入上面两份。
 
 ---
 
 ## 0. 一句话
 
-**只收文本：`docs/` 整棵 · `tools/` 整棵 · `export/` 的文本层 · 根目录 5 篇 md + 3 个 .bat · 6 处小账本。**
+**只收文本（现行 = 已入库的部分）：`Source\docs\` 整棵 · `Source\tools\` 整棵 · `Source\README.md` · 4 篇入口 md · 3 个启动 bat。**
 二进制一律不进（6.81 GiB blend、13 GB 模型库、51 GB raw、58 GB 预览 glTF/GLB/贴图），它们靠"哈希清单 + 第二份拷贝"保护。
+
+> ⚠️ **本轮没纳入的**：`export/`（含 §3 里那些账本）与 `assets/lib_native/index*.json` ——
+> 它们都在 15.9 GB 的 export 树里，文本与 glb 混在同一批目录、拆不开（见 README 〇.2 与 §3 顶部的红字）。
+> **在补上之前，这些账本只有本机一份。**
 
 > ⚠️ 目录名是 `tools/`，**不是 `scripts/`**。不要改名：`tools/README.md` 写明"脚本之间 `import 模块名`，不要移动文件"，
 > 且 100+ 个脚本把 `D:/BrainMaker/大镖客2解包分析/tools` 写成了常量。
@@ -25,14 +30,14 @@
 
 ## 1. 三个入口
 
-| # | 入口 | 内容（实测） | 进 git 的方式 |
+| # | 入口 | 内容（2026-10-28 实测） | 进 git 的方式 |
 |---|---|---|---|
-| ① | `docs/` | **65 篇 .md** + 58 张证据图（`docs/**/img/`） | 整棵 |
-| ② | `tools/` | **332 个 .py** + `rdr2rpf/src/*.cs`（13 个）+ `run.cmd` / `watch_build.ps1` / `_unbuffer.py` / `read_text.py` | 整棵，但 `tools/ref/**`（2307 个第三方文件）和 `tools/rdr2rpf/obj/**` 排掉 |
-| ③ | `export/` 的**文本层** | 约 **44 个 .html** + 约 **60 个 .json** + 2 个 `three.module.js` + `export/levels/world/*.csv\|json`（80 个 / 27 MB） | 只收文本；`.glb/.gltf/.bin/.png` 全部靠 `.gitignore` 的扩展名规则挡住 |
+| ① | `docs/` | **69 篇 .md**（65 篇原文档 + 4 篇从根目录并进来的）+ 60 张证据图（图**不进 git**） | 整棵（图被白名单挡住） |
+| ② | `tools/` | **333 个 .py** + `rdr2rpf/src/*.cs`（29 个）+ `run.cmd` / `watch_build.ps1` / `_unbuffer.py` / `read_text.py`；最终入库 **406 个** | 整棵，但 `tools/ref/**`（2307 个第三方文件）和 **`**/obj/**`** 排掉 |
+| ③ | `export/` 的**文本层** | 约 44 个 .html + 约 60 个 .json + `export/levels/world/*.csv\|json` | 🔴 **本轮未纳入**（export 15.9 GB 拆不开，见 §3 红字） |
 
-**第 ④ 项（容易被漏）**：根目录 `README.md` / `AGENTS.md` / `TODO.md` / `STRUCTURE.md` / `README_骑砍2交接.md`
-+ `打开查看器.bat` / `打开大陆_流畅.bat` / `打开夏洛蒂家_完整.bat`。
+**第 ④ 项（容易被漏）**：入口文档 `README.md`（在 `Source\` 根）+ `AGENTS.md` / `TODO.md` / `STRUCTURE.md` / `README_骑砍2交接.md`（都在 `docs\` 根）
++ 三个启动 bat（在 `Source\launchers\`，D 盘根是符号链接）。
 它们不属于上面三个目录，但"从哪读起、为什么会踩这些坑"全在里面——**丢了 AGENTS，下一个 AI 会重踩 GBK/共轭/0xc0000142**。
 
 ---
@@ -65,6 +70,12 @@
 ---
 
 ## 3. 账本白名单（体积最小、价值最高，删了就恢复不出来）
+
+> 🔴 **2026-10-28 实况：下面 10 项里只有 `tools/rdr2rpf/src/names.txt` 真进了库。**
+> 其余 9 项全在 `assets/`、`raw/`、`export/` 里 —— 那三棵是"文本与二进制混在一起"的大树，
+> 本轮决定不搬（见 README 〇.2），所以它们**目前只有本机一份**。
+> 要补，只有一条干净路：把 `export/world/continent/`（含 43 个 tiles）与 `assets/lib_native/index*.json`
+> 单独搬到仓库里留联接 —— 但这会牵动脚本的绝对路径，**另开一件事做，别顺手改**。
 
 ```
 assets/lib_native/index.json            58,670 个模型 名字/hash/tid 对照（AGENTS §4：重跑 dump_model_lib 会覆盖成 10,076）
