@@ -54,8 +54,14 @@
    - `update_1..4` 只扫了 `ydr/yft`，没扫 `ydd`；
    - 也可能是 `_ph/_occ` 之类代理（3,061 里有多少是代理还没逐条核）。
 2. **室内 319 个 hash**：卡在 MLO `rooms/portals` 变换（老阻塞，见 §5 #室内）。
-3. **白块（贴图缺口）**：可装实例里 **36.5%** 引用 `tex_id=-1` 的子网格；
-   这是 ytd 缺口不是模型缺口，需要继续从 `textures_*` / `gtxd` 里找命名贴图。
+3. **贴图表 id↔名字↔文件 三者有错位（新发现，最脏的一块）**：
+   `tex` 表被多次重建/排序过、`tid` 还被复用，所以"表里的名字"和"文件里的图"可能不是一个东西。
+   实测两例：`new_gar06_park_terrain`（`0x3744d21b`）源 `.ydr` 要的是
+   `nbx_ground_grass_bay_lsuh_ab` + `nbx_ground_dirt04_ab`，库里 `s` 却是 `[353,352,352,352]`；
+   而 `tex/0352.png` 实测**就是** `nbx_ground_dirt04_ab`（逐像素 diff **0.0**），表里却写着 `p_doornbd39x_ab`。
+   另抽 300 条核对：可比对 83 条里 **82 条一致、1 条不一致**（`id 5233 van_metal_railing_02_abal` diff 40.7）。
+   → **根治**：贴图重新解包，`id` 改成"名字的 hash"（不可变），`.mdl` 子网格**存名字**；
+   在那之前，manifest 里的贴图名只能当线索，不能当结论。
 4. `no_definition` 486 个 hash：来源不明（ytyp 里没有），下一轮用 `archetype_swaps.ymt` 之类查。
 
 ---

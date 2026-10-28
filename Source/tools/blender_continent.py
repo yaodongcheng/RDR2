@@ -990,10 +990,15 @@ def run_postprocess(out):
     print('=== [full] 2/4 植被：%s ===' % VEG_MODE)
     _run('strip_vegetation', ['--out', out, '--mode', VEG_MODE])
 
-  print('=== [full] 3/4 地形 patch 归 HIDDEN_TERRAIN_CELL（隐藏不删） ===')
+  print('=== [full] 3/5 地形 patch 归 HIDDEN_TERRAIN_CELL（隐藏不删） ===')
   _run('hide_terrain_patches', [])
 
-  print('=== [full] 4/4 输出对象清单 manifest.jsonl（之后验证不必再开 blend） ===')
+  # 2026-10-29 补进链：远景 LOD 碎片与 HD 几何重叠、点不中，按文档口径「隐藏不删」。
+  # 这一步以前不在任何自动链里 → 每次重建都重新露出来（v8/v9 都没有 HIDDEN_LOD）。
+  print('=== [full] 4/5 远景 LOD 碎片归 HIDDEN_LOD（隐藏不删） ===')
+  _run('hide_lod', [])
+
+  print('=== [full] 5/5 输出对象清单 manifest.jsonl（之后验证不必再开 blend） ===')
   _run('write_manifest', ['--out', out])
 
   verify(out)

@@ -38,6 +38,7 @@ CLASSES = ('rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
 HIDDEN_COL = 'HIDDEN_TERRAIN_CELL'
 HIDDEN_VEG = 'HIDDEN_VEG'
 HIDDEN_PARKED = 'HIDDEN_PARKED'
+HIDDEN_LOD = 'HIDDEN_LOD'
 
 # 「应删未删」要用和 strip_vegetation 完全同一个正则（口径不一致会互相打脸：
 # classify 的 veg 类还把常春藤/盆栽/种植园算进去，那些是**故意保留**的）。
@@ -153,6 +154,8 @@ def obj_class(ob):
       cat = 'veg_hidden'
     elif c.name == HIDDEN_PARKED:
       cat = 'parked_hidden'
+    elif c.name == HIDDEN_LOD:
+      cat = 'lod_hidden'
   if not cat:
     nm = ob.name
     if nm == 'Terrain' or nm.startswith('terrain'):

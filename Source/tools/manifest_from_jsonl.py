@@ -107,6 +107,7 @@ def main():
         'hidden_terrain': cls.get('hidden_terrain', 0),
         'veg_hidden': cls.get('veg_hidden', 0),
         'parked_hidden': cls.get('parked_hidden', 0),
+        'lod_hidden': cls.get('lod_hidden', 0),
         'veg_left': veg_left,
         'veg_should_delete': veg_miss,
         'materials': None,

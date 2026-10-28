@@ -43,6 +43,13 @@ def main():
     print('\n=== [pp] 0/4 按当前 index 重挂材质（relink_materials） ===')
     run('relink_materials', [])
 
+  # 2026-10-29：远景 LOD 碎片（*_slod / *_lod / *_dslod）与 HD 几何重叠、点不中，
+  # 按文档口径「隐藏不删」归入 HIDDEN_LOD。以前这一步不在任何自动链里，
+  # 于是重建一次就重新露出来（v8/v9 都没有 HIDDEN_LOD）—— 补进后处理链。
+  if '--lod' in a:
+    print('\n=== [pp] 0.5/4 远景 LOD 碎片归 HIDDEN_LOD（隐藏不删） ===')
+    run('hide_lod', [])
+
   if '--manifest-only' in a:
     print('\n=== [pp] 只重建清单 + 校验（不重跑分类/删植被/隐藏） ===')
     run('write_manifest', ['--out', out])
