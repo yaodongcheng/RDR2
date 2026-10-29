@@ -61,8 +61,8 @@
 
 ## 一句话状态
 
-**唯一主产物：`deliverable/blender/continent/continent_v9.blend`**（7.32 GB）
-对象 **147,500** / `ENTITIES` **103,898** / 隐藏 43,599 / 贴图用 **6,967** / 无 albedo **17,682** / manifest → **PASS**。
+**唯一主产物：`deliverable/blender/continent/continent_v10.blend`**（7.38 GB）
+对象 **150,936** / `ENTITIES` **107,334** / 隐藏 43,599 / 贴图用 **7,650** / 无 albedo **17,894** / manifest → **PASS**。
 模型库 **55,608** / 贴图表 **11,504**（按名字排序定 id；磁盘 ytd 名字索引 128,289）；缺模型 51,912 hash，其中 **88.1% 是 LOD 合并块（非缺口）**。
 
 ---
@@ -88,10 +88,10 @@
 
 | 文件 | 大小 | 说明 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v9.blend` | 7.32 GB | **本轮主产物**：对象 **147,500** / `ENTITIES` **103,898** / 隐藏 **43,599**（地形 30,549、植被 10,860、LOD 2,186、占位 4）/ 12 类 11 类有对象（`int` 与 v8 同缺）/ 贴图用 **6,967** / 无 albedo **17,682**（贴图重做前 62,467）/ manifest → **PASS** |
-| `deliverable/blender/continent/continent_v8.blend` | 6.81 GiB | 上一版，保留作对照（可删） |
+| `deliverable/blender/continent/continent_v10.blend` | 7.38 GB | **本轮主产物**：对象 **150,936** / `ENTITIES` **107,334** / 隐藏 **43,599**（地形 30,549、植被 10,860、LOD 2,186、占位 4）/ 12 类 11 类有对象（`int` 与 v8 同缺）/ 贴图用 **7,650** / 无 albedo **17,894**（贴图重做前 62,467）/ manifest → **PASS** |
+| `deliverable/blender/continent/continent_v9.blend` | 6.81 GiB | 上一版（v10 = v9 + 3,229 个 `.ydd` 模型），保留作对照 |
 | `.../manifest_continent_v9.json` / `.jsonl` / `manifest.json` | 30.7 MB | 对象级清单 + 汇总（汇总由 `manifest_from_jsonl.py` 0.5 秒反算） |
-| `docs/世界与地编/img/verify/v9_city.png` | — | **v9 俯视验证图**（水已蓝、无纯白块）；同目录 `v8_city.png` 是对照 |
+| `docs/世界与地编/img/verify/v10_city.png` | — | **v10 俯视验证图**（水已蓝、无纯白块、草坪是草）；同目录 `v8_city.png`/`v9b_*.png` 是历次对照 |
 | `export/world/missing_classified.json` | 9.9 MB | **缺模型的分类明细**（逐 hash：桶/名字/来源 ytyp/bbox） |
 | `export/levels/town/archetype_assetnames.json` | 13.2 MB | 96,141 条 archetype：hash → assetName/bbox/来源 ytyp |
 | `work/rpf_index/all.tsv` | 7.1 MB | RPF 全量 drawable 索引（包 + hash + 大小 + 名字） |
@@ -215,7 +215,7 @@ python tools/normalize_lib_index.py --dry
 | `--bbox` | 已加（`--bbox x0,y0,x1,y1`，坐标 = RDR2 世界米） |
 | 分类正则 | `privy` 不再进植被；`p_ivy_01`/`ragwort_vine` 仍进植被 |
 | 重建 | `continent_v9.blend`（`--rails --full`）+ `--relink` 重挂材质（**191,158 个材质槽**）+ manifest：**对象 147,500 / ENTITIES 103,898 / 隐藏 43,599 / 待隐藏未隐藏 0 / 贴图用 6,967 / 无 albedo 17,682 → PASS** |
-| 俯视验证图 | `docs/世界与地编/img/verify/v9_city.png`（水蓝、无纯白块）对照 `v8_city.png` |
+| 俯视验证图 | `docs/世界与地编/img/verify/{v9b,v10}_{city,park}.png`（水蓝、无纯白块、草坪是草）对照 `v8_city.png` |
 | 清单收尾提速 | `tools/manifest_from_jsonl.py`：`write_manifest` 的收尾两遍扫描 20~35 分钟 → **0.5 秒** |
 | **贴图彻底重做** | 抽全 57,235 个 ytd（41.1 GB）→ 名字索引 **128,289**；55,608 模型全量按源重绑；贴图表 **11,504 条**（名字排序定 id）；`.mdl` 回写 **221,494 子网格**；审计 **绑错 0**；relink 换 **191,158 个材质槽** |
 | 已知坑补充 | `--only txd` 抽不到世界贴图（ytd 藏在 props 包里）；`extracthash` 遇到游戏在跑会锁包 |
