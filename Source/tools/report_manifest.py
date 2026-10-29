@@ -20,8 +20,8 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 DEF_MANIFEST = os.path.join(ROOT, 'deliverable/blender/continent/manifest.json')
 LIB = os.path.join(ROOT, 'assets/lib_native/index.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
-CLASSES = ('rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
-           'junk', 'prop', 'int', 'unknown')
+CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
+           'junk', 'prop', 'unknown')
 
 
 def missing_models():
@@ -80,7 +80,7 @@ def main(argv=None):
   k = s.get('classes_n', len(cls))
   veg_miss = s.get('veg_should_delete', s.get('veg_left', 0))
   ok = (s.get('entities', 0) > 0 and k >= 10 and veg_miss == 0)
-  print('ENTITIES %d / 12 类 %d/12 / 植被类 %d（应删未删 %d）/ 缺模型 %d/%d (%.1f%%) / 贴图 %d → %s'
+  print('ENTITIES %d / 13 类 %d/13 / 植被类 %d（应删未删 %d）/ 缺模型 %d/%d (%.1f%%) / 贴图 %d → %s'
         % (s.get('entities', 0), k, s.get('veg_left', 0), veg_miss, miss, ent_total,
            100.0 * miss / max(1, ent_total), tex_total, 'PASS' if ok else 'FAIL'))
 

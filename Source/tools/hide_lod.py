@@ -44,21 +44,23 @@ def do_hide():
   ent = bpy.data.collections.get('ENTITIES')
   if ent is None:
     raise SystemExit('没有 ENTITIES 集合')
-  hid = bpy.data.collections.get(COL)
-  if hid is None:
-    hid = bpy.data.collections.new(COL)
-    bpy.context.scene.collection.children.link(hid)
-  victims = [o for o in ent.all_objects if is_lod(o.name)]
-  print('[lod] ENTITIES %d 个；命中 LOD %d 个' % (len(ent.all_objects), len(victims)))
-  for o in victims:
-    for c in list(o.users_collection):
-      c.objects.unlink(o)
-    hid.objects.link(o)
-    o['hide_tag'] = 'lod'
-  hid.hide_viewport = True
-  hid.hide_render = True
-  print('[lod] 已隐藏 %d 个 → %s（未删）' % (len(victims), COL))
-  return len(victims)
+
+  # 2026-10-29 规范：远景碎片已经是分类里的一类（C_lod_远景碎片），
+  # 隐藏 = 给这个类设"默认不显示"，**不搬对象**。
+  cols = [c for c in ent.children if c.name.startswith('C_lod_')]
+  if cols and all(c.hide_viewport for c in cols):
+    print('[lod] 远景碎片已经是隐藏状态，跳过（省一次 7 GB 存盘）')
+    return 0
+  n = 0
+  for c in cols:
+    c.hide_viewport = True
+    c.hide_render = True
+    n += len(c.all_objects)
+  if cols:
+    print('[lod] 「远景碎片」%d 个 → 整类默认隐藏（仍在类里，N 面板可切回）' % n)
+  else:
+    print('[lod] 没找到 C_lod_* 分类集合 —— 先跑 classify_entities.py --apply')
+  return n
 
 
 def diagnose_namespike(word='park_terrain'):

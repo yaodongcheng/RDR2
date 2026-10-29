@@ -36,26 +36,31 @@ def main():
     ents = bpy.data.collections.get('ENTITIES')
     print('[hide] ENTITIES 对象', len(ents.all_objects) if ents else 0)
 
-    victims = []
-    parked = []
-    for o in (ents.all_objects if ents else bpy.context.scene.objects):
-        n = o.name.lower()
-        if '__hd_0_' in n or o.get('hide_tag') == 'terrain_cell':
-            victims.append(o)
-        elif o.get('hide_tag') == 'parked_offmap':
-            parked.append(o)
-    print('[hide] 地形 patch 命中 %d / 地图外占位盒 %d' % (len(victims), len(parked)))
-    if not victims and not parked:
+    # 2026-10-29 规范：地形块已经是分类里的一类（C_terrain_cell_地形块），
+    # 隐藏 = 给这个类设"默认不显示"，**不搬对象**。
+    cols = [c for c in ents.children if c.name.startswith('C_terrain_cell_')] if ents else []
+    if cols and all(c.hide_viewport for c in cols):
+        print('[hide] 地形块已经是隐藏状态，跳过（省一次 7 GB 存盘）')
         return
+    n = 0
+    for c in cols:
+        c.hide_viewport = True
+        c.hide_render = True
+        n += len(c.all_objects)
+    if cols:
+        print('[hide] 「地形块」%d 个 → 整类默认隐藏（仍在类里）' % n)
+    else:
+        print('[hide] 没找到 C_terrain_cell_* —— 先跑 classify_entities.py --apply')
 
-    print('[hide] 归入 %s：%d 个（视口+渲染都关）' % (COL, _move(victims, COL)))
-    print('[hide] 归入 %s：%d 个（视口+渲染都关）' % (COL_PARKED, _move(parked, COL_PARKED)))
-
-    # 顺便抽样确认命名
-    samp = [o.name for o in bpy.context.scene.objects][:8]
-    print('[hide] 命名抽样:', samp)
-    named = sum(1 for o in bpy.context.scene.objects if not o.name.startswith('e_'))
-    print('[hide] 原名对象 %d / 全部 %d' % (named, len(bpy.context.scene.objects)))
+    # 地图外占位盒（z ≈ −1002 m 的 tempbox）：TODO #9 里就 2 个，单独关掉这两个对象即可，
+    # 不值得为它们开一个类/垃圾桶。
+    parked = [o for o in (ents.all_objects if ents else []) if o.get('hide_tag') == 'parked_offmap']
+    for o in parked:
+        o.hide_viewport = True
+        o.hide_render = True
+    if parked:
+        print('[hide] 地图外占位盒 %d 个 → 单独关闭（%s）'
+              % (len(parked), ', '.join(o.name for o in parked[:4])))
 
     p = bpy.data.filepath
     bpy.ops.wm.save_mainfile()

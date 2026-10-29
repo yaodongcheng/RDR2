@@ -21,8 +21,8 @@ import argparse
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 D = os.path.join(ROOT, 'deliverable/blender/continent')
-CLASSES = ('rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
-           'junk', 'prop', 'int', 'unknown')
+CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
+           'junk', 'prop', 'unknown')
 
 try:
     import sys
@@ -102,12 +102,14 @@ def main(argv=None):
         'entities': ent_total,
         'classes': {k: cls[k] for k in cats},
         'classes_n': len(cats),
-        'classes_expected': 12,
+        'classes_expected': 13,
         'hidden': hidden,
-        'hidden_terrain': cls.get('hidden_terrain', 0),
-        'veg_hidden': cls.get('veg_hidden', 0),
-        'parked_hidden': cls.get('parked_hidden', 0),
-        'lod_hidden': cls.get('lod_hidden', 0),
+        # 2026-10-29 起"隐藏"= 整类默认隐藏，不再有独立垃圾桶集合：
+        # 这三个数直接取类大小，口径与面板一致。
+        'hidden_terrain': cls.get('terrain_cell', 0),
+        'veg_hidden': cls.get('veg', 0),
+        'parked_hidden': 0,
+        'lod_hidden': cls.get('lod', 0),
         'veg_left': veg_left,
         'veg_should_delete': veg_miss,
         'materials': None,
@@ -124,7 +126,7 @@ def main(argv=None):
     json.dump(summary, open(js, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     json.dump(summary, open(os.path.join(d, 'manifest.json'), 'w', encoding='utf-8'),
               ensure_ascii=False, indent=1)
-    print('ENTITIES %d / 12 类 %d/12 / 植被 %d / 隐藏 %d（地形 %d、植被 %d、占位 %d）/ '
+    print('ENTITIES %d / 13 类 %d/13 / 植被 %d / 隐藏 %d（地形 %d、植被 %d、占位 %d）/ '
           '待隐藏未隐藏 %d / 贴图用 %d / 无 albedo %d → %s'
           % (ent_total, len(cats), veg_left, hidden, summary['hidden_terrain'],
              summary['veg_hidden'], summary['parked_hidden'], veg_miss,

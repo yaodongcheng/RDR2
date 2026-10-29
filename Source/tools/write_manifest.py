@@ -33,8 +33,8 @@ import time
 import argparse
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-CLASSES = ('rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
-           'junk', 'prop', 'int', 'unknown')
+CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock', 'veh',
+           'bldg', 'part', 'junk', 'prop', 'unknown')   # 13 类（2026-10-29 起）
 HIDDEN_COL = 'HIDDEN_TERRAIN_CELL'
 HIDDEN_VEG = 'HIDDEN_VEG'
 HIDDEN_PARKED = 'HIDDEN_PARKED'
@@ -47,13 +47,11 @@ try:
   _t = _os.path.dirname(_os.path.abspath(__file__))
   if _t not in _sys.path:
     _sys.path.insert(0, _t)
-  from strip_vegetation import VEG as SHOULD_DEL
-except Exception as _e:     # 兜底：与 strip_vegetation.py 保持字面一致
-  import re
-  SHOULD_DEL = re.compile(
-    r'(^|/)(p_tree|p_bush|p_shrub|p_grass|p_plant|p_fern|p_cactus|p_palm|p_reed|p_lily|p_ivy|p_vine)'
-    r'|rdr_bush|_tree_|_bush_|_shrub|_fern_|_grass_|_cactus', re.I)
-  print('[mf] 复用 strip_vegetation.VEG 失败，用内置副本：%s' % _e)
+  from veg_rules import is_veg as SHOULD_DEL     # 唯一一份植被规则（2026-10-29 统一）
+except Exception as _e:
+  def SHOULD_DEL(_n):
+    return False
+  print('[mf] 复用 veg_rules.is_veg 失败：%s' % _e)
 
 
 def argv():
@@ -137,25 +135,43 @@ def bbox_world(ob):
   return [min(xs), min(ys), min(zs), max(xs), max(ys), max(zs)]
 
 
-def obj_class(ob):
-  cat = ''
-  tid = ''
-  hidden = bool(ob.hide_viewport or ob.hide_render)
-  for c in ob.users_collection:
-    k = c.get('cat')
-    if k:
-      cat = k
-      tid = c.get('tile') or tid
-    if c.hide_viewport or c.hide_render:
-      hidden = True
-    if c.name == HIDDEN_COL:
-      cat = 'hidden_terrain'
-    elif c.name == HIDDEN_VEG:
-      cat = 'veg_hidden'
-    elif c.name == HIDDEN_PARKED:
-      cat = 'parked_hidden'
-    elif c.name == HIDDEN_LOD:
-      cat = 'lod_hidden'
+def build_obj_info():
+  """一次遍历所有集合，建 对象名 → [类别, 地块, 是否隐藏]。
+
+  🔴 为什么不用 `ob.users_collection`：实测 **8.7 ms/对象**（Blender 每次调用都要扫
+  全文件的集合表），15 万个对象 = 21 分钟 —— 这就是构建慢的真凶。
+  改成先遍历集合（15 万条链接一次线性扫，几秒），循环里只查字典（0.001 ms）。
+  """
+  info = {}
+  LEGACY = {HIDDEN_COL: 'hidden_terrain', HIDDEN_VEG: 'veg_hidden',
+            HIDDEN_PARKED: 'parked_hidden', HIDDEN_LOD: 'lod_hidden'}
+
+  def walk(col, parent_hidden):
+    """递归遍历集合树：父集合隐藏 = 子集合里的对象也算隐藏（Blender 就是这个语义）。"""
+    hid = parent_hidden or bool(col.hide_viewport or col.hide_render)
+    k = col.get('cat') or LEGACY.get(col.name, '')
+    tid = col.get('tile') or ''
+    for o in col.objects:
+      e = info.get(o.name)
+      if e is None:
+        info[o.name] = [k, tid, hid]
+      else:
+        if k:
+          e[0] = k
+        if tid:
+          e[1] = tid
+        e[2] = e[2] or hid
+    for ch in col.children:
+      walk(ch, hid)
+
+  walk(bpy.context.scene.collection, False)
+  return info
+
+
+def obj_class(ob, info):
+  e = info.get(ob.name)
+  cat, tid, hidden = (e if e else ('', '', False))
+  hidden = bool(hidden or ob.hide_viewport or ob.hide_render)
   if not cat:
     nm = ob.name
     if nm == 'Terrain' or nm.startswith('terrain'):
@@ -197,6 +213,8 @@ def main():
   print('[mf] 场景对象 %d' % len(objs))
 
   cache = {}
+  info = build_obj_info()          # 一次建表，循环里只查字典（不用 ob.users_collection）
+  print('[mf] 集合归属表 %d 条' % len(info))
   cls_cnt = {}
   hidden_cnt = 0
   ntex_cnt = 0
@@ -213,7 +231,7 @@ def main():
   with open(jl_path, 'w', encoding='utf-8') as f:
     f.write(json.dumps(meta, ensure_ascii=False) + '\n')
     for i, ob in enumerate(objs):
-      cat, tid, hidden = obj_class(ob)
+      cat, tid, hidden = obj_class(ob, info)
       cls_cnt[cat] = cls_cnt.get(cat, 0) + 1
       if hidden:
         hidden_cnt += 1
@@ -263,11 +281,11 @@ def main():
     print('[mf] 对象清单 %s（%.1f MB，%.0fs）' % (
       jl_path, os.path.getsize(jl_path) / 1e6, time.time() - t0))
     print('[mf] 汇总 %s（由 manifest_from_jsonl 反算）' % js_path)
-    print('[mf] ENTITIES %d / 分类 %d/%d %s / 隐藏 %d（地形 %d、植被 %d、占位 %d）/ '
-          '待隐藏未隐藏 %d / 贴图用 %d / 无 albedo %d'
-          % (s.get('entities', 0), s.get('classes_n', 0), 12,
+    print('[mf] ENTITIES %d / 分类 %d/%d %s / 隐藏 %d（远景碎片 %d、地形块 %d、植被 %d）/ '
+          '名字像植被却归了别的类 %d / 贴图用 %d / 无 albedo %d'
+          % (s.get('entities', 0), s.get('classes_n', 0), 13,
              ','.join(s.get('classes', {})), s.get('hidden', 0),
-             s.get('hidden_terrain', 0), s.get('veg_hidden', 0), s.get('parked_hidden', 0),
+             s.get('lod_hidden', 0), s.get('hidden_terrain', 0), s.get('veg_hidden', 0),
              s.get('veg_should_delete', 0), s.get('textures_used', 0),
              s.get('no_albedo_objects', 0)))
     return s
@@ -275,15 +293,15 @@ def main():
     print('[mf] manifest_from_jsonl 不可用（%s），退回内置汇总（会很慢）' % _e)
 
   for o in (ents.all_objects if ents else []):
-    for c in o.users_collection:
-      if c.name.startswith('veg|'):
-        veg_left += 1
-        break
+    e = info.get(o.name)
+    if e and e[0] == 'veg' and not e[2]:     # 归类为植被、且当前是显示状态
+      veg_left += 1
 
-  # 「应删未删」：按 strip_vegetation 的正则重扫一遍 ENTITIES，正常应为 0
+  # 「应藏未藏」：是植被但**还露在外面**的（2026-10-29 起不搬对象，只整类隐藏）
   veg_miss = 0
   for o in (ents.all_objects if ents else []):
-    if SHOULD_DEL.search(o.name.split('.')[0].lower()):
+    e = info.get(o.name)
+    if SHOULD_DEL(o.name.split('.')[0].lower()) and not (e and e[2]):
       veg_miss += 1
 
   cats = sorted(k for k in cls_cnt if k in CLASSES)
@@ -298,7 +316,7 @@ def main():
     'entities': ent_total,
     'classes': {k: cls_cnt[k] for k in cats},
     'classes_n': len(cats),
-    'classes_expected': 12,
+    'classes_expected': 13,
     'hidden': hidden_cnt,
     'hidden_terrain': cls_cnt.get('hidden_terrain', 0),
     'veg_hidden': cls_cnt.get('veg_hidden', 0),

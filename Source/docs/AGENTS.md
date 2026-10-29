@@ -56,6 +56,12 @@
 - 写在 `Source\` 以外的东西**不会进 git**，出事就没了；
 - **禁止在 D 盘根新建 `.md`**（那里只有一个 `README.md` 符号链接）；
 - 新扩展名要自己在白名单 `Source\.gitignore` 里加一行 `!*.xxx`，否则收不进去。
+- 📍 **文档里的 `docs/…`、`tools/…` 是相对「项目根」，不是相对当前文件**（2026-10-29 立）。
+  项目根有两个等价入口，同一份文件：
+  · 真身（git 仓库）= `H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\`
+  · 入口（数据根）= `D:\BrainMaker\大镖客2解包分析\`（`docs\`、`tools\` 是指过去的 junction）
+  ⇒ 在 `docs\…` 里的文档中看到 `docs/TODO.md`，仍按项目根理解，**不是** `docs/docs/TODO.md`。
+  ⇒ 给**人**复制执行的命令一律写**绝对路径**（不然用户没法直接粘贴）。
 - 🔴 **`glob` / `grep` 搜不到 ≠ 文件丢了**：`D:\...\docs\`、`D:\...\tools\` 是 junction，
   有的 harness 会**静默返回空**（ripgrep 默认不跟随 symlink/junction）；换成 `H:\...\Source\...`
   若不在你的 workspace 范围内，**同样会返回空**。
@@ -177,7 +183,7 @@ uv run python tools/report_manifest.py --class rail --limit 20
 **每次构建结束必须打印可核对的一行：**
 
 ```
-ENTITIES <n> / 12 类 <k>/12 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|FAIL
+ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|FAIL
 ```
 
 ---

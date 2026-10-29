@@ -12,6 +12,10 @@ ATTR = 'rdr2_cats'
 _registered = {'ok': False}
 
 
+_KEYS = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock',
+         'veh', 'bldg', 'part', 'junk', 'prop', 'unknown')
+
+
 def _cats():
     """返回 [(attr, key, 中文名, collection)]，按集合名解析。"""
     ent = bpy.data.collections.get('ENTITIES')
@@ -21,22 +25,103 @@ def _cats():
     for c in ent.children:
         if not c.name.startswith('C_'):
             continue
-        # C_<key>_<zh>
-        parts = c.name.split('_', 2)
-        key = parts[1] if len(parts) > 1 else c.name
-        zh = parts[2] if len(parts) > 2 else key
+        # C_<key>_<zh> —— key 里可能带下划线（terrain_cell），
+        # 所以不能按 '_' 盲切（2026-10-29：以前切成了 key='terrain'、名字='cell_地形块'，
+        # 导致「地形块」开关在面板上根本不存在）。
+        rest = c.name[2:]
+        key = zh = None
+        for k in _KEYS:
+            if rest == k or rest.startswith(k + '_'):
+                key = k
+                zh = rest[len(k) + 1:] if rest != k else k
+                break
+        if key is None:                     # 未知类名：退回老切法
+            parts = rest.split('_', 1)
+            key = parts[0]
+            zh = parts[1] if len(parts) > 1 else key
         out.append(('cat_' + key, key, zh, c))
     return out
 
 
-def _update(self, context):
-    for attr, key, zh, col in _cats():
+_COUNTS = {}          # 类名 → 对象数缓存（面板每次重绘都调用 all_objects 会卡）
+
+
+def _count(col):
+    n = _COUNTS.get(col.name)
+    if n is None:
+        n = len(col.all_objects)
+        _COUNTS[col.name] = n
+    return n
+
+
+def _reset_counts():
+    _COUNTS.clear()
+
+
+def _make_update(key):
+    """**每类一个回调，只动自己那一个集合**。
+
+    2026-10-29：以前是共用一个 `_update`，任何一次点击都把 13 个类全部重设一遍
+    —— 包括 3 万的地形块、5 万的道具，等于每次都让 Blender 重新评估十几万个对象，
+    所以点一下卡好几秒。现在只改被点的那一个，且状态没变就直接返回。
+    """
+    def _upd(self, context):
         try:
-            vis = bool(getattr(self, attr))
+            vis = bool(getattr(self, 'cat_' + key))
         except Exception:
-            continue
-        col.hide_viewport = not vis
-        col.hide_render = not vis
+            return
+        col = bpy.data.collections.get('C_%s_%s' % (key, _ZH.get(key, '')))
+        if col is None:
+            for a, k, zh, c in _cats():
+                if k == key:
+                    col = c
+                    break
+        if col is None:
+            return
+        lc = _layer_col(col)
+        if vis:
+            # 首次显示：如果它被数据层关着（构建时的"默认隐藏"），必须先解开 —— 一次性代价
+            if col.hide_viewport:
+                col.hide_viewport = False
+            if lc is not None and lc.hide_viewport:
+                lc.hide_viewport = False
+        else:
+            # 关：优先用**视图层眼睛**（0.87 s / 3 万对象），
+            # 用 col.hide_viewport 会重建整个依赖图（5.9~10 s，实测 2026-10-29）
+            if lc is not None:
+                if not lc.hide_viewport:
+                    lc.hide_viewport = True
+            elif not col.hide_viewport:
+                col.hide_viewport = True
+        # 🔴 这里**故意不碰 hide_render**：实测改它要 6 秒（它会让 Blender 重算整个场景），
+        # 而眼睛只要 0.7 秒。渲染可见性用面板上的「同步渲染可见性」按钮单独同步。
+    return _upd
+
+
+def _layer_col(col):
+    """找到某个集合对应的 LayerCollection（视图层里的那个"眼睛"开关）。"""
+    try:
+        top = bpy.context.view_layer.layer_collection
+        for c in getattr(top, 'children', []):
+            if c.collection == col:
+                return c
+            for c2 in getattr(c, 'children', []):
+                if c2.collection == col:
+                    return c2
+    except Exception:
+        pass
+    return None
+
+
+def _is_visible(col):
+    """面板要显示的真实可见状态：眼睛优先，其次数据层。"""
+    lc = _layer_col(col)
+    if lc is not None:
+        return not lc.hide_viewport and not col.hide_viewport
+    return not col.hide_viewport
+
+
+_ZH = {}
 
 
 WATER_BASE_Z = 40.5     # 单平面的建模高度（RDR2 water.xml 真值）
@@ -58,43 +143,30 @@ def _upd_water(self, context):
     w.hide_render = not vis
 
 
-HIDDEN_VEG = 'HIDDEN_VEG'   # 植被隐藏集合（strip_vegetation --mode hide 的产物）
-
-
-def _upd_veg(self, context):
-    """植被开关：只改集合可见性，对象/网格一直在，属于「隐藏不删」。"""
-    col = bpy.data.collections.get(HIDDEN_VEG)
-    if col is None:
-        return
-    vis = bool(self.show_veg)
-    col.hide_viewport = not vis
-    col.hide_render = not vis
-
-
 def register():
     if _registered['ok']:
         return
     cats = _cats()
+    for _a, _k, _z, _c in cats:
+        _ZH[_k] = _z
+    _reset_counts()
     if not cats:
         print('[cat-ui] 没有 C_* 分类集合，先跑 tools/classify_entities.py --apply')
         return
 
     _w = bpy.data.objects.get('Water')
-    _vg = bpy.data.collections.get(HIDDEN_VEG)
     ann = {'space_mode': bpy.props.EnumProperty(
         name='显示范围', default='all',
         items=[('all', '全图', ''), ('tile', '当前地块', '')]),
         'water_z': bpy.props.FloatProperty(
             name='水位高度', default=WATER_BASE_Z, min=-80.0, max=800.0,
             step=10, precision=1, update=_upd_water_z),
-        'show_veg': bpy.props.BoolProperty(
-            name='植被（隐藏集合）', default=(not _vg.hide_viewport) if _vg else False,
-            update=_upd_veg),
         'show_water': bpy.props.BoolProperty(
         name='水面', default=(not _w.hide_viewport) if _w else False, update=_upd_water)}
     for attr, key, zh, col in cats:
         # 默认值 = 该集合当前是否可见（否则面板会与真实状态不一致）
-        ann[attr] = bpy.props.BoolProperty(name=zh, default=not col.hide_viewport, update=_update)
+        ann[attr] = bpy.props.BoolProperty(name=zh, default=_is_visible(col),
+                                           update=_make_update(key))
     PG = type('RDR2_CatSettings', (bpy.types.PropertyGroup,), {'__annotations__': ann})
     bpy.utils.register_class(PG)
     bpy.types.Scene.rdr2_cats = bpy.props.PointerProperty(type=PG)
@@ -119,9 +191,24 @@ def register():
                     v = key not in ('decal', 'junk', 'veg', 'unknown')
                 else:
                     v = True
-                setattr(s, attr, v)
-                col.hide_viewport = not v
-                col.hide_render = not v
+                setattr(s, attr, v)   # 交给每类的回调去改可见性（它会走快路径）
+            return {'FINISHED'}
+
+    class RDR2_OT_sync_render(bpy.types.Operator):
+        bl_idname = 'rdr2.sync_render'
+        bl_label = '同步渲染可见性'
+        bl_description = '把每个类的渲染开关设成和视口一致（较慢，出图前点一次即可）'
+        bl_options = {'REGISTER'}
+
+        def execute(self, context):
+            n = 0
+            for attr, key, zh, col in _cats():
+                lc = _layer_col(col)
+                hide = bool(lc.hide_viewport) if lc is not None else bool(col.hide_viewport)
+                if col.hide_render != hide:
+                    col.hide_render = hide
+                    n += 1
+            self.report({'INFO'}, '已同步 %d 个类的渲染可见性' % n)
             return {'FINISHED'}
 
     class RDR2_OT_sync(bpy.types.Operator):
@@ -197,6 +284,7 @@ def register():
             row.operator('rdr2.cat_preset', text='全开').mode = 'all'
             row.operator('rdr2.cat_preset', text='全关').mode = 'none'
             lay.operator('rdr2.cat_sync', text='刷新状态（手动改过 Outliner 后点我）')
+            lay.operator('rdr2.sync_render', text='同步渲染可见性（出图前点一次）')
             lay.separator()
             lay.label(text='显示范围（地块级）')
             row = lay.row(align=True)
@@ -212,16 +300,15 @@ def register():
             lay.label(text='环境')
             lay.prop(s, 'show_water', text='水面（Water）', toggle=True)
             lay.prop(s, 'water_z', text='水位高度 (m)', slider=True)
-            if bpy.data.collections.get(HIDDEN_VEG) is not None:
-                nv = len(bpy.data.collections[HIDDEN_VEG].all_objects)
-                lay.prop(s, 'show_veg', text='植被 (%d，隐藏不删)' % nv, toggle=True)
             lay.separator()
             col = lay.column(align=True)
             for attr, key, zh, c in _cats():
-                n = len(c.all_objects)
-                col.prop(s, attr, text='%s  (%d)' % (zh, n), toggle=True)
+                n = _count(c)
+                hint = '，默认隐藏' if not _is_visible(c) else ''
+                col.prop(s, attr, text='%s  (%d%s)' % (zh, n, hint), toggle=True)
 
     bpy.utils.register_class(RDR2_OT_preset)
+    bpy.utils.register_class(RDR2_OT_sync_render)
     bpy.utils.register_class(RDR2_OT_sync)
     bpy.utils.register_class(RDR2_OT_space)
     bpy.utils.register_class(RDR2_PT_cats)
@@ -240,7 +327,7 @@ def sync():
     n = 0
     for attr, key, zh, col in _cats():
         try:
-            vis = not col.hide_viewport
+            vis = _is_visible(col)
             if bool(getattr(pg, attr)) != vis:
                 setattr(pg, attr, vis)
                 n += 1
@@ -256,15 +343,6 @@ def sync():
             z = WATER_BASE_Z + w.location.z
             if abs(float(pg.water_z) - z) > 0.05:
                 pg.water_z = z
-                n += 1
-        except Exception:
-            pass
-    vg = bpy.data.collections.get(HIDDEN_VEG)
-    if vg is not None:
-        try:
-            vis = not vg.hide_viewport
-            if bool(pg.show_veg) != vis:
-                pg.show_veg = vis
                 n += 1
         except Exception:
             pass

@@ -1,14 +1,14 @@
 # 荒野大镖客 2 · 解包分析交接 README
 
-> 最后更新：**2026-10-19**
+> 最后更新：**2026-10-29**
 > 项目根：`D:\BrainMaker\大镖客2解包分析`
 > 游戏：`H:\EPICGAMES\RedDeadRedemption2`（Epic）
 >
 > **一句话状态**：世界地图 / 43 据点 / **43 个据点 3D 预览** / **49 块野外分块 + 任意地点扎营** / 8 势力 / 142 具名角色 / 270 条任务（含脚本级、逐步骤、任务树、对白归属）/ 181 过场 / 45 武器 / 916 道具 / 408 角色模型 / 圣丹尼斯整城 / 14 页查看器，全部落地。
 > **仍未解决**：任务字节码 `.ysc` 本地解密、对白“说话人”哈希映射、spawn 模型名与实体身份。
 
-> 📌 **本轮的专项交接**：`交接_角色与服饰与查看器_20261023.md`
-> （角色 408 / 服饰 6106 / 眼睛与头发 / 武器金属 / 据点名单 46 / 查看器收口 / 踩坑清单）
+> 📌 **本轮的专项交接**：§11（2026-10-29 · 分类重排 + 地面覆盖抬高 + 4 个 bug + v10 数字）
+> （旧：`交接_角色与服饰与查看器_20261023.md` —— 角色 408 / 服饰 6106 / 眼睛与头发 / 武器金属 / 据点名单 46 / 查看器收口 / 踩坑清单）
 
 ---
 
@@ -306,3 +306,129 @@ Oodle：与 exe 同目录 `oo2core_5_win64.dll`
 - [ ] 圣丹尼斯 MLO 门 / 水位 / 马车
 
 > 交接建议：先看 §1 打开查看器；需要核对数字就看 §2/§4；要复现看 §8；**不要从零重抽**，`work/` 与 `export/` 都在。
+
+---
+
+## 11. 2026-10-29 · 分类重排 + 地面覆盖抬高（v10 → v11）
+
+> 本节是 **2026-10-29 上午**那一轮的交接（分类重排 + 地面覆盖）。
+> **下午那一轮（分类体系重构 → v11）在 §12**。**不要再新建 `HANDOFF_*.md`**（规范：交接只写本文）。
+> 写这一节的 agent 没有 H 盘写权限、也起不了子进程，所以下面全部写成可直接执行的形式。
+
+### 11.1 背景与结论（已实测，不用重测）
+
+`deliverable/blender/continent/continent_v10.blend`（7.38 GB）里，厂区 `new_wrh_03_ext_dec_03`
+下方地面发黑。已定位三件事：
+
+- **不是隐藏、不缺几何**：该点 11 个对象 `visible_get()` 全为 `True`（含 `Terrain`、`new_wrh_rds_09`、两层 decal）。
+- **黑的是 `Terrain` 的地面色图没数据**：`export/world/world_ground_final.png` 在厂区那块是**纯黑**（RDR2 城区街面本来就不在地形色图里，由路面/场地模型盖住）。
+- **同时存在 z-fighting**：`Terrain` 顶点 z **45.404 … 45.460**（中位 45.432），
+  路面 `new_wrh_rds_09` z **45.04 … 45.57** —— 只差 **1~5 cm**，黑地形在若干小块上“赢”了。
+- **用户拍板**：走「抬高地面覆盖」，**不动地形高度**（§6.2 禁令）。
+
+### 11.2 根因之一：分类表漏了 RDR2 的缩写族
+
+`unknown` 有 **7,221** 个对象。审计文件 `export/world/classify_unmatched.csv`（35,691 行）里，
+`_rds_`（路面族）就占 **79 条**：`new_wrh_rds_09`、`new_com_rds_01b`…、`new_frn_rds_*`、
+`new_gar_rds_*`、`new_slm_rds_*`、`new_pie_rds_wood`。也就是说**路面本体一直没被分类**。
+
+**要做**：`tools/classify_entities.py` 的 `RULES` 扩 token（**只加不改序**）——
+`rds fnc pst mos _doc tanks airshaft genframe walkway rubbish _floor planter bron rail01x`。
+
+验收：`--report` 后 `unknown` 明显下降（≥ −1,000）、`decal` 从 2,713 上升；
+确认后再 `--apply --out continent_v11.blend`（**不覆盖 v10**）。
+
+### 11.3 抬高地面覆盖（用户已授权）
+
+新建 `tools/raise_ground_cover.py`：只对集合 `C_decal_道路地面贴花` 的网格设
+`delta_location.z = +0.05`，提供 `--report / --apply --dz / --undo`；
+**不碰 bldg/struct/rail/veh/prop**，不改地形高度，可一键还原。
+建议顺序：先 `--report` 报数量 → 用户确认 → `--apply` → 重跑 manifest → 视觉复核厂区 / 圣丹尼斯街面 / 码头。
+
+### 11.4 本轮实测到的 4 个 bug
+
+| # | 现象 | 位置 | 修法 |
+|---|---|---|---|
+| 1 | 所有 `alb_*` 材质 `diffuse_color` 仍是默认 (0.8,0.8,0.8) → Solid/MATERIAL 模式**全白灰** | `tools/relink_materials.py` | 建材质时按**贴图名**查平均色写 `diffuse_color`；平均色表键从旧 `m_<tid>` 改成**贴图名** |
+| 2 | `flat_colored()` 平均色表**永不命中**（键是旧 tid，材质已叫 `alb_<名字>`） | `tools/blender_tour.py` | `if nm.startswith('alb_'): table.get(nm[4:])`，并保留 `nonalbedo_warmgray`/`water` 特例 |
+| 3 | 面板「全图/勾选」只改集合 → **8.6 万对象仍是对象级隐藏**（`ENTITIES` 可见 20,750 / 107,334） | `blender_tour.show_all()`、`rdr2_cat_ui.py` | 恢复可见时同时 `o.hide_set(False)` |
+| 4 | 面板里两个「植被」同名（10,860 的 `HIDDEN_VEG` 与 1,244 的 `C_veg_植被`） | `tools/rdr2_cat_ui.py` | 文案改「旧植被集合 (N，已隐藏)」 |
+
+### 11.5 待提交改动（提交权在用户，见 `docs/AGENTS.md` §0）
+
+`Source\AGENTS.md`、`Source\docs\AGENTS.md`（新增 **§0 提交权** + §4 八个坑 + §5 自检项）、
+`Source\launchers\{打开大陆_流畅,打开夏洛蒂家_完整,打开查看器}.bat`（项目根多候选 + 路径全加引号 + 兜底 v10）、
+`Source\tools\blender_tour.py`、`Source\tools\blender_autoload.py`（视口裁剪默认改 **2 m / 20000 m**）。
+
+远程最新 commit：**`cacf205`**。AI **禁止** `git add/commit/push`，由用户用 `git_gui.py` 提交。
+
+---
+
+## 12. 2026-10-29 · 分类体系重构（13 类）+ 三处性能修复 + 一处待查
+
+> 这一轮只动"分类/隐藏/清单"这一层，**几何、地形、材质一个字节没改**。
+> 产出：`continent_v11.blend`（7.0 GB）+ `manifest_continent_v11.json`。
+
+### 12.1 分类从"垃圾桶制"改成"划分制"
+
+**旧做法**（v10 及以前）：分类完再跑 3 个脚本，把植被/地形块/远景碎片**搬出** ENTITIES 塞进
+`HIDDEN_VEG` / `HIDDEN_TERRAIN_CELL` / `HIDDEN_LOD`。后果：被搬走的对象**不再属于任何类别**，
+面板出现"两个植被"，任何按类统计都对不上。
+
+**新做法**：一个对象**有且只有一个类别**；"藏"= 给这个类设默认不显示，**不搬对象**。
+- 新增两类：`lod`（远景碎片 2,248）、`terrain_cell`（地形块 30,549）——它们本来就是被搬走的那批
+- `veg` 判定收窄：盆栽 `p_pot_*`、花艺 `flowerarng*`、装饰 `p_cs_*` 是**道具**，归 prop
+- `decal` 补 token：`_rds/_dec/_dcl/_ground/street/road/path`（+501）+ **几何兜底**（+341）：
+  面积 ≥10 m²、厚 ≤1.5 m、厚/长边 ≤0.06、底面离地 ≤1.0 m，排除 water/litter/debris
+- 新增 `LEFTOVER` 兜底规则：只对前面都没中的对象生效，可给旧类补 token 而不抢既有归属
+
+**结果**：`unknown` 35,757 → **6,341**（其中 3,301 个是 `e_<hash>`，名字本身解不出）。
+
+### 12.2 三处性能问题（都是 Blender 慢 API）
+
+| 问题 | 实测 | 修法 |
+|---|---|---|
+| `ob.users_collection` 每对象 | **8.7 ms** → 15 万个 = 21 分钟 | 先遍历集合建表，循环里查字典；写清单 47 分钟 → **20 秒** |
+| 面板开关重设全部 13 类 | 每次碰十几万对象 | 每类独立回调，只动被点的那一个 |
+| `col.hide_viewport` / `col.hide_render` | 4.0~10 秒 / **6.3 秒** | 开关改用**视图层眼睛** `lc.hide_viewport` → **0.68 秒**；`hide_render` 拆成单独的「同步渲染可见性」按钮 |
+
+🔴 **通用教训**：Blender 里凡是"每个对象调一次"的 API（`users_collection`/`hide_get`/`visible_get`）
+在 15 万对象规模上都是分钟级；一律改成"先遍历集合建表，再查表"。
+
+### 12.3 修掉的两个真 bug
+
+1. **中文界面会崩**：`node_tree.nodes['Principled BSDF']` 在 `zh_HANS` 下取不到（叫「原理化 BSDF」）→
+   全量重建在第一个模型上就 KeyError。已改成按 `node.type == 'BSDF_PRINCIPLED'` 找（`_bsdf()`）。
+2. **面板"地形块"开关不存在**：集合名 `C_terrain_cell_地形块` 被 `split('_',2)` 切成 key=`terrain`。
+   已改成按已知类名匹配。
+
+### 12.4 尚未查清（下一个接手的人从这里开始）
+
+**现象**：v11 里某处俯视出现"绿白碎片化"的地表；**同样的位置在 v8 里看着是连续地形**。
+
+已排除：
+- 植被 91 / 地形块 69 / 远景碎片 63（该点 300 m 内）→ `visible_get()` 全为 **False**，隐藏生效
+- 分类数字自洽：13 类相加 = 150,933 = ENTITIES 全部对象
+
+已确认的事实：
+- `Terrain` **不是连续网格**：构建时按 `ground_mask` 剔面（9,449,476 → 7,870,374，剔掉 158 万面）；
+  遮罩实测 **83% 有地面 / 17% 空洞**，空洞是成片大区域
+- 该遮罩逻辑 v8 就有，**不是这一轮引入的**
+
+下一步建议：在 v11 里点一下那片东西，看左上角「活动物体」是 `Terrain` 还是别的；
+或做 A/B 渲染对比（相机要放在地面**之上**，该点地面高度约 122 m）。
+
+### 12.5 环境事故（与本轮代码无关）
+
+- 2026-10-29 11:32:55 机器内核崩溃（`0x1E`，参数 `c0000005` 空指针），当时正在跑全量重建。
+  内存 64 GB 未耗尽、7 块 SSD 全健康；系统装有**青骓数据检测与响应系统**（`QzhddrDrv64.sys`，
+  文件过滤驱动，altitude 482370 最高），重 I/O 时触发其缺陷的可能性最大。
+- 全量重建实测速率随场景增长而下降（11.5 → 24 → 31.5 ms/模型），按当时进度推算全程约 30 分钟。
+
+### 12.6 待提交文件（11 个）
+
+`Source/tools/`：`classify_entities.py`、`veg_rules.py`（新）、`strip_vegetation.py`、
+`hide_terrain_patches.py`、`hide_lod.py`、`write_manifest.py`、`manifest_from_jsonl.py`、
+`report_manifest.py`、`rdr2_cat_ui.py`、`blender_continent.py`
+
+AI **禁止** `git add/commit/push`，由用户用 `git_gui.py` 提交。

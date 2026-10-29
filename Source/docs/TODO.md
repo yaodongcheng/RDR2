@@ -1,7 +1,11 @@
 # TODO —— 交接版（2026-10-29 01:30）
 
-> 交接顺序：1) 本文件 2) `AGENTS.md`（长任务/禁开大文件/已知坑）3) `docs/最高原则_单一管线与分块即裁剪.md`（五条禁令）
+> 交接顺序：1) `docs/交接与状态/README_交接.md`（上一轮到哪了，最新一节 = 本轮；末尾有"尚未查清"）2) 本文件 3) `AGENTS.md`（长任务/禁开大文件/已知坑）4) `docs/最高原则_单一管线与分块即裁剪.md`（五条禁令）
 > 历史 TODO 在 `docs/交接与状态/TODO.md`。
+>
+> 📌 **2026-10-29 分类重构（另一条线）**：分类体系已改成「13 类 + 整类隐藏，不搬对象」，
+> 产出 `continent_v11.blend`（未分类 35,757 → 6,341）。细节、性能修复与**尚未查清的地表碎片问题**
+> 见 `docs/交接与状态/README_交接.md` **§12**。
 
 ---
 
@@ -71,14 +75,14 @@
 
 ```
 ① 双击 打开大陆_流畅.bat   → 自动打开目录里最新的 continent_v*.blend（当前 v9）
-② 3D 视图按 N              → 「RDR2」页签：12 类开关 / 全图·当前地块 / 水面 / 水位 / 植被
+② 3D 视图按 N              → 「RDR2」页签：13 类开关 / 全图·当前地块 / 水面 / 水位
 ③ 验贴图                   → 搜 new_gar06_park_terrain（材质名现在是 alb_<贴图名>）
 ④ 不开 blend 核对          → uv run python tools/report_manifest.py
 ⑤ 缺模型到底缺什么         → python tools/audit_missing_models.py
 ```
 
-默认隐藏的集合（想看要单独勾）：`HIDDEN_VEG`（植被）· `HIDDEN_TERRAIN_CELL`（地形 patch）·
-`HIDDEN_LOD`（远景 LOD 碎片）· `HIDDEN_PARKED`（地图外 1 km 的 `*_tempbox*` 占位盒）
+整类默认隐藏的三类（N 面板勾上就显示）：**远景碎片**（2,248）· **地形块**（30,549）· **植被**（10,846）。
+2026-10-29 起不再有 `HIDDEN_*` 垃圾桶集合 —— 藏 = 整类关掉，对象仍留在类里。
 
 ---
 
@@ -88,7 +92,7 @@
 
 | 文件 | 大小 | 说明 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v10.blend` | 7.38 GB | **本轮主产物**：对象 **150,936** / `ENTITIES` **107,334** / 隐藏 **43,599**（地形 30,549、植被 10,860、LOD 2,186、占位 4）/ 12 类 11 类有对象（`int` 与 v8 同缺）/ 贴图用 **7,650** / 无 albedo **17,894**（贴图重做前 62,467）/ manifest → **PASS** |
+| `deliverable/blender/continent/continent_v11.blend` | 7.38 GB | **当前主产物（2026-10-29 分类重构）**：对象 **150,936** / `ENTITIES` **150,933** / **13 类** / 整类默认隐藏 **43,643**（远景碎片 2,248、地形块 30,549、植被 10,846）/ 未分类 **6,341** / 贴图用 7,650 / 无 albedo 17,894。v10 保留作对照 |
 | `deliverable/blender/continent/continent_v9.blend` | 6.81 GiB | 上一版（v10 = v9 + 3,229 个 `.ydd` 模型），保留作对照 |
 | `.../manifest_continent_v9.json` / `.jsonl` / `manifest.json` | 30.7 MB | 对象级清单 + 汇总（汇总由 `manifest_from_jsonl.py` 0.5 秒反算） |
 | `docs/世界与地编/img/verify/v10_city.png` | — | **v10 俯视验证图**（水已蓝、无纯白块、草坪是草）；同目录 `v8_city.png`/`v9b_*.png` 是历次对照 |
@@ -134,7 +138,7 @@
 | `tools/rebind_textures.py` | 模型→贴图**按名字**重绑（禁 fuzzy） |
 | `tools/relink_materials.py` | 给**已存盘** blend 按当前 index 重挂材质（槽位按子网格序，不再"首次出现去重"） |
 | `tools/hide_lod.py` / `hide_terrain_patches.py` | 远景 LOD / 地形 patch / 地图外占位盒 → 隐藏集合（都不删） |
-| `tools/classify_entities.py` | 12 类分类（本轮修 `privy` 被分进植被） |
+| `tools/classify_entities.py` | **13 类**分类（2026-10-29：新增 `lod`/`terrain_cell`；`decal` 补名字+几何兜底；`veg` 收窄到真植被） |
 | `tools/render_check.py` | 无 GUI 俯视检查图（Workbench+TEXTURE，几秒一张） |
 | `tools/extract_missing_from_game.py` / `ingest_extracted_models.py` | 抽缺失模型 / 增量入库（先备份 index） |
 | `tools/run.cmd` / `read_text.py` / `_unbuffer.py` / `watch_build.ps1` | 本机起子进程 / 读 GBK / 行缓冲 / 长任务看门狗 |
@@ -178,7 +182,7 @@ python tools/normalize_lib_index.py --dry
 | 6 | 水面灰板 | ✅ 已修：v9 起水材质带 `diffuse_color` + `surface_render_method='BLENDED'` | 重建后复看 |
 | 7 | willard 陷地未验证 | ✅ 已数值化验证（见"本轮已做掉"）：主屋 dz −0.69 m = 正常埋深 | 无 |
 | 8 | 资产快照未上传 | ✅ 已上传：`python git_assets.py save --yes` → 远程 `assets` 分支 `94c08a2`，6 个文件 57.5 MB | 换机时 `python git_assets.py load` |
-| 9 | `HIDDEN_LOD` 2,187 与 HD 重叠 | 已隐藏不删 | 保持默认隐藏 + N 面板开关 |
+| 9 | 远景碎片 2,248 与 HD 重叠 | 归入 `lod` 类、整类默认隐藏 | 保持默认隐藏 + N 面板开关 |
 
 ### 还缺什么（2026-10-29 收尾，全部有据可查）
 

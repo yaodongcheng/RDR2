@@ -499,6 +499,16 @@ def _mat_slug(name, limit=58):
   return s[:limit] or 'noname'
 
 
+def _bsdf(mat):
+  """取 Principled BSDF —— **按节点类型找，不按名字**。
+  中文界面下这个节点叫「原理化 BSDF」，按名字查会 KeyError（2026-10-29 实测）。"""
+  nt = mat.node_tree
+  for n in nt.nodes:
+    if n.type == 'BSDF_PRINCIPLED':
+      return n
+  return nt.nodes.new('ShaderNodeBsdfPrincipled')
+
+
 def _mat_for(tid, texmeta, matcache, libdir):
   """一个 albedo 一张材质，**按贴图名字缓存**（不按 tid）。
 
@@ -516,7 +526,7 @@ def _mat_for(tid, texmeta, matcache, libdir):
   if name:
     mat['albedo'] = name            # 可读信息留在材质上，方便核库
   mat.use_nodes = True
-  bsdf = mat.node_tree.nodes['Principled BSDF']
+  bsdf = _bsdf(mat)
   img_ok = False
   if name and 0 <= tid < len(texmeta):
     path = os.path.join(libdir, texmeta[tid]['f'])
@@ -649,7 +659,7 @@ def _ntex_mat(col):
     return m
   m = bpy.data.materials.new('ntex_%.2f_%.2f_%.2f' % (col[0], col[1], col[2]))
   m.use_nodes = True
-  b = m.node_tree.nodes['Principled BSDF']
+  b = _bsdf(m)
   b.inputs['Base Color'].default_value = col
   b.inputs['Roughness'].default_value = 0.95
   m.diffuse_color = col          # Workbench / Solid 用这个色，不设就变默认灰白
@@ -823,7 +833,7 @@ def water(step=8.0):
   me.update()
   mat = bpy.data.materials.new('water')
   mat.use_nodes = True
-  bsdf = mat.node_tree.nodes.get('Principled BSDF')
+  bsdf = _bsdf(mat)   # 按类型找，中文界面也认
   if bsdf:
     bsdf.inputs['Base Color'].default_value = (0.055, 0.135, 0.235, 1)
     bsdf.inputs['Roughness'].default_value = 0.08
