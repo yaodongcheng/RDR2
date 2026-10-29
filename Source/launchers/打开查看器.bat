@@ -1,7 +1,13 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-set "DOC=%~dp0export"
+rem 项目根（export 在 D 盘）：逐个候选目录试
+set "PROJ="
+for %%R in ("%~dp0." "%~dp0.." "%~dp0..\..") do (
+  if not defined PROJ if exist "%%~fR\export\index.html" set "PROJ=%%~fR"
+)
+if not defined PROJ if exist "D:\BrainMaker\大镖客2解包分析\export\index.html" set "PROJ=D:\BrainMaker\大镖客2解包分析"
+set "DOC=%PROJ%\export"
 
 rem ============================================================
 rem  RDR2 unpacking viewer - single launcher

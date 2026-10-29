@@ -45,7 +45,7 @@ def solid(color='TEXTURE'):
             sh.light = 'STUDIO'
             sh.show_shadows = False
             sh.show_cavity = False
-            a.spaces.active.clip_start = 0.5
+            a.spaces.active.clip_start = 2.0
             a.spaces.active.clip_end = 20000.0
             n += 1
         except Exception:

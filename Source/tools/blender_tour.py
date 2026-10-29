@@ -49,8 +49,12 @@ def _set_views(fn):
     return n
 
 
-def clip(end=20000.0, start=0.5):
-    """把视口裁剪距离拉到能看见整块大陆（默认 1000 m 会把远处切掉，看起来像"地图没了"）。"""
+def clip(end=20000.0, start=2.0):
+    """把视口裁剪距离拉到能看见整块大陆（默认 1000 m 会把远处切掉，看起来像"地图没了"）。
+
+    默认值 `start=2.0 / end=20000.0` 是用户 2026-10-29 定的口味：每次打开都直接用这组，
+    不用手改。想临时换就自己调一次，例如 `clip(start=0.5)` 或 `clip(end=40000)`。
+    """
     def f(sp):
         sp.clip_start = start
         sp.clip_end = end
@@ -102,7 +106,7 @@ def flat_colored(colors=''):
         sp.shading.light = 'STUDIO'
         sp.shading.show_shadows = False
         sp.shading.show_cavity = False
-        sp.clip_start = 0.5
+        sp.clip_start = 2.0
         sp.clip_end = 20000.0
     v = _set_views(f)
     print('flat_colored: %d 个视口 = Solid/MATERIAL（无贴图），已着色 %d 个材质' % (v, n))
@@ -135,7 +139,7 @@ def textured():
         sp.shading.light = 'STUDIO'
         sp.shading.show_shadows = False
         sp.shading.show_cavity = False
-        sp.clip_start = 0.5
+        sp.clip_start = 2.0
         sp.clip_end = 20000.0
     n = _set_views(f)
     print('textured: %d 个视口 = Solid + 贴图（推荐，切区后依然流畅）' % n)
@@ -168,7 +172,7 @@ def material(only_current_tile=True):
 
     def f(sp):
         sp.shading.type = 'MATERIAL'
-        sp.clip_start = 0.5
+        sp.clip_start = 2.0
         sp.clip_end = 20000.0
     n = _set_views(f)
     print('material: %d 个视口已切 Material Preview（只显示当前分区，已关光线追踪/阴影）' % n)
@@ -607,7 +611,7 @@ def map_view():
     def f(sp):
         sp.shading.type = 'SOLID'
         sp.shading.color_type = 'TEXTURE'
-        sp.clip_start = 0.5
+        sp.clip_start = 2.0
         sp.clip_end = 20000.0
     n = _set_views(f)
     print('map_view: %d 个视口 = 地面贴图 + 无建筑（快，且能看到地形/水系）' % n)
