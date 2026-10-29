@@ -21,7 +21,7 @@
 | 水面 | 285,550 quads → **1 quad**，z=**40.5**（游戏真值）；N 面板可调 | `tools/replace_water_plane.py` |
 | N 面板 | 全图/当前地块改单选高亮；当前地块改**射线判定**；删流式；加水面开关 + 水位滑块 | `tools/rdr2_cat_ui.py` |
 | 地形 patch | 28,626 个 `*__hd_0_*` 归入 `HIDDEN_TERRAIN_CELL`（隐藏不删） | `tools/hide_terrain_patches.py` |
-| 规范 | `AGENTS.md`（长任务轮询 / 禁开大文件验证 / 已知坑）+ 最高原则五条禁令 | 项目根 |
+| 规范 | `docs/AGENTS.md`（长任务轮询 / 禁开大文件验证 / 已知坑）+ 最高原则五条禁令 | `Source\docs\`（`Source\AGENTS.md` 只是路标） |
 
 ### 0.2 未完成（按优先级）
 
