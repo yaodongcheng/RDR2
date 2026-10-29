@@ -190,9 +190,12 @@ def main():
         tour.show_all()
         print('[autoload] 默认「全图」：流式加载已关闭（timer 已注销，不再跟随相机）')
         # 顺序很重要：先 show_all 再关分类（否则会被 show_all 重新打开）
-        for _k in ('贴花', '植被'):
+        # show_all() 会把 classify_entities.DEFAULT_HIDDEN 那三类一起打开，这里必须全部关回去：
+        #   地形块 = 游戏自带 __hd_0_ 高度块 + 64/128 m 地表分片，和我们的 Terrain 重复、高度对不上
+        #   → 满地图「浮着的褐色岛 / 地形碎片」；远景碎片 = 游戏远景 LOD 替身，同理。
+        for _k in ('贴花', '植被', '远景碎片', '地形块'):
             tour.cat_show(_k, False)
-        print('[autoload] 默认隐藏分类：贴花 / 植被')
+        print('[autoload] 默认隐藏分类：贴花 / 植被 / 远景碎片 / 地形块')
     else:
         print('[autoload] 无可用视口，保持全显')
 
