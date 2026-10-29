@@ -180,6 +180,15 @@ python tools/normalize_lib_index.py --dry
 | 8 | 资产快照未上传 | ✅ 已上传：`python git_assets.py save --yes` → 远程 `assets` 分支 `94c08a2`，6 个文件 57.5 MB | 换机时 `python git_assets.py load` |
 | 9 | `HIDDEN_LOD` 2,187 与 HD 重叠 | 已隐藏不删 | 保持默认隐藏 + N 面板开关 |
 
+### 还缺什么（2026-10-29 收尾，全部有据可查）
+
+| 事 | 数 | 为什么还差 | 下一步 |
+|---|---|---|---|
+| `.ydd` 新模型在 v10 里还没贴图 | **2,179** 个网格 | 它们的材质槽数≠子网格数，`relink_materials` 会跳过；`relink_from_mdl` 实测也 0 变更（槽数仍不匹配，待查） | **重建 v11** 即可（`.mdl` 里 tid 已正确，构建时就会挂对） |
+| 贴图名没有任何 ytd | **2,813** 个（2.0% 引用） | 13 个包已全抽（57,235 个 ytd）；`update_1..3`/`common_0` 里没有 ytd；`appdata0_update.rpf` 还没查 | 查 `appdata0_update.rpf` / 被加密未索引的子包 |
+| `rpf_available` 无几何 | **1,770 hash / 2,424 实例** | 包里只有 `_ph/_occ` 物理代理，没面 | 只能等新数据源，或按 §6.5 记"缺件" |
+| `.mdl` 不存贴图名 | — | 现在 id = 名字排序下标，名字集合一变就要重跑 `tex_table_rebuild` + `patch-only` | 终极修：`SUB` 记录加名字字段 |
+
 ### 本轮已做掉（别再查）
 
 - ~~`--bbox` 未做~~：已加（按实体原点过滤，精确裁剪仍用 `crop_blend.py`）
