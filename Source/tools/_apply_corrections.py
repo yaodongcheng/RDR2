@@ -21,6 +21,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import classify_entities  # noqa: E402
 import write_manifest     # noqa: E402
 
+# 🔴 不要生成 .blend1 备份：区域块动辄 0.9 GB、大陆 7.3 GB，备份纯属浪费（与 reclassify.py 同口径）
+try:
+    import bpy
+    bpy.context.preferences.filepaths.save_version = 0
+except Exception as _e:
+    print('[apply] 关备份失败（会多出一个 .blend1）:', _e)
+
 sys.argv = ['classify_entities', '--', '--apply', '--out', OUT] + \
            (['--corrections', CORR] if CORR else [])
 classify_entities.main()

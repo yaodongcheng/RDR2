@@ -82,7 +82,7 @@ python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR
 
 > 说明：A 构建会把 manifest 写在 blend 旁边。**必须**把它移到 `regions_support\<编号>_<tile>\`（`_apply_corrections.py` 会自动挪；纯 A 构建要手动 `Move-Item`）。判据永远是 `_check_region.py` **PASS**（19 类计数逐项一致）。
 
-### 4. 批量驱动（待实现 `tools/build_regions.py`）
+### 4. 批量驱动（已实现：`tools/build_regions.py`，2026-10-31）
 
 要求：
 
@@ -99,7 +99,12 @@ python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR
 
 ### 5. 验收 / 停止条件
 
-- 单块：`_check_region.py` PASS（对象数 + 19 类计数一致）；`manifest` 的 `classes_n == classes_expected == 19`。
+- 单块：**以 `_check_region.py` PASS 为准**。
+  🔴 `manifest` 的 `verdict` 在小区域常常是 `CHECK` —— **不是失败**：第 1 步的 18 类覆盖判据
+     是给大陆用的，野外小块本来就没有 rail/watertile/bldg 这些类。看 `veg_should_delete==0` 即可。
+  🔴 `unknown` 允许为 0 或非 0；区域检查期对账带 **`--allow-stale-underground`**：v23 有 2,312 个对象的
+     包围盒是局部坐标（矩阵未求值），埋深判定失真；该开关只把「underground 差额恰好等于其他类差额」
+     降级为警告，其它差异仍 FAIL。**大陆最终重跑（v24）之后必须去掉这个开关做严检。**
 - 批量：22 块 `status=done`，无 `failed`。
 - 任何一块 FAIL：**停止批量**，修规则/纠错 → 跑 `_check_rules.py` → 用 B 命令重跑该块。
 
@@ -113,6 +118,10 @@ python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR
 
 ## ★ 批量之后：大陆收口（v24）
 
+> 🔴 2026-10-31 用户明确要求：**先把每个分块做对，最后才重跑一次大陆**。本轮只做到分块（22/22 done），
+> 大陆重跑**未执行**（曾误启动一次，产物已删除）。开工前先征得用户同意。
+> 重跑之后：`_check_region.py` 必须**去掉 `--allow-stale-underground`** 对所有区域做严检。
+
 1. 用**同一份纠错清单**把 v23 重分类成 v24（**新建文件，不覆盖 v23**）：
 
 ```powershell
@@ -120,24 +129,38 @@ Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modul
 cmd /c 'tools\run.cmd D:\BrainMaker\_logs\continent_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v24.blend"'
 ```
 
-2. 验收：manifest `classes_n == classes_expected == 19`、`verdict=PASS`；`_check_class_visibility.py` 确认 `road` 隐藏、`ruin` 显示。
+2. 验收：manifest `verdict=PASS`（`unknown` 允许为 0，看 `classes_missing` 为空）、`_check_region.py` PASS；`_check_class_visibility.py` 确认 `road` 隐藏、`ruin` 显示。
 3. 之后所有区域重建都自动继承 19 类 + 纠错清单。
 
 ---
 
 ## 当前状态（2026-10-31 晚）
 
+### 区域批量：**22/22 全部完成**（`region_list.csv` 全 `done`）
+
+- 产物：`deliverable\blender\regions\<编号>_<tile>.blend`（每块 0.1~0.9 GB）
+- 清单：`regions_support\<编号>_<tile>\manifest_<编号>_<tile>.jsonl`
+- 对账：全部 **PASS**；只有 #18 触发 1 条警告（v23 多出 underground 31 个，旧包围盒失真），其余 21 块逐类严格一致
+- 驱动：`tools/build_regions.py`（断点续跑；FAIL 即停；一次一个 Blender）
+
+### 本轮修掉的两个构建 bug（影响所有块的正确性）
+
+1. **材质名截断**：`mat_rdr2.mat_name` 超 60 字符会截成 `alb_<前26字符>__<哈希>`，贴图纠错在构建侧漏匹配 → 贴图匹配时必须同时喂 `m['albedo']` 全名。
+2. **隐藏集合不进 depsgraph**：后台模式下隐藏集合里的对象 `matrix_world` 不更新 → 包围盒/埋深/贴地判定全错（v23 清单里 2,312 个对象的 `bb` 是局部坐标）。已在 `classify_entities` / `write_manifest` 里强制「全开集合 + `view_layer.update()`」。
+3. 连带：**修复前建的区域必须重建**（已全部重建完毕），否则几何判定不可信。
+
 ### 区域 #19（已完成，可作模板）
 
 - `deliverable\blender\regions\19_wild2000_04_02.blend`（860 MB，`--no-water`）
 - 29,843 对象 / **19 类 19/19** / 对账 **PASS**
-- 隐藏 4,528（lod 470 / terrain_cell 999 / veg 2,486）
+- 隐藏 4,598（lod 512 / terrain_cell 999 / veg 2,502）
+- **unknown 已清零**（`com_plane001` 目视确认完全埋在地下 → underground）——430 → 0，2026-10-31 纠错行 16~41
 
 ### 分类体系（现已 19 类，规则唯一真身 = `tools/class_rules.py`）
 
 - 新增类：`road`（道路，**默认隐藏**）· `ruin`（废墟，**默认显示**）；
 - 硬规则：**名字含 `junc` 一律 road**（无例外）；名字含 `ruin` 一律 ruin（`lod/underground` 除外）；
-- 纠错清单：`regions_support\region_corrections.csv`（14 条，id 1/2/3/4/6~15）；
+- 纠错清单：`regions_support\region_corrections.csv`（40 条，id 1~4 / 6~41；16~41 = 区域 #19 的 unknown 清理）；
 - 回归：`tools/rules_cases.csv`（16 条用例），`_check_rules.py` 全过；内置关键词最近补了 `infirmary`（bldg）、`_bri(?!ck)`（struct）
 - 改分类流程与坑：见 `docs/格式与资产/分类体系与判定规则.md`。
 

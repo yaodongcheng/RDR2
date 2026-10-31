@@ -123,6 +123,15 @@ def show_only(tid):
 
 
 def main():
+    # 「分类」下拉（物体属性 → 分类（LWN））：任何 blend 打开都注册一次（2026-10-31 用户要求）
+    try:
+        _s0 = __import__('sys')
+        _o0 = __import__('os')
+        _s0.path.insert(0, _o0.path.dirname(_o0.path.abspath(__file__)))
+        import blender_class_ui
+        blender_class_ui.register()
+    except Exception as _e0:
+        print('[autoload] 分类下拉注册失败:', _e0)
     # 幂等：--python 与启动钩子可能各跑一次，避免重复 tileify（每次 ~20s）
     sc = bpy.context.scene
     if sc and sc.get('_cowork_autoload_done'):

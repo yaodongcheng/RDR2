@@ -38,6 +38,9 @@
 - `blender_bind_player_walk.py`
 - `blender_continent.py`  主装配。关键参数：`--only-tile <id>`（分区）、`--no-pad`（POI 用）、
   `--no-conj-quat`（回退旋向，仅对照）、**`--rails`（铁路豁免剔除规则；不加会丢 1,024/1,359 件铁路）**
+- `build_regions.py`  区域批量驱动（规格 = `docs/TODO.md` §4）：读 `regions_support/region_list.csv`，
+  逐块跑 `blender_continent --only-tile ... --full --no-water --corrections` → 清单归位到
+  `regions_support/<编号>_<tile>/` → `_check_region.py` 对账 → 更新 status；**FAIL 即停**、一次只跑一个 Blender
 - `blender_diag_bind.py`
 - `blender_preview_gltf.py`
 - `blender_rebuild_ground.py`

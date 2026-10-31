@@ -115,7 +115,10 @@ def main(argv=None):
     # 旧判据是"名字像植被却没归 veg 类"，会把 `_docks_weed`（杂物）、`_bridge_ivy`（桥）
     # 当成错误 → v17 虚报 271 个。2026-10-30 改成本口径。
     veg_miss = sum(max(0, cls.get(k, 0) - hidc.get(k, 0)) for k in DEFAULT_HIDDEN)
-    verdict = (ent_total > 0 and len(cats) == len(CLASSES) and veg_miss == 0)
+    # 🔴 `unknown` 为空是目标不是缺类（2026-10-31：区域 #19 清到 0 个后 verdict 反而翻成 CHECK）。
+    # 判据 = 除 unknown 外的 18 类都必须有对象；unknown 允许为 0。
+    missing = [k for k in CLASSES if k != 'unknown' and cls.get(k, 0) == 0]
+    verdict = (ent_total > 0 and not missing and veg_miss == 0)
     summary = {
         'blend': blend,
         'blend_size_gb': size_gb,
@@ -126,6 +129,7 @@ def main(argv=None):
         'classes': {k: cls[k] for k in cats},
         'classes_n': len(cats),
         'classes_expected': len(CLASSES),
+        'classes_missing': missing,
         'hidden': hidden,
         # 2026-10-29 起"隐藏"= 整类默认隐藏，不再有独立垃圾桶集合：
         # 这三个数直接取类大小，口径与面板一致。
@@ -155,11 +159,12 @@ def main(argv=None):
     json.dump(summary, open(os.path.join(d, 'manifest.json'), 'w', encoding='utf-8'),
               ensure_ascii=False, indent=1)
     print('ENTITIES %d / 类 %d/%d / 默认隐藏类未藏 %d（名字像植被但归别类 %d，信息项）/ '
-          '隐藏 %d（地形 %d、植被 %d、占位 %d）/ 贴图用 %d / 无 albedo %d → %s'
+          '隐藏 %d（地形 %d、植被 %d、占位 %d）/ 贴图用 %d / 无 albedo %d → %s%s'
           % (ent_total, len(cats), len(CLASSES), veg_miss, veg_name_outside,
              hidden, summary['hidden_terrain'],
              summary['veg_hidden'], summary['parked_hidden'],
-             len(tex_used), ntex, summary['verdict']))
+             len(tex_used), ntex, summary['verdict'],
+             '' if not missing else '（缺类 %s）' % ','.join(missing)))
     print('TMAPS 带法线对象 %d（%d 张图）/ 带高光(ORM)对象 %d（%d 张图）'
           % (nrm_obj, len(nrm_used), orm_obj, len(orm_used)))
     print('[mf2] 汇总 %s（%.1fs，源 %s）' % (js, time.time() - t0, os.path.basename(jl)))

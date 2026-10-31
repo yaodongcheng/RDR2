@@ -943,6 +943,11 @@ def main():
     ]
     render_shots(a.shots, a.res, views)
 
+  # 🔴 区域块 0.9 GB、大陆 7.3 GB：不要 .blend1 备份（与 reclassify.py 同口径、TODO §4）
+  try:
+    bpy.context.preferences.filepaths.save_version = 0
+  except Exception as _e:
+    print('[build] 关备份失败（会多出一个 .blend1）:', _e)
   bpy.ops.wm.save_as_mainfile(filepath=a.out, compress=False)
   size = os.path.getsize(a.out) / 1e9
   print('SAVED %s %.2f GB' % (a.out, size))

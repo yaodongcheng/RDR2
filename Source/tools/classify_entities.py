@@ -177,6 +177,31 @@ def main():
     if restored:
         print('[cls] 已把旧隐藏集合里的 %d 个对象请回 ENTITIES，重新参与分类' % restored)
 
+    # 🔴🔴 分类前必须让 matrix_world 真正求值（2026-10-31 实测踩坑）：
+    #   后台模式下对象刚创建/刚加载时 matrix_world 可能还是旧值；而**隐藏集合里的对象
+    #   根本不进 depsgraph**，永远拿不到世界变换 → world_bbox 返回的是局部包围盒。
+    #   后果：埋深判定把"局部 z 顶"当世界顶 → 一整批树被误判成 underground
+    #   （v23 清单里 2,312 个对象的 bb 是局部坐标，区域侧却是世界坐标 → 对账差一类）。
+    #   先把所有集合/视层打开，强制求值；后面重建集合树时会重新设回默认隐藏。
+    for _c in bpy.data.collections:
+        try:
+            _c.hide_viewport = False
+        except Exception:
+            pass
+
+    def _unhide_lc(node):
+        try:
+            node.hide_viewport = False
+            node.exclude = False
+        except Exception:
+            pass
+        for _ch in node.children:
+            _unhide_lc(_ch)
+
+    _unhide_lc(bpy.context.view_layer.layer_collection)
+    bpy.context.view_layer.update()
+    print('[cls] 集合全开 + view_layer.update()（保证 matrix_world 已求值）')
+
     objs = list(ent.all_objects)
     print('[cls] ENTITIES 对象 %d' % len(objs))
 
@@ -233,7 +258,18 @@ def main():
                         k = 'underground'
             except Exception:
                 pass
-        tex_names = [m.name for m in getattr(o.data, 'materials', []) if m]
+        # 🔴 贴图纠错要喂**完整 albedo 名**：材质名超 60 字符会被 mat_rdr2.mat_name 截成
+        #    `alb_<前26字符>__<哈希>`，特征词可能正好被截掉（2026-10-31 区域 #11 实测：
+        #    `hea_sand_track_02_abteroad_muddyroad_03_al` → 材质名只到 `…abteroad`，
+        #    贴图规则匹配不到 → 构建侧 rail、对账侧 road）。`m['albedo']` 存的是全名。
+        tex_names = []
+        for m in getattr(o.data, 'materials', []) or []:
+            if not m:
+                continue
+            tex_names.append(m.name)
+            ab = m.get('albedo')
+            if ab:
+                tex_names.append(ab)
         k = apply_corrections(k, n, tex_names, overrides)
         k = apply_hard_rules(k, n)
         buckets[k].append(o)
@@ -271,6 +307,7 @@ def main():
 
     made = 0
     ccols = {}
+    ZH = dict(ALL_CLASSES)   # key -> 中文类名（选中物体时给人看）
     for key, zh in ALL_CLASSES:
         col = bpy.data.collections.new('C_%s_%s' % (key, zh))
         ent.children.link(col)
@@ -287,6 +324,10 @@ def main():
             parent.children.link(sub)
             for o in lst:
                 sub.objects.link(o)
+                # 选中物体就能在「物体属性 → 自定义属性」看到分类（2026-10-31 用户要求）
+                o['cls'] = ZH.get(key, key)   # 中文类名（给人看）
+                o['cls_key'] = key            # 英文 key（给脚本/检索）
+                o['tile'] = tid
                 made += 1
     # 清掉顶层直接挂载
     for o in list(ent.objects):

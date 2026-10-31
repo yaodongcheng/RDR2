@@ -212,6 +212,27 @@ def main():
   ap.add_argument('--out', default='')
   a = ap.parse_args(argv())
 
+  # 🔴 隐藏集合里的对象不进 depsgraph，matrix_world 会停在旧值（局部包围盒）——
+  #    清单里的 bb 必须来自世界变换，否则埋深/对账全错（2026-10-31 实测：v23 有 2,312 个）。
+  for _c in bpy.data.collections:
+    try:
+      _c.hide_viewport = False
+    except Exception:
+      pass
+
+  def _unhide_lc(node):
+    try:
+      node.hide_viewport = False
+      node.exclude = False
+    except Exception:
+      pass
+    for _ch in node.children:
+      _unhide_lc(_ch)
+
+  _unhide_lc(bpy.context.view_layer.layer_collection)
+  bpy.context.view_layer.update()
+  print('[mf] 集合全开 + view_layer.update()（保证 matrix_world 已求值）')
+
   out = a.out or bpy.data.filepath
   if not out:
     raise SystemExit('没有 --out，也不在 .blend 里')

@@ -61,8 +61,14 @@ RULES = [
         r'rail[_-]?decal|track[_-]?decal|'
         r'b_r_|_r_[abc]_dec', re.I)),
     ('struct', '桥梁结构', re.compile(
-        r'bridge|_bri(?!ck)|viaduct|trestle|drawbridge|abutment|retaining|pier\d|wharf|dock(?!house)|'
-        r'_slope(_dec)?|_truss|girder|culvert|watertower|silo|tank\d', re.I)),
+        # 🔴 2026-10-31 用户裁定：struct **只放桥/栈桥相关**；码头/船坞/挡墙/筒仓已挪到
+        #    bldg / part（见下面两条规则）。别再往这里加通用构筑物。
+        r'bridge|_bri(?!ck)|viaduct|trestle|drawbridge|abutment|_truss|girder|culvert', re.I)),
+    # 2026-10-31：从 struct 拆出来的通用构筑物。**必须排在 decal/veg 之前**，
+    # 否则名字里带草/树等词的码头会被 veg 抢走（实测 88 个）。
+    ('bldg', '建筑', re.compile(
+        r'dock(?!_?rope)|wharf|pier\d|pier(?![a-z])|silo|watertower|tank\d', re.I)),
+    ('part', '建筑部件', re.compile(r'retaining|_slope(_dec)?', re.I)),
     ('road', '道路', ROAD),
     ('ruin', '废墟', RUIN),
     ('decal', '地面贴花', re.compile(
@@ -77,28 +83,43 @@ RULES = [
         r'rock|boulder|cliff|stone_|outcrop|sandstone|gravelpile|_cliff', re.I)),
     ('veh', '载具', re.compile(
         r'wagon|cart(?!ridge)|carriage|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
-        r'p_train_|trolley|handcar|barge|raft|stagecoach', re.I)),
+        r'p_train_|trolley|handcar|barge|raft|stagecoach|hull(?!.*_doors)', re.I)),
+    # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
+    ('prop', '道具', re.compile(r'_em$', re.I)),
     ('bldg', '建筑', re.compile(
         r'_ext_|bldg|building|church|chapel|saloon|store|shop|bank|hotel|barn|shed|cabin|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
         r'postoffice|storefront|res\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
-        r'undertaker|gunsmith|tailor|butcher|doctor|photograph|newspaper', re.I)),
+        r'undertaker|gunsmith|tailor|butcher|doctor|photograph|newspaper|'
+        # 2026-10-31 用户样本（区域 #20）：街区建筑/公寓/牢房/仓库/车站/工厂/水塔/凉亭
+        r'apts(?!.*(sign|_dec(?![a-z])|decals|_em$))|'
+        r'cellblock(?!.*(_dec(?![a-z])|decals|_em$))|'
+        r'blds(?!.*(_dec(?![a-z])|decals|_em$))|'
+        r'trainstn(?!.*(poles|_dec(?![a-z])|decals|_em$))|'
+        r'refiner(?!.*_dec(?![a-z]))|water_?twr|(^|_)ware$|gazebo|napol|'
+        # 街区地址式建筑：new_com_01_207_decatur / new_frn02_1139chartres / new_mrk_01_1238_002
+        r'^new_(com|frn|mrk)(?:_?\d+)*_\d{3,}'
+        r'(?!.*(_dec(?![a-z])|decals|_det\d*$|_em$|_d$|sign|balc|stair|rail|top))', re.I)),
     ('part', '建筑部件', re.compile(
-        r'wall|roof|porch|fence|fencing|gate|door|window|stair|balustr|railing|rail_?post|'
+        r'wall|roof|porch|fence|fencing|gate|door|window|stair|balustr|railing|rail_?post|rail$|'
         r'deck|beam|pillar|column|framing|trim|awning|sign_?post|boardwalk|plank|lumber|'
         r'scaffold|ladder|fencepen|pen\d|hitching|trough|gutter|shutter|chimney|'
         r'foundation|support|brace|joist|stud|veranda|canopy|pergola|trellis|woodboard|board\d|'
+        r'buildsite|'  # 2026-10-31 用户样本：工地
         r'_glue|_outerwall|_shell$|_shell_', re.I)),
     ('junk', '杂物堆', re.compile(
         r'debris|debirs|rubble|trash|garbage|junk|scrap|cloth|cotton|bale|bundle|sugarcane|cane_|'
-        r'inv_|_stks|twgs|twig|branch|leaves|leaf_|pile|papers|newspaper|sack|rags', re.I)),
+        r'inv_|_stks|twgs|twig|branch|leaves|leaf_|pile|papers|newspaper|sack|rags|wdbrds', re.I)),
     ('prop', '道具', re.compile(
         r'barrel|crate|box\d|chair|table|lamp|lantern|bucket|bottle|wheel|crate|tool|'
         r'anvil|sack|stove|bed|desk|shelf|cabinet|piano|safe|cash|register|counter|'
         r'bench|crate|barrel|trough|coffin|grave|headstone|cross_?mark|post|pole|'
         r'sign|banner|flag|crate|bucket|pump|well|hitching|cart|saddle|rug|curtain|'
-        r'p_|^s_|marker|cookfire|tin\d|crate\d|hay|stump|splitwood|woodsplit', re.I)),
+        r'p_|^s_|marker|cookfire|tin\d|crate\d|hay|stump|splitwood|woodsplit|'
+        # 2026-10-31 用户样本：阳台 / 场景零散 props（含 props 即道具；
+        # debris/道路/码头/站台/马车等更具体的词由前面的规则先接走）
+        r'balcony|balc(?!o)|props', re.I)),
 ]
 
 # 兜底：只对前面全没中的对象生效
