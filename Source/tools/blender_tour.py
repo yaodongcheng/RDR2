@@ -21,6 +21,16 @@ import math
 import os
 from collections import defaultdict
 
+# 默认隐藏的类（唯一一份在 class_registry.py；和构建链、清单工具共用）
+try:
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from class_registry import CLASSES, DEFAULT_HIDDEN
+except Exception:                    # 单独拷走脚本时的兜底（与注册表保持一致）
+    CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'stone', 'rock',
+               'veh', 'bldg', 'part', 'junk', 'prop', 'unknown')
+    DEFAULT_HIDDEN = ('lod', 'terrain_cell', 'veg', 'stone')
+
 TILE = 2000.0
 X0, Y0, WORLD = -7684.0, -8196.0, 12296.0
 
@@ -252,6 +262,25 @@ def _tile_of(x, y):
     return 'wild2000_%02d_%02d' % (i, j)
 
 
+_CAT_KEYS_LONGEST = sorted(CLASSES, key=len, reverse=True)
+
+
+def _parse_cat(name):
+    """`C_<key>_<中文名>` → (key, 中文名)。
+
+    🔴 key 里**可能带下划线**（`terrain_cell`），不能盲切：以前 `split('_', 2)`
+    把 `C_terrain_cell_地形块` 切成 key='terrain'，于是 `cat_show('terrain_cell')`
+    找不到、`DEFAULT_HIDDEN` 判定永远不成立 —— 这就是"地形块没被隐藏"的根因
+    （2026-10-30 实测确认）。按已知类名做最长前缀匹配。
+    """
+    rest = name[2:] if name.startswith('C_') else name
+    for k in _CAT_KEYS_LONGEST:
+        if rest == k or rest.startswith(k + '_'):
+            return k, (rest[len(k) + 1:] if rest != k else k)
+    parts = rest.split('_', 1)            # 未知类名：退回老切法
+    return parts[0], (parts[1] if len(parts) > 1 else parts[0])
+
+
 def cats():
     """返回 [(key, 中文名, collection)] —— 读 ENTITIES 下的 C_<key>_<中文名>。"""
     ent = bpy.data.collections.get('ENTITIES')
@@ -261,14 +290,36 @@ def cats():
     for c in ent.children:
         if not c.name.startswith('C_'):
             continue
-        parts = c.name.split('_', 2)
-        out.append((parts[1] if len(parts) > 1 else c.name,
-                    parts[2] if len(parts) > 2 else c.name, c))
+        key, zh = _parse_cat(c.name)
+        out.append((key, zh, c))
     return out
 
 
 def classified():
     return bool(cats())
+
+
+def _layer_col(name, root=None):
+    """在视层里找到同名 LayerCollection（视口真正生效的那只"眼睛"）。
+
+    2026-10-30：`Collection.hide_viewport`（全局开关）与 `LayerCollection.hide_viewport`
+    （视层眼睛）是两套状态。只设前者时，某些情形下（集合被重复挂载 / 视层缓存）
+    画面里仍然看得见 —— 用户实测踩到过。这里统一把两套都设上，避免"设了却没生效"。
+    """
+    try:
+        lc = root or bpy.context.view_layer.layer_collection
+    except Exception:
+        return None
+
+    def walk(node):
+        yield node
+        for c in node.children:
+            yield from walk(c)
+
+    for node in walk(lc):
+        if node.name == name:
+            return node
+    return None
 
 
 def cat_show(key, on):
@@ -277,6 +328,9 @@ def cat_show(key, on):
         if key == k or key == zh or key == c.name or key in zh or key in k:
             c.hide_viewport = not on
             c.hide_render = not on
+            lc = _layer_col(c.name)
+            if lc is not None:
+                lc.hide_viewport = not on
             # 同步右侧面板的勾选状态（否则面板会显示"开"但实际是隐藏）
             try:
                 pg = getattr(bpy.context.scene, 'rdr2_cats', None)
@@ -284,7 +338,7 @@ def cat_show(key, on):
                     setattr(pg, 'cat_' + k, bool(on))
             except Exception:
                 pass
-            print('cat %s(%s) -> %s' % (zh, k, '显示' if on else '隐藏'))
+            print('cat %s(%s) -> %s（collection+眼睛）' % (zh, k, '显示' if on else '隐藏'))
             return True
     print('没找到分类:', key)
     return False
@@ -320,7 +374,9 @@ def only(tid):
     key = tid[2:] if tid.startswith('T_') else tid
     hit = 0
     if classified():
-        subs = [sub for k, zh, c in cats() for sub in c.children]
+        # 默认隐藏的类整类不参与"只看某地块"：否则会把 lod/地形块 的子集合
+        # 重新设成"数据层可见"，和"整类隐藏"打架（2026-10-30）。
+        subs = [sub for k, zh, c in cats() if k not in DEFAULT_HIDDEN for sub in c.children]
         # 保护：目标地块没有任何对象时不要清空场景（视点常落在海面/天空）
         if not any(sub.get('tile') == key for sub in subs):
             print('only(%s): 该地块没有对象，保持当前显示不变' % tid)
@@ -347,6 +403,18 @@ def only(tid):
     return hit
 
 
+def _col_key(c):
+    """集合名 `C_<key>_<中文>` → key（走 _parse_cat，`terrain_cell` 才认得出来）。"""
+    return _parse_cat(c.name)[0]
+
+
+def _set_eye(name, hide):
+    """同时设「数据层」和「视层眼睛」——只设一半会出现"设了没生效/开了还看不见"。"""
+    lc = _layer_col(name)
+    if lc is not None and lc.hide_viewport != hide:
+        lc.hide_viewport = hide
+
+
 def show_all():
     ent = bpy.data.collections.get('ENTITIES')
     if ent is None:
@@ -354,10 +422,12 @@ def show_all():
     for c in ent.children:
         c.hide_viewport = False
         c.hide_render = False
+        _set_eye(c.name, False)
         for sub in c.children:
             sub.hide_viewport = False
             sub.hide_render = False
-    print('show_all: 全部分区/分类恢复显示')
+            _set_eye(sub.name, False)
+    print('show_all: 全部分区/分类恢复显示（含默认隐藏类；要藏请再调 cat_show）')
 
 
 def show_only(tid):
@@ -501,9 +571,18 @@ def _apply(state):
         return
     if kind == 'all':
         for c in ent.children:
+            # 默认隐藏类不参与「远景全开」：否则拉到中景就满地图地形碎片（2026-10-30）
+            if _col_key(c) in DEFAULT_HIDDEN:
+                c.hide_viewport = True
+                c.hide_render = True
+                _set_eye(c.name, True)
+                continue
             c.hide_viewport = False
             c.hide_render = False
-            _set_sub(c, 0)
+            _set_eye(c.name, False)
+            for sub in c.children:
+                sub.hide_viewport = False
+                sub.hide_render = False
     else:
         only(tid)
 
@@ -635,17 +714,31 @@ def boost():
     print('boost: 已完成（纯色 + 单地块 + 只留主体 + 地形减面 30%）')
 
 
-def full():
-    """恢复"看整体"：贴图 + 自动跟随 + 全部小件显示。"""
+def apply_defaults():
+    """按 DEFAULT_HIDDEN 设一遍：默认隐藏类藏（数据层+眼睛都藏），其余显示。
+
+    `full()` / 流式「远景」档都走这里 —— 2026-10-30 之前它们直接
+    `c.hide_viewport = False`，会把远景碎片/地形块一起放出来（"满地图碎片"）。
+    """
     ent = bpy.data.collections.get('ENTITIES')
-    if ent:
-        for c in ent.children:
-            c.hide_viewport = False
-            c.hide_render = False
-            _set_sub(c, 0)
+    if ent is None:
+        return
+    for c in ent.children:
+        hide = _col_key(c) in DEFAULT_HIDDEN
+        c.hide_viewport = hide
+        c.hide_render = hide
+        _set_eye(c.name, hide)
+        for sub in c.children:
+            sub.hide_viewport = hide
+            sub.hide_render = hide
+
+
+def full():
+    """恢复"看整体"：贴图 + 自动跟随 + 全部小件显示（默认隐藏类仍隐藏）。"""
+    apply_defaults()
     textured()
     follow(True)
-    print('full: 已恢复（贴图 + 跟随，小件全部显示）')
+    print('full: 已恢复（贴图 + 跟随，小件全部显示；远景碎片/地形块/植被/石块仍默认隐藏）')
 
 
 def perf():

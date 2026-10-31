@@ -33,8 +33,11 @@ import time
 import argparse
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock', 'veh',
-           'bldg', 'part', 'junk', 'prop', 'unknown')   # 13 类（2026-10-29 起）
+# 🔴 类表唯一一份在 class_registry.py（2026-10-30：此前三处各写一份 13 类元组，
+#    新增 stone 时没人跟着改 → 744 个对象从清单类表里消失）。
+if os.path.join(ROOT, 'tools') not in sys.path:
+  sys.path.insert(0, os.path.join(ROOT, 'tools'))
+from class_registry import CLASSES, DEFAULT_HIDDEN    # noqa: E402
 HIDDEN_COL = 'HIDDEN_TERRAIN_CELL'
 HIDDEN_VEG = 'HIDDEN_VEG'
 HIDDEN_PARKED = 'HIDDEN_PARKED'
@@ -81,10 +84,14 @@ def _mat_tex(mat, names):
 
   2026-10-29 起构建按**贴图名字**建材质（`alb_<name>` / `nonalbedo_warmgray`），
   旧的 `m_<tid>` 只在更早的 blend 里存在，两条都认。
+  2026-10-30 起材质还带 `normal` / `orm` 自定义属性（三贴图材质名会变长，
+  不能再靠切 `alb_` 前缀反推 albedo 名字）。
   """
+  if mat.get('albedo'):
+    return mat['albedo'], False
   n = mat.name
   if n.startswith('alb_'):
-    return n[4:], False
+    return n[4:].split('__')[0], False
   if n.startswith('nonalbedo') or n.startswith('ntex_'):
     return '', True
   if n.startswith('m_'):
@@ -100,10 +107,13 @@ def _mat_tex(mat, names):
 
 
 def mesh_tex(me, names, cache):
+  """网格 → (albedo 名, 是否兜底, 法线名, ORM 名)。按 mesh 缓存（同模型共享）。"""
   k = me.name
   if k in cache:
     return cache[k]
   out = []
+  nrm = []
+  orm = []
   ntex = False
   for m in me.materials:
     if m is None:
@@ -113,7 +123,13 @@ def mesh_tex(me, names, cache):
       ntex = True
     if nm and nm not in out:
       out.append(nm)
-  res = (tuple(out[:4]), ntex)
+    v = m.get('normal')
+    if v and v not in nrm:
+      nrm.append(v)
+    v = m.get('orm')
+    if v and v not in orm:
+      orm.append(v)
+  res = (tuple(out[:4]), ntex, tuple(nrm[:4]), tuple(orm[:4]))
   cache[k] = res
   return res
 
@@ -218,7 +234,11 @@ def main():
   cls_cnt = {}
   hidden_cnt = 0
   ntex_cnt = 0
+  nrm_cnt = 0
+  orm_cnt = 0
   tex_used = set()
+  nrm_used = set()
+  orm_used = set()
   mat_cnt = {}
   world_bb = [1e18, 1e18, 1e18, -1e18, -1e18, -1e18]
   ent_total = 0
@@ -227,7 +247,7 @@ def main():
 
   meta = {'_meta': {'blend': out, 'built': time.strftime('%Y-%m-%dT%H:%M:%S'),
                     'objects': len(objs), 'entities': ent_total,
-                    'fields': 'n,h,c,tid,hid,tag,p,bb,t,nt'}}
+                    'fields': 'n,h,c,tid,hid,tag,p,bb,t,tn,tm,nt'}}
   with open(jl_path, 'w', encoding='utf-8') as f:
     f.write(json.dumps(meta, ensure_ascii=False) + '\n')
     for i, ob in enumerate(objs):
@@ -254,13 +274,21 @@ def main():
         world_bb[2] = min(world_bb[2], bb[2]); world_bb[3] = max(world_bb[3], bb[3])
         world_bb[4] = max(world_bb[4], bb[4]); world_bb[5] = max(world_bb[5], bb[5])
       if ob.type == 'MESH' and ob.data is not None:
-        tl, fb = mesh_tex(ob.data, names, cache)
+        tl, fb, tn, tm = mesh_tex(ob.data, names, cache)
         for m in ob.data.materials:
           if m is not None:
             mat_cnt[m.name] = mat_cnt.get(m.name, 0) + 1
         if tl:
           rec['t'] = list(tl)
           tex_used.update(tl)
+        if tn:
+          rec['tn'] = list(tn)      # 法线（2026-10-30 起才有）
+          nrm_used.update(tn)
+          nrm_cnt += 1
+        if tm:
+          rec['tm'] = list(tm)      # 材质/高光 `_ma`
+          orm_used.update(tm)
+          orm_cnt += 1
         if fb:
           rec['nt'] = 1
           ntex_cnt += 1
@@ -283,7 +311,7 @@ def main():
     print('[mf] 汇总 %s（由 manifest_from_jsonl 反算）' % js_path)
     print('[mf] ENTITIES %d / 分类 %d/%d %s / 隐藏 %d（远景碎片 %d、地形块 %d、植被 %d）/ '
           '名字像植被却归了别的类 %d / 贴图用 %d / 无 albedo %d'
-          % (s.get('entities', 0), s.get('classes_n', 0), 13,
+          % (s.get('entities', 0), s.get('classes_n', 0), len(CLASSES),
              ','.join(s.get('classes', {})), s.get('hidden', 0),
              s.get('lod_hidden', 0), s.get('hidden_terrain', 0), s.get('veg_hidden', 0),
              s.get('veg_should_delete', 0), s.get('textures_used', 0),
@@ -297,16 +325,23 @@ def main():
     if e and e[0] == 'veg' and not e[2]:     # 归类为植被、且当前是显示状态
       veg_left += 1
 
-  # 「应藏未藏」：是植被但**还露在外面**的（2026-10-29 起不搬对象，只整类隐藏）
+  # 「应藏未藏」的真正判据（2026-10-30 改）：**默认隐藏类里还有没有露着的对象**。
+  # 旧判据是"名字像植被却没归 veg 类"，会把 `_docks_weed`（码头杂物）、
+  # `_bridge_ivy`（带藤的桥）当成错误 —— v17 虚报 271 个。
   veg_miss = 0
+  veg_name_outside = 0
   for o in (ents.all_objects if ents else []):
     e = info.get(o.name)
-    if SHOULD_DEL(o.name.split('.')[0].lower()) and not (e and e[2]):
+    cat = e[0] if e else None
+    shown = not (e and e[2])
+    if cat in DEFAULT_HIDDEN and shown:
       veg_miss += 1
+    if shown and SHOULD_DEL(o.name.split('.')[0].lower()):
+      veg_name_outside += 1
 
   cats = sorted(k for k in cls_cnt if k in CLASSES)
   size_gb = os.path.getsize(out) / 1e9 if os.path.exists(out) else 0.0
-  verdict = (ent_total > 0 and len(cats) >= 10 and veg_miss == 0)
+  verdict = (ent_total > 0 and len(cats) == len(CLASSES) and veg_miss == 0)
   summary = {
     'blend': out,
     'blend_size_gb': round(size_gb, 2),
@@ -316,16 +351,21 @@ def main():
     'entities': ent_total,
     'classes': {k: cls_cnt[k] for k in cats},
     'classes_n': len(cats),
-    'classes_expected': 13,
+    'classes_expected': len(CLASSES),
     'hidden': hidden_cnt,
     'hidden_terrain': cls_cnt.get('hidden_terrain', 0),
     'veg_hidden': cls_cnt.get('veg_hidden', 0),
     'parked_hidden': cls_cnt.get('parked_hidden', 0),
     'veg_left': veg_left,
     'veg_should_delete': veg_miss,
+    'veg_name_outside': veg_name_outside,
     'materials': len(mat_cnt),
     'textures_used': len(tex_used),
     'no_albedo_objects': ntex_cnt,
+    'with_normal_objects': nrm_cnt,
+    'with_orm_objects': orm_cnt,
+    'normal_textures_used': len(nrm_used),
+    'orm_textures_used': len(orm_used),
     'world_bbox': [r2(v) for v in world_bb],
     'verdict': 'PASS' if verdict else 'CHECK',
   }

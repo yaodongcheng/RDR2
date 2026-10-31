@@ -21,17 +21,20 @@ import argparse
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 D = os.path.join(ROOT, 'deliverable/blender/continent')
-CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
-           'junk', 'prop', 'unknown')
+# 🔴 类表唯一一份在 class_registry.py（此前这里写死 13 类，新增 stone 后漏算 744 个对象）
+import sys as _sys
+if os.path.join(ROOT, 'tools') not in _sys.path:
+    _sys.path.insert(0, os.path.join(ROOT, 'tools'))
+from class_registry import CLASSES, DEFAULT_HIDDEN     # noqa: E402
 
 try:
-    import sys
-    sys.path.insert(0, os.path.join(ROOT, 'tools'))
-    from strip_vegetation import VEG as SHOULD_DEL     # 与构建链同一个正则
+    # 🔴 唯一一份植被规则在 veg_rules.py（2026-10-30 修：这里原来 import
+    #    `strip_vegetation.VEG`，而那个模块并不导出 VEG → 每次都静默落进下面的
+    #    兜底正则，跟构建链用的 `is_veg`（带盆栽/墙的排除）不是同一套口径）。
+    from veg_rules import is_veg as SHOULD_DEL
 except Exception:
-    SHOULD_DEL = re.compile(
-        r'(^|/)(p_tree|p_bush|p_shrub|p_grass|p_plant|p_fern|p_cactus|p_palm|p_reed|p_lily|p_ivy|p_vine)'
-        r'|rdr_bush|_tree_|_bush_|_shrub|_fern_|_grass_|_cactus', re.I)
+    def SHOULD_DEL(_n):
+        return False
 
 
 def r2(v):
@@ -60,8 +63,14 @@ def main(argv=None):
     tex_used = set()
     world = [1e18, 1e18, 1e18, -1e18, -1e18, -1e18]
     veg_left = 0
-    veg_miss = 0
+    veg_miss = 0            # 默认隐藏类里**还露着**的对象数（判据见下）
+    veg_name_outside = 0    # 名字像植被但归了别的类（信息项，不算错）
+    hidc = {}               # 每个类里已隐藏的对象数
     n = 0
+    nrm_obj = 0
+    orm_obj = 0
+    nrm_used = set()
+    orm_used = set()
     meta = {}
     with open(jl, encoding='utf-8') as f:
         meta = json.loads(f.readline()).get('_meta', {})
@@ -72,10 +81,20 @@ def main(argv=None):
             cls[c] = cls.get(c, 0) + 1
             if r.get('hid'):
                 hidden += 1
+                hidc[c] = hidc.get(c, 0) + 1
             if r.get('nt'):
                 ntex += 1
             for t in r.get('t') or ():
                 tex_used.add(t)
+            # 2026-10-30：法线 / 材质(高光) —— 旧 jsonl 没有这两个字段，读到就是 0
+            tn = r.get('tn')
+            if tn:
+                nrm_obj += 1
+                nrm_used.update(tn)
+            tm = r.get('tm')
+            if tm:
+                orm_obj += 1
+                orm_used.update(tm)
             b = r.get('bb')
             if b:
                 world[0] = min(world[0], b[0]); world[1] = min(world[1], b[1])
@@ -83,16 +102,20 @@ def main(argv=None):
                 world[4] = max(world[4], b[4]); world[5] = max(world[5], b[5])
             if c == 'veg':
                 veg_left += 1
-            # 「应删未删」只看**还露在 ENTITIES 里**的对象：收进 HIDDEN_VEG 的本来就没删
-            # （最高原则 §6.1：植被默认隐藏不删），不能算成漏删。
-            if not r.get('hid') and SHOULD_DEL.search(str(r.get('n', '')).split('.')[0].lower()):
-                veg_miss += 1
+            # 名字像植被、但归了别的类（`p_debris_nbd_docks_weed1` 是码头杂物、
+            # `smb_bridge_01_ivy` 是带常春藤的桥）—— **信息项**，不算错。
+            if not r.get('hid') and SHOULD_DEL(str(r.get('n', '')).split('.')[0].lower()):
+                veg_name_outside += 1
 
     cats = sorted(k for k in cls if k in CLASSES)
     ent_total = int(meta.get('entities') or 0)
     blend = a.blend or meta.get('blend') or ''
     size_gb = round(os.path.getsize(blend) / 1e9, 2) if blend and os.path.exists(blend) else 0.0
-    verdict = (ent_total > 0 and len(cats) >= 10 and veg_miss == 0)
+    # 「应藏未藏」的真正判据：**默认隐藏类里还有没有露着的对象**。
+    # 旧判据是"名字像植被却没归 veg 类"，会把 `_docks_weed`（杂物）、`_bridge_ivy`（桥）
+    # 当成错误 → v17 虚报 271 个。2026-10-30 改成本口径。
+    veg_miss = sum(max(0, cls.get(k, 0) - hidc.get(k, 0)) for k in DEFAULT_HIDDEN)
+    verdict = (ent_total > 0 and len(cats) == len(CLASSES) and veg_miss == 0)
     summary = {
         'blend': blend,
         'blend_size_gb': size_gb,
@@ -102,7 +125,7 @@ def main(argv=None):
         'entities': ent_total,
         'classes': {k: cls[k] for k in cats},
         'classes_n': len(cats),
-        'classes_expected': 13,
+        'classes_expected': len(CLASSES),
         'hidden': hidden,
         # 2026-10-29 起"隐藏"= 整类默认隐藏，不再有独立垃圾桶集合：
         # 这三个数直接取类大小，口径与面板一致。
@@ -112,9 +135,14 @@ def main(argv=None):
         'lod_hidden': cls.get('lod', 0),
         'veg_left': veg_left,
         'veg_should_delete': veg_miss,
+        'veg_name_outside': veg_name_outside,
         'materials': None,
         'textures_used': len(tex_used),
         'no_albedo_objects': ntex,
+        'with_normal_objects': nrm_obj,
+        'with_orm_objects': orm_obj,
+        'normal_textures_used': len(nrm_used),
+        'orm_textures_used': len(orm_used),
         'world_bbox': [r2(v) for v in world],
         'verdict': 'PASS' if verdict else 'CHECK',
         'note': '由 manifest jsonl 反算（tools/manifest_from_jsonl.py；'
@@ -126,11 +154,14 @@ def main(argv=None):
     json.dump(summary, open(js, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     json.dump(summary, open(os.path.join(d, 'manifest.json'), 'w', encoding='utf-8'),
               ensure_ascii=False, indent=1)
-    print('ENTITIES %d / 13 类 %d/13 / 植被 %d / 隐藏 %d（地形 %d、植被 %d、占位 %d）/ '
-          '待隐藏未隐藏 %d / 贴图用 %d / 无 albedo %d → %s'
-          % (ent_total, len(cats), veg_left, hidden, summary['hidden_terrain'],
-             summary['veg_hidden'], summary['parked_hidden'], veg_miss,
+    print('ENTITIES %d / 类 %d/%d / 默认隐藏类未藏 %d（名字像植被但归别类 %d，信息项）/ '
+          '隐藏 %d（地形 %d、植被 %d、占位 %d）/ 贴图用 %d / 无 albedo %d → %s'
+          % (ent_total, len(cats), len(CLASSES), veg_miss, veg_name_outside,
+             hidden, summary['hidden_terrain'],
+             summary['veg_hidden'], summary['parked_hidden'],
              len(tex_used), ntex, summary['verdict']))
+    print('TMAPS 带法线对象 %d（%d 张图）/ 带高光(ORM)对象 %d（%d 张图）'
+          % (nrm_obj, len(nrm_used), orm_obj, len(orm_used)))
     print('[mf2] 汇总 %s（%.1fs，源 %s）' % (js, time.time() - t0, os.path.basename(jl)))
 
 

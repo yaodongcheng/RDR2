@@ -34,7 +34,14 @@ def pick_albedo(texs):
 
 
 def load_drawable(res, base):
-    """在给定 drawable base 上读几何（返回 geoms 列表）"""
+    """在给定 drawable base 上读几何（返回 geoms 列表）
+
+    2026-10-30：额外带 `ntex`(法线) / `mtex`(材质=高光 map `_ma`)，供
+    `tools/extract_slot_textures.py` 给每个子网格补法线/高光槽位用。
+    取名字的逻辑与 .ydr 走同一份 `tools/tex_slots.py`（按 albedo 图层配对）。
+    `tex` 仍用原来的 `pick_albedo`，不改既有行为。
+    """
+    import tex_slots as S
     sg = res.u64(base + 0x10)
     shaders = Y.parse_shader_group(res, sg)
     shd = Y.parse_shader_hashes(res, sg)
@@ -50,6 +57,13 @@ def load_drawable(res, base):
             texs = shaders[sid] if 0 <= sid < len(shaders) else []
             g['tex'] = pick_albedo(texs)
             g['shader'] = shd[sid]['name'] if 0 <= sid < len(shd) else None
+            try:
+                pick = S.pick_all(texs)
+                g['ntex'] = pick['nrm']
+                g['mtex'] = pick['mat']
+            except Exception:
+                g['ntex'] = None
+                g['mtex'] = None
             out.append(g)
     return out
 

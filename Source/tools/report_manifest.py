@@ -20,8 +20,10 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 DEF_MANIFEST = os.path.join(ROOT, 'deliverable/blender/continent/manifest.json')
 LIB = os.path.join(ROOT, 'assets/lib_native/index.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
-CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock', 'veh', 'bldg', 'part',
-           'junk', 'prop', 'unknown')
+# 🔴 类表唯一一份在 class_registry.py（此前这里写死 13 类，新增 stone 后漏算 744 个对象）
+if os.path.join(ROOT, 'tools') not in sys.path:
+  sys.path.insert(0, os.path.join(ROOT, 'tools'))
+from class_registry import CLASSES, DEFAULT_HIDDEN    # noqa: E402
 
 
 def missing_models():
@@ -78,11 +80,15 @@ def main(argv=None):
   miss, ent_total, tex_total = missing_models()
   cls = s.get('classes', {})
   k = s.get('classes_n', len(cls))
-  veg_miss = s.get('veg_should_delete', s.get('veg_left', 0))
-  ok = (s.get('entities', 0) > 0 and k >= 10 and veg_miss == 0)
-  print('ENTITIES %d / 13 类 %d/13 / 植被类 %d（应删未删 %d）/ 缺模型 %d/%d (%.1f%%) / 贴图 %d → %s'
-        % (s.get('entities', 0), k, s.get('veg_left', 0), veg_miss, miss, ent_total,
+  veg_miss = s.get('veg_should_delete', 0)      # 默认隐藏类里还露着的对象（2026-10-30 新口径）
+  ok = (s.get('entities', 0) > 0 and k == len(CLASSES) and veg_miss == 0)
+  print('ENTITIES %d / 类 %d/%d / 植被类 %d（默认隐藏类未藏 %d）/ 缺模型 %d/%d (%.1f%%) / 贴图 %d → %s'
+        % (s.get('entities', 0), k, len(CLASSES), s.get('veg_left', 0), veg_miss, miss, ent_total,
            100.0 * miss / max(1, ent_total), tex_total, 'PASS' if ok else 'FAIL'))
+  if 'with_normal_objects' in s:
+    print('TMAPS 带法线对象 %d（%d 张法线图）/ 带高光(ORM)对象 %d（%d 张 _ma 图）'
+          % (s.get('with_normal_objects', 0), s.get('normal_textures_used', 0),
+             s.get('with_orm_objects', 0), s.get('orm_textures_used', 0)))
 
   print('\n以下全部来自清单，不需要打开 blend：')
   print('  blend        %s（%.2f GB，%s）' % (s.get('blend', ''), s.get('blend_size_gb', 0),

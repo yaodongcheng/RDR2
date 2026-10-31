@@ -154,6 +154,49 @@ while (Get-Process blender -ErrorAction SilentlyContinue) {
 判定：日志末行 `[rc] exit=0` + 有 `SAVED` / `VERIFY ... PASS` → 成功；
 日志停在半路且没有 `[rc]` 行 → 进程被杀（多半是内存），立刻停下来报原因。
 
+### 2.7 禁止把「重建 blend」当进度条（2026-10-30 实锤，浪费约 3 小时）
+
+重建一次 60~90 分钟，而且**只要上游（`index.json` / `tiles/`）还会变，这次重建就全废**。
+2026-10-30 连续踩了三次：
+
+| 版本 | 想验证什么 | 结果 |
+|---|---|---|
+| v14 | 铁路补进来了 | 建完才发现 `.yft` 从未入库、还有 1,136 个零四元数 |
+| v15 | 全量合并 | 建到 40% 自己发现上面两个问题，停掉 |
+| v16（第一次） | "看着齐了" | 违背本条，被用户当场指出 |
+
+**硬规矩**：重建只允许作为**最后一步**，且必须同时满足：
+
+1. `python tools/audit_full_extraction.py` 四列都收口（包级 0 空 / 模型级失败逐条说明 / 实例级缺模型分桶 / 变换 100%）；
+2. 上游文件**冻结**：跑完审计之后 `index.json` 与 `tiles/` 不再有任何写入；
+3. 明确写下"这次建的是定稿数据，之后只在它上面出图/出清单"。
+
+**数据没定稿时想确认几何对不对，用这两个代替重建**（都只读、秒级）：
+
+```powershell
+python tools/audit_full_extraction.py        # 四列数字
+blender -b -P tools/_probe_ann_mini.py -- --x 2884 --y 1348 --w 900   # 只装地形块+指定对象的小场景
+```
+
+### 2.8 版本节奏：一次只交一个版本，**最多保留 3 个**（2026-10-30 用户明令）
+
+**事故**：一天里连出 v18 → v23 六个版本（每个 7.2~7.8 GB，合计约 **43 GB**），用户一个都没验收就被新版本顶掉。
+用户原话：**"我还没验收一个版本，你居然自己擅自跑多个版本，你不知道这个很浪费存储空间和我的时间吗"**。
+
+**硬规矩**：
+
+1. **一次只推进一个版本**：用户在验收某个 `continent_vNN.blend` 时，不许在背后再滚新版本。
+2. **磁盘上最多保留 3 个版本**（当前 + 两个可回退的旧版）。出新版后，**第 4 个及更早的删掉**
+   —— 删除命令交给用户执行（见 CLAUDE.md「删除操作被权限拦截 = 交给用户」）。
+3. **不要"原地覆盖"同一个版本**（2026-10-30 用户补充：覆盖错了没法回归）。重建 = **新版本号**，
+   旧版留作回退，数量由第 2 条控制。
+4. **新版本号只在两种情况建**：① 用户验收后要修下一处；② 用户明确要求对比版。
+   用户说"先别做 vXX"之后，任何后续版本**先问**。
+5. 重建前先答"这次改动能用只读方式验吗"——`_check_class_visibility.py` / `audit_full_extraction.py` /
+   `manifest_from_jsonl.py` 能算的，就不要靠"再建一版看看"。
+6. 重建前确认用户当前正在看哪个文件；回执写明**新版本号 + 建议保留/删除哪几个**。
+7. `reclassify.py` 已关掉 `.blend1` 备份（`save_version = 0`），别再造备份文件。
+
 ---
 
 ## 3. 验证规范（不许为了"看一眼"打开 6 GB 文件）
@@ -218,6 +261,14 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | **`.mdl` 的 MAGIC 是 8 字节** | 写成 `buf[:8] != b'RMDL1'`（5 字节）**永远成立** → 补 tid 的脚本静默跳过 **55,608 个 .mdl**，还打印"成功 0 个" | `MAGIC = b'RMDL1' + bytes(3)`；改 `.mdl` 的脚本都必须先断言 `head[:8] == MAGIC` 并统计**实际写入数** |
 | **贴图表换了文件路径后不刷新图片** | 贴图表整表重建后，同名材质仍指向旧文件（`tex/0352.png`）→ 看着"改了却没变" | `relink_materials.py` 的 `make_material` 必须 `_set_image()` **比对路径并重载**，不能"材质名已存在就直接返回" |
 | **`manifest_from_jsonl.main()` 被程序内调用** | 传参报 `main() takes 0 positional arguments but 1 was given` → 回退到 Blender 内慢速汇总（20~35 分钟） | 入口统一 `def main(argv=None): ap.parse_args(argv)` |
+| **`st`（槽位法线/高光）只活在 `index.json`** | `normalize_lib_index.py` / `rebind_textures.py` / `rebind_models_from_sources.py` / `fix_ydd_textures.py` 都按磁盘 `.mdl` 或旧 `s` 重建 `s`，**会把 `models[h].st` 丢掉** → 重建出来的 blend 又退回"只有漫反射"，而且**没有任何报错** | 跑完这几个工具后必须再跑 `python tools/extract_slot_textures.py --stage bind && --stage apply`（它按 `s` 重算 `st`），再用 `tools/audit_three_maps.py` 看覆盖是不是还 >90% |
+| **`bsdf.inputs` 里没有 `'Red'`** | 写 ORM 时 `if kr in bsdf.inputs`（kr='Red'）恒 False → 分离节点的 Color 接上了、Metallic/Roughness 没接，肉眼只看到"粗糙度没变化" | 判 `'Metallic' in bsdf.inputs`。已在 `tools/mat_rdr2.py` 注释里标注 |
+| **cmd 把逗号当分隔符（第 N 次）** | `--at 2560,-1450` 传到 argparse 只剩 `2560` → `unrecognized arguments: -1450` | 参数拆成 `--x 2560 --y=-1450`，别拼 `x,y` |
+| **直接双击 `.blend` 打开 = 看到全开的 LOD/地形块/植被** | "默认隐藏"**不在 blend 里**，在启动器调用的 `tools/blender_autoload.py`。绕过它直接打开 → 满屏白色 LOD 地形 + 褐色浮岛 | 验收一律用 **`打开大陆_流畅.bat`**（自动挑最新的 `continent_v*.blend` 并执行 autoload）。2026-10-30 用户在 v16 上踩到这条；当天已把"启动器到底藏不藏得住"的五层根因全部修掉（见交接 §16） |
+| **分类集合名不能盲切**（`split('_', 2)`） | `C_terrain_cell_地形块` 被切成 key=`terrain` → `cat_show('terrain_cell')` 找不到、`DEFAULT_HIDDEN` 判定永不成立 ⇒ **"地形块"这一类从来没被隐藏**（旧版靠中文名 `'地形块'` 匹配才碰巧躲过） | 解析统一走 `blender_tour._parse_cat()`（已知类名最长前缀匹配）；类名表唯一一份在 `tools/class_registry.py` |
+| **Collection.hide_viewport ≠ LayerCollection.hide_viewport** | 数据层关了、视层"眼睛"还开着 → 清单写"已隐藏"、画面仍可见 | 两套一起设：`tour._set_eye()`、`cat_show()`、`classify_entities` 默认隐藏都已统一；验收用 `tools/_check_class_visibility.py` |
+| **`show_all()` / `full()` / `only()` 会把默认隐藏类放出来** | 每次"全图/恢复"都把远景碎片、地形块一起打开 | 统一按 `DEFAULT_HIDDEN` 走 `apply_defaults()`（面板「全图」已改）；`only()` 跳过默认隐藏类 |
+| **`-b` 测不出启动器画面** | `blender -b` 没有视口 → autoload 走"保持文件保存态"分支；拿 `-b` 截图当证据会判错（2026-10-29 踩过） | 启动器行为只认 **GUI 双击 bat**；`-b` 只能证明文件保存态 |
 
 ---
 
@@ -229,4 +280,5 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 - [ ] 植被默认是 **隐藏**（`--veg hide`），不是删；要删必须显式 `--veg delete` 并说明理由
 - [ ] 改动若涉及数据取舍，已在最高原则 §六 记录
 - [ ] 产物路径与 `deliverable/` 约定一致
+- [ ] **重建前上游已冻结**（§2.7）：`audit_full_extraction.py` 四列收口，且 `index.json` / `tiles/` 自审计后**没有任何写入**（用文件 `LastWriteTime` 证明，构建开始时间必须晚于最后一次写入）
 - [ ] **没有自己提交**（§0）：改动留在工作区，输出「待提交清单（`git status --short`）+ 每项说明」交给用户，由他用 `git_gui.py` 提交

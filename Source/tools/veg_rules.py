@@ -32,8 +32,13 @@ VEG = re.compile(
     r'(?<![a-z])vine|(?<![a-z])ivy|foliage|weed|sapling|flower', re.I)
 
 # 命中这些 = 是「长得像植物的道具」，不算植被（先判这个，再判 VEG）
+# 2026-10-30 补 `plantpot`：`p_plantpotnbx*` / `p_plantpothang*` / `p_plantpotwall*`（9 种 420 个）
+# 是**盆栽摆件**，不是植被（`p_pot_` 只覆盖了另一种命名）。
+# ⚠️ 别加 `_wall` 来排除 `tum_04__tumbleweed_wall`：同一条会连
+#    `rdr_bush_kudzu_wall_01`（墙上的葛藤）、`lac_01_wall_vines`（墙上的藤）一起踢出植被类
+#    —— 实测误伤 38 个真植被（2026-10-30 v18 回滚）。
 VEG_EXCLUDE = re.compile(
-    r'p_pot_|flowerarng|p_cs_|dressing|_pot_|planter', re.I)
+    r'p_pot_|plantpot|flowerarng|p_cs_|dressing|_pot_|planter', re.I)
 
 # 边长 ≤ 这个的算「盆栽级小件」，即使命中 VEG 也归道具（兜底，防漏）
 POT_MAX_M = 3.0

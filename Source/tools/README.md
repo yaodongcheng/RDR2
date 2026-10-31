@@ -3,6 +3,30 @@
 > 按职责分类。所有脚本从项目根目录运行：`uv run python tools/<脚本>.py`
 > 脚本之间用 `sys.path.insert(0, tools)` + `import 模块名` 互相引用，**不要移动文件**。
 
+## 槽位三贴图：漫反射 + 法线 + 高光（2026-10-30 新增，5 个）
+
+> 背景见 `docs/格式与资产/README_贴图与材质管线.md` §11.4。一句话：
+> 模型库以前**每个子网格只存一个 texId**，法线/高光在写库时被丢掉；这五个文件把它补回来。
+
+- `extract_slot_textures.py`  **主工具**，四段式（可中断续跑）：
+  `--stage parse`（16 进程解析 5.5 万源 `.ydr/.yft`，实测 3.6 分钟）
+  → `--stage bind`（对 `s` 做 vc/ic + albedo 名字三重校验）
+  → `--stage decode`（14 进程解 `_nm`/`_ma` 进 `tex/`，池 12,214→27,057）
+  → `--stage apply`（回写 `index.json` 的 `st`；`.mdl` 不动；先自动备份）
+- `tex_slots.py`  源侧取图规则（**按 albedo 图层配对** `normal_layerN` / `material_layerN`）。
+  注意 `export_sdn_gltf.ROLE_MATERIAL` **不含** `material_layerN`，别照抄那份常量
+- `mat_rdr2.py`  Blender 节点图（albedo→BaseColor、`_nm`→NormalMap、`_ma`→SeparateColor→
+  Metallic/Roughness）。`blender_continent._mat_for()` 与 `relink_materials.py` 共用这一份
+- `audit_three_maps.py`  **不开 Blender** 的三贴图覆盖审计（槽位级 + 实例加权 + 池子分 role）
+- `render_material_ab.py`  同机位 Eevee A/B 出图（`_on.png` 带三贴图 / `_off.png` 断掉法线与 ORM），
+  用于肉眼验收 —— Workbench 只有 `diffuse_color`，**看不到法线**
+
+> 配套改动（非新增文件）：`blender_continent.py`（`_mat_for` 收三个 id、`load_model_mesh` 读 `st`、
+> `VERIFY` 多打一行 `TMAPS`）、`relink_materials.py`（重写成走 `mat_rdr2`）、
+> `write_manifest.py`（`alb_` 名字可带 `__nm_`/`__ma_` 后缀、新增 `tn`/`tm` 字段）、
+> `manifest_from_jsonl.py`（汇总加 `with_normal_objects` 等四项）、`export_sdn_props2.py`
+> （`.yft` 的 geom 也带 `ntex`/`mtex`）。
+
 ## 整块大陆 / Blender 装配（19 个）
 
 - `blender_add_props.py`
@@ -175,6 +199,25 @@
   内含 joaat 哈希→名字 反查（`names.txt`），可复用于其它"无名实体"。
   > 2026-10-27 修正：旋向改为**共轭**（与 `blender_continent.py` 一致）；`tex_id<0` 给中性灰。
   > 更好的做法是重建时直接 `blender_continent.py --rails`，见 `README.md` §0.7.1。
+
+### 铁路包补抽 / 入库 / 并实例（2026-10-30 新增，2 个）
+
+**背景**：铁路网在游戏里是**按区块的独立 RPF 包**（`levels/rdr3/area/rails/*.rpf`）。
+安尼斯堡区块的 `jklm_15_18_rails_a/b`、`fghi_15_18_rails_a` 三个包**只建了空目录、从没抽到文件**
+（`raw/rails_extract/*_rails_*_rpf/` 都是 0 个文件），所以实例层里安尼斯堡只剩 4 段 `ann_02_rails_*`。
+补抽 + 入库 + 并实例后重建，`rail` 类 2,033 → **2,193**，安尼斯堡 900 m 内铁路对象 65 → **217**。
+
+- `ingest_rail_packs.py` —— 把 `raw/rails_extract/{jklma,jklmb,fghia}` 里的 `.ydr` 无损入库（`.mdl` + `tex/` + `index.json`）。
+  hash = `joaat(文件名)`；**已入库的自动跳过**（可反复跑）；写盘前备份 `index_before_rail_<ts>.json`。
+  顺带把法线/`_ma` 槽位写进 `st`（与 `extract_slot_textures.py` 同格式）。
+  用法：`python tools/ingest_rail_packs.py --dry` / `python tools/ingest_rail_packs.py`
+- `merge_rail_entities.py` —— 把这三个包的 `.ymap` 实体并进 `export/world/continent/tiles/wild2000_*.json`，
+  行格式与 `build_continent_index.py` 完全一致（11 列）。默认**跳过 `_lod/_slod`**（构建时也会隐藏，避免双份）；
+  按 `(hash,x,y)` 去重；先备份到 `tiles_before_rail_<ts>/`。
+  用法：`python tools/merge_rail_entities.py --dry` / `python tools/merge_rail_entities.py`
+
+> ⚠️ 抽包这一步不在脚本里（要游戏文件）：`rdr2rpf.exe extract levels_2.rpf <out> levels/rdr3/area/rails/<包>.rpf`，
+> 再把抽出来的 `.rpf` 解一层。完整命令见 `docs/交接与状态/README_交接.md` §14。
 
 ## 格式解析库（被其他脚本 import）（13 个）
 

@@ -183,21 +183,26 @@ def main():
         if r:
             cur = (r.view_location.x, r.view_location.y)
             break
-    if cur and nt:
-        tid = _tile_of(*cur)
+    # 2026-10-30 修：以前是 `if cur and nt:`。`nt` 来自 `tileify()`，当文件已被
+    # classify_entities 处理过、但子集合上没带 `tile` 属性时它会返回 0 →
+    # 整段"默认隐藏"被跳过 → 用户报告"用 bat 启动还是看到远景 LOD 地形"。
+    # 隐藏是硬要求，不能挂在"分区数"这种旁证上。
+    if cur:
         # 2026-10-28 用户要求：默认「全图」，不要流式（进入进出反而更卡）
         tour.stream(False)      # 同时注销 timer，彻底不跟随相机
         tour.show_all()
         print('[autoload] 默认「全图」：流式加载已关闭（timer 已注销，不再跟随相机）')
         # 顺序很重要：先 show_all 再关分类（否则会被 show_all 重新打开）
-        # show_all() 会把 classify_entities.DEFAULT_HIDDEN 那三类一起打开，这里必须全部关回去：
-        #   地形块 = 游戏自带 __hd_0_ 高度块 + 64/128 m 地表分片，和我们的 Terrain 重复、高度对不上
-        #   → 满地图「浮着的褐色岛 / 地形碎片」；远景碎片 = 游戏远景 LOD 替身，同理。
-        for _k in ('贴花', '植被', '远景碎片', '地形块'):
-            tour.cat_show(_k, False)
-        print('[autoload] 默认隐藏分类：贴花 / 植被 / 远景碎片 / 地形块')
+        # 默认隐藏 = class_registry.DEFAULT_HIDDEN（远景碎片/地形块/植被/石块），
+        # 启动器另外再关「贴花」（地面贴花在俯视时糊成一片，想看自己勾）。
+        hide_keys = tuple(tour.DEFAULT_HIDDEN) + ('decal',)
+        for _k in hide_keys:
+            ok = tour.cat_show(_k, False)
+            if not ok:
+                print('[autoload] ⚠ 分类「%s」没找到，可能集合命名变了' % _k)
+        print('[autoload] 默认隐藏分类：%s（collection+眼睛两套都设）' % ' / '.join(hide_keys))
     else:
-        print('[autoload] 无可用视口，保持全显')
+        print('[autoload] ⚠ 无可用视口（-b 后台模式）：只能保持**文件保存态**，测不出启动器画面')
 
     print('[autoload] 提示：默认全图；需要时可在面板点「★ 流式加载」开销更小')
 

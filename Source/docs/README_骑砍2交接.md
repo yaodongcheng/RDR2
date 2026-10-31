@@ -206,17 +206,37 @@ tiles/*.json  →  [hash, x,y,z, q...]  →  model_manifest.csv(查 hash)  →  
 - 现成读取器：`tools/blender_continent.py` 的 `load_model_mesh()`（含越界保护，可直接照抄逻辑）。
 - 顶点/法线/UV **全部 float32，没有量化**；不是压缩格式。
 
-### 5.4 贴图（albedo / 法线 / 高光；注意 `lib_native` 里只有 albedo）
+### 5.4 贴图（漫反射 / 法线 / 高光 —— 2026-10-30 起**三张都进库了**）
 
-- 7 065 张，全部 ≤ **512×512**（源多数是 512，部分源是 1024 → **被我们限到 512 了**）。
-- 命名后缀表明用途：`_ab / _abal / _abte / _al` = **albedo（颜色）**；
-  `_nm` = 法线、`_ma/_mb` = 材质掩码、`_s` = specular、`_d` = detail、`_pal` = 调色板。
-- **`assets/lib_native` 这个库里只有 albedo**（`_nm` 0 张）。
-- ✅ **更新（2026-10-25）：圣丹尼斯已单独补了法线 + 高光**，不在 `lib_native`，而是预览目录：
-  `export/previews/sdn/textures/`（`_ab.png` 漫反射 / `_nm.jpg` 法线 / `_ma_orm.jpg` 高光+粗糙+AO），
-  配套扁平表 `deliverable/handoff/sdn_flat_table.csv`（一行 = 一个实例的一个图元，含变换 + 三张图名）。
-  `_ma` 语义：**R=Metallic、G=Roughness、B=AO**（已按 glTF 重排成 ORM：R=AO / G=rough / B=metal）。
-  其余 42 个据点仍是纯 albedo，需要时用 `tools/export_sdn_gltf.py --ytd …` 重跑即可（同一套代码）。
+- 命名后缀表明用途：`_ab / _abal / _abte / _al` = **漫反射（颜色）**；
+  `_nm` = 法线、`_ma/_mb` = 材质图（R=Metallic / G=Roughness / B=AO）、`_s` = specular、`_d` = detail、`_pal` = 调色板。
+- **贴图表 `index.json.tex` 现有 27,057 条**（2026-10-30 之前只有 12,214 条 albedo）：
+  `role='ab'` 12,214 / `role='nm'` 8,578 / `role='ma'` 6,265，全部 ≤ **512×512**
+  （源多为 1024，入池时统一缩到 512）。
+- **每个子网格的三张贴图记在 `index.json.models[hash].st`**，与 `s` **等长同序**：
+  `st[i] = [nm_tid, ma_tid]`，`-1` = 该槽没有这张图。`.mdl` 二进制**没有改**（仍是
+  7×u32 的 `texId,vc,ic,pos,nrm,uv,idx`），三贴图信息只走 index 侧车 —— 老读取器不受影响。
+- **法线图入池时已把 G 通道翻转**（RDR2 是 DirectX 约定 +Y 朝下，Blender/OpenGL 要 +Y 朝上），
+  表里用 `gflip:1` 标记；**使用时不要再翻一次**，否则凹凸反向。
+- **`_ma` 通道语义（已定死，别再猜）**：R=Metallic、G=Roughness、B=AO。
+  Blender 里 `Separate Color` → R 接 Metallic、G 接 Roughness；B(AO) 暂不接
+  （Principled 没有 AO 输入，硬乘 Base Color 会把颜色压暗）。
+- 覆盖（`python tools/audit_three_maps.py` 实测）：
+
+  | 口径 | 漫反射 | 法线 | 高光(`_ma`) |
+  |---|---:|---:|---:|
+  | 槽位（225,412 个子网格） | 97.73% | **93.38%** | **91.28%** |
+  | 实例加权（场上 443,268 槽） | 94.65% | **91.11%** | **86.83%** |
+
+  没补上的原因只有一个：**源 `.ydr` 引用的贴图名在磁盘上任何 ytd 里都没有**
+  （法线 2,883 个名字 / 高光 4,718 个名字，13 个顶层包已全抽）。不是解析失败、也不是没绑定。
+- 生成工具：`tools/extract_slot_textures.py --stage parse|bind|decode|apply`；
+  绑定规矩是「几何 vc/ic 全等 + albedo 名字全等」才写，否则留 `-1`（最高原则 §6.3）。
+- 材质：`tools/mat_rdr2.py` 统一建节点图（`alb_<名>` + `__nm_` + `__ma_`），
+  `blender_continent._mat_for()` 与 `relink_materials.py` 共用；材质上有
+  `albedo/normal/orm` 三个自定义属性，manifest 的 `tn`/`tm` 字段就是读它们。
+- 圣丹尼斯的**网页预览**另有一套（glTF 管线，`export/previews/sdn/textures/`，
+  `_ab.png` / `_nm.jpg` / `_ma_orm.jpg` 已按 glTF 重排成 ORM），与 Blender 侧互不影响。
 - 绝大多数 PNG 带 alpha（植被/栅栏/贴花要靠 alpha 镂空，别当不透明贴）。
 
 ### 5.5 贴图预算（进引擎前先算）
@@ -334,7 +354,7 @@ tiles/*.json  →  [hash, x,y,z, q...]  →  model_manifest.csv(查 hash)  →  
 | # | 问题 | 规模/证据 | 影响 | 建议 |
 |---|---|---|---|---|
 | 1 | **817 个 archetype 没有网格** | `model_manifest.csv` 中 `in_lib=0` | 这些实例摆不出来（多为船/vfx/外延新道具） | 先跳过；要补需再从对应 rpf 抽 ydr |
-| 2 | **贴图只有 albedo，且 ≤512** | `assets/lib_native` 7 065 张全是 `_ab/_al/_abal/_abte`，0 张 `_nm` | 近景缺法线细节 | 圣丹尼斯已补（§5.4 更新），其余 42 据点按需重导 |
+| 2 | ~~**贴图只有 albedo，且 ≤512**~~ → ✅ **2026-10-30 已补** | `index.json.tex` 27,057 条：`ab` 12,214 / `nm` 8,578 / `ma` 6,265；`models[h].st` 记录每槽三张图 | 仍 ≤512（源 1024 被缩）；法线槽位覆盖 93.38% / 高光 91.28% | 仍未补上的 2,883个法线名 + 4,718 个 `_ma` 名在磁盘任何 ytd 里都没有（要先拿到游戏原包）；要 1024 就得重抽池子 |
 | 3 | **没有 LOD 链** | 见 §7.1 | 必须自己减面 | §7.3 |
 | 4 | **碰撞未转换** | `raw/collision` 30 包 / 12 331 个 `.ybn` / 7.9 GB | 骑砍2 物理/寻路需要 | 需要写 ybn→物理体转换（尚未实现，是独立任务） |
 | 5 | **外延区精度低** | patch 顶点间距 ~13 m，彩图 4 m/px（主图 0.25 m） | 地图边缘发软 | 远景可接受 |

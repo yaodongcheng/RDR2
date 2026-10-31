@@ -240,6 +240,68 @@ glass G=57（光滑）、marble G=98、brick G=197（粗糙）。
 
 实现在 `tools/export_sdn_gltf.py`（`pick_tex` / `TexLib.get_normal` / `TexLib.get_orm` / `material_for`）。
 
+### 11.4 模型库槽位三贴图（2026-10-30）—— Blender 侧也补上了
+
+> §11.3 只解决了**圣丹尼斯网页 glTF**。Blender 大陆场景走的是另一条链
+> （`assets/lib_native` 的 `.mdl` + `index.json`），那条链以前**每个子网格只存一个 texId**，
+> 法线/高光在写库时就被丢掉了。本轮补全。
+
+**为什么不改 `.mdl`**：`SUB` 记录是 7×u32（`texId, vCount, iCount, posOff, nrmOff, uvOff, idxOff`），
+改格式要重写 10.3 GB 二进制 + 改所有读取器（`rdr2_mdl` / `relink_from_mdl` / `fix_ydd_textures` /
+`blender_city_lod` …）。改成 **index 侧车**：
+
+```jsonc
+"models": {
+  "0x10005d2e": {
+    "f": "10/0x10005d2e.mdl",
+    "b": [ /* bbox */ ],
+    "s": [[1464, 21, 48]],        // 老字段：texId, vCount, iCount（**一个都没动**）
+    "st": [[-1, -1]]              // 新字段：每槽 [normal_tid, ma_tid]，与 s 等长同序
+  }
+}
+```
+
+`tex` 表**只在末尾追加**（旧 id 保持有效）：新条目带 `role:"nm"|"ma"`、`gflip`、`w`、`h`。
+
+**取图规则（`tools/tex_slots.py`）**：按 **albedo 所在图层**配对，不做跨层模糊匹配 ——
+
+| albedo role | 法线 | 高光/材质 |
+|---|---|---|
+| `albedo_layerN`（地形） | `normal_layerN` → `normal` | `material_layerN` → `material` |
+| `albedo`（standard） | `normal`/`bumptex` | `material`/`speculartex` |
+| `albedo2`（第二层） | `normal2` → `normal` | `material2` → `materialA/B` |
+
+> 注意：`export_sdn_gltf.ROLE_MATERIAL` **不含** `material_layerN` —— 地形（占网格大头）的 `_ma`
+> 就是被这个列表漏掉的，别照抄那份常量。
+
+**绑定校验**（`tools/extract_slot_textures.py --stage bind`，三条同时成立才写，否则留 `-1`）：
+① 槽数一致；② 该槽 `vCount/iCount` 与 `s` 完全相等；③ 源 albedo 名字与库里该 texId 的名字一致。
+
+**实测（2026-10-30）**：
+
+| 项 | 数 |
+|---|---|
+| 有源文件、解析成功的模型 | 55,608 / 58,837 |
+| 几何 + 名字双双对上的槽位 | 221,492 / 225,412（98.3%） |
+| 已绑三贴图的槽位 | 212,207 |
+| 新解出的贴图 | 14,843 张（`nm` 8,578 / `ma` 6,265），池 12,214 → 27,057 |
+| 槽位覆盖 | 漫反射 97.73% / 法线 93.38% / 高光 91.28% |
+| 实例加权覆盖 | 94.65% / 91.11% / 86.83% |
+| 补不上的名字 | 法线 2,883 + 高光 4,718（**磁盘上任何 ytd 都没有**，不是解析问题） |
+
+**Blender 节点图**（`tools/mat_rdr2.py`，构建与 relink 共用）：
+
+```
+TEX_IMAGE(albedo, sRGB) ──────────────────► BSDF.Base Color
+TEX_IMAGE(_nm, Non-Color) ─► NORMAL_MAP ──► BSDF.Normal      （_nm 入池时已翻 G）
+TEX_IMAGE(_ma, Non-Color) ─► SEPARATE_COLOR ─ Red ──► BSDF.Metallic
+                                            └ Green ─► BSDF.Roughness
+```
+
+材质名 `alb_<albedo>__nm_<法线>__ma_<材质>`（超 60 字符退化成 `alb_<albedo>__<md5前10>`，
+完整名字留在材质自定义属性 `albedo/normal/orm` 上）。Workbench 只有 `diffuse_color`，
+所以**用 Workbench 看不到法线**，要看凹凸必须 Eevee/Cycles（`tools/render_material_ab.py`）。
+
 ---
 
 **仍剩**：13 张找不到的贴图（`givemechecker`、`menu_ab`、`val_iw_wallpaper02`、`p_*` 等小道具/室内贴图，

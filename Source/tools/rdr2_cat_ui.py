@@ -12,8 +12,15 @@ ATTR = 'rdr2_cats'
 _registered = {'ok': False}
 
 
-_KEYS = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'rock',
-         'veh', 'bldg', 'part', 'junk', 'prop', 'unknown')
+# 🔴 类名唯一一份在 class_registry.py（这里原来自己抄了一份 13 类，新增 stone 后不同步）
+try:
+    import os as _os
+    import sys as _sys
+    _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+    from class_registry import CLASSES as _KEYS
+except Exception:
+    _KEYS = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'stone', 'rock',
+             'veh', 'bldg', 'part', 'junk', 'prop', 'unknown')
 
 
 def _cats():
@@ -236,7 +243,10 @@ def register():
             if self.mode == 'all':
                 tour.follow_tile(False)
                 tour.stream(False)
-                tour.show_all()
+                # 「全图」= 所有**地块**都显示，但默认隐藏类（远景碎片/地形块/植被/石块）
+                # 仍然隐藏 —— 用 apply_defaults 而不是 show_all（后者会把四类一起放出来，
+                # 满地图地形碎片，正是 2026-10-30 用户报的那个现象）。
+                tour.apply_defaults()
             elif self.mode == 'tile':
                 a = next((v for v in tour._views() if v.spaces.active.region_3d), None)
                 if a is None:
@@ -281,7 +291,7 @@ def register():
                 lay.label(text='未初始化')
                 return
             row = lay.row(align=True)
-            row.operator('rdr2.cat_preset', text='全开').mode = 'all'
+            row.operator('rdr2.cat_preset', text='全开（含隐藏类）').mode = 'all'
             row.operator('rdr2.cat_preset', text='全关').mode = 'none'
             lay.operator('rdr2.cat_sync', text='刷新状态（手动改过 Outliner 后点我）')
             lay.operator('rdr2.sync_render', text='同步渲染可见性（出图前点一次）')

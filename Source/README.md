@@ -11,7 +11,190 @@
 
 > 从游戏资产解包 → 全大陆 3D 重建（Blender）→ 网页预览 → 剧情 / 任务 / 角色数据整理。
 > 本文是**内容入口**：有什么、在哪、怎么用。
-> 最后更新：**2026-10-29**（本轮分类重构见交接文档 §12；更早记录也都在 `docs/交接与状态/`）。
+> 最后更新：**2026-10-30**（本轮 = 槽位法线/高光补全 **+ 铁路网补全** → `continent_v13.blend`，见下面「★ 本轮进度」；
+> 上一轮 = 分类重构，见交接文档 §12；更早记录也都在 `docs/交接与状态/`）。
+
+---
+
+## ★ 本轮进度（2026-10-30）
+
+### 一眼看完：进展与待办（2026-10-30 18:40）
+
+> 本轮三件事：**① 槽位法线/高光补齐（v12）**、**② 铁路网补全（v13）**、**③ 全抽取（v16，当前主产物，对象 151,350 → 184,032）**。
+
+> 🔴 **别再把「重建 blend」当进度条**（`docs/AGENTS.md` §2.7，2026-10-30 浪费约 3 小时）：
+> 一次重建 60~90 分钟，上游 `index.json` / `tiles/` 一变就全废。
+> 正确顺序：**四列审计收口 → 上游冻结（用 `LastWriteTime` 证明）→ 只建一次**。
+> 数据没定稿时想确认几何，用 `audit_full_extraction.py` 和 `_probe_ann_mini.py`，不要重建。
+
+**进展（今天做完的）**
+
+| # | 事情 | 结果 |
+|---|---|---|
+| 1 | 铁路网补全（v13） | 18 个铁路包全抽 → 模型 3,867/3,892（剩 25 个 `_slod`/阴影占位）、实例 417 条并入、安尼斯堡 900 m 内铁路对象 65 → 217 |
+| 2 | 槽位法线/高光（v12，已并入） | 漫反射 97.73% / 法线 93.38% / 高光 91.28%；v16 里带法线对象 **162,566**、带 ORM **153,413** |
+| 3 | **全抽取（v16，当前主产物）** | `levels_*` 2,158 个嵌套包全抽（**0 空包** / 176,097 文件 / 58.58 GB）→ 模型库 59,546 → **71,790**，实例 200,720 → **233,104**，建成对象 151,350 → **184,032** |
+| 4 | 修掉两个"静默丢数据"bug | ① 完全扁平网格（dz=0 的地面/地板/贴花）被判退化整只丢弃 → 回收 **1,033** 个模型；② 入库只扫 `.ydr`，**7,389 个 `.yft` 从没被扫过** → 回收 **2,365** 个模型、1,119 张贴图 |
+| 5 | 变换完整性 | 233,104 条实例 **100.000%**（零四元数 0 / 模长异常 0 / NaN 0） |
+
+**待办（按优先级）**
+
+| P | 事 | 现状 / 下一步 |
+|---|---|---|
+| **P0** | 分类默认可见性：用 `打开大陆_流畅.bat` 启动后仍能看到远景 LOD 地形 | **已定位并修复（2026-10-30 19:05）**：`blender_autoload.py` 那步写成 `if cur and nt:`，`nt` 来自 `tileify()`，文件已分类且子集合没带 `tile` 属性时返回 0 → **整段默认隐藏被跳过**；另外三处只设 `Collection.hide_viewport`、没设视层眼睛。已改：autoload 门禁只看 `cur`，`classify_entities` / `blender_tour.cat_show` 两套开关一起设。**重启启动器即可验证，不需要重建** |
+| P1 | `hd_0.rpf` 未抽（1 GB / 23 个包，HD 植被贴图） | 场景里 **26,440 个对象没有 albedo**（暖灰）多半靠它补；只做**贴图重绑**（`relink_materials.py`），不动几何 |
+| P1 | `update_1..4.rpf` 未核对 | 补丁包，可能含覆盖版模型；列一次条目即可判定 |
+| P2 | 504 个 fragment 道具解析未覆盖（衣物/纸张/木材/旗帜/弹药/箱子，1,158 条实例） | 文件已抽出（`raw/all_packs/**/*.yft`），是另一种 fragment 布局；**用户 2026-10-30 决定暂不补** |
+| P2 | 铁路 14% 埋在地形面以下 | H4 地形 4 m/px 表达不了路堑；要切地形需用户拍板（最高原则 §6.2 禁擅自改地形） |
+| P2 | 植被"应删未删 416" | v11 起的老项，与本轮无关，但**构建判定因此一直是 FAIL** |
+| P3 | 渲染图左下/右下有异常灰块 | `_test/ann/v16ann_full.png` 可见，疑似地形块缺失/未贴图，未查 |
+
+> 完整交接：`docs/交接与状态/README_交接.md` §13（贴图）/ §14（铁路）/ §15（全抽取四列验收）；
+> 技术细节：`docs/格式与资产/README_贴图与材质管线.md` §11.4。
+
+### ③ 全抽取（v16）—— 从"场景自洽"改成"源侧闭环"
+
+> 用户质疑"你凭什么说都抽了"，查下来当时那句确实是错的：只验证了**已列出的实例都有模型**，
+> 没验证**清单本身全不全**（上游整类包没抽）。这一版按源侧重做。
+
+| 判据 | 数字 |
+|---|---|
+| 游戏 `levels_*.rpf` 里嵌套包 → 产出 0 文件的 | **0** / 2,158 个包（176,097 文件 / 58.58 GB） |
+| 抽出 `.ydr/.yft` 72,407 → 入库 | **71,790（99.15%）**；未入库 4,076（2,555 占位 + 1,051 VFX + **504 真道具** + 12 无名，逐条在 `work/unparsed_models.json`） |
+| tiles 实例 233,104 → 建成对象 | **184,032**（跳过 49,072：46,536 LOD 块 + 1,266 VFX + 63 室内 LOD + 504 道具 + 12 无名，见下节 ③-1） |
+| 变换完整率 | **100.000%**（零四元数 0 / 模长异常 0 / NaN 0） |
+
+两个"静默丢数据"的 bug 被修掉：**完全扁平网格被判退化丢弃**（回收 1,033 个）、**入库只扫 `.ydr` 漏掉 7,389 个 `.yft`**（回收 2,365 个）。
+模型库 59,546 → **71,790**；贴图池 27,062 → **32,878**。
+
+#### ③-1 场景里**故意没有**的东西（打开 blend 前先看这张表）
+
+`184,032 = 233,104 − 49,072`。差掉的 **49,072 条**不是"漏抽"，逐类如下 —— 找之前先对一遍，别白找：
+
+| # | 类别（构建日志里的桶名） | 数量 | 长什么样 | 为什么不在场景里 |
+|---|---|---:|---|---|
+| 1 | `lod_block` | **46,536** | 名字形如 `nopq_92_95_area_slod4`，或者干脆**无名**（hash 不在 29 万条名字表里） | 来自 `*_area_lod_combine_metadata*` 的**远景合并替身**：引擎运行时按区块把大量小物件合成一个 LOD，磁盘上**没有**对应的单独 `.ydr`。它们代表的精细物件**已经在场景里**（以各自的 hash 出现） |
+| 2 | `rpf_available:nonrender` | **1,266** | 名字带 `_vfx`：`arm_01_vfx_saloon01x`、`tum_01_vfx_rain_gazebo`、`gap_01_mine_ent_w_vfx` | **粒子/雨/雾特效发射器**，本来就没有可渲染网格 |
+| 3 | `rpf_available:interior` | **63** | `val_bank_int_lod`、`che_barn_int_lod`、`str_doc_int_lod` | 建筑**内部远景替身**，与第 1 类同性质 |
+| 4 | `rpf_available` | **504 个模型 / 1,158 条实例** | 衣物 `p_cl_garment04~11`、纸张 `p_paper01x` / `p_cl_gen_articlea~e`、木料 `p_lumber09_piece01x`、旗帜 `prop_flag_us`、弹药 `s_inv_revolverammo01x`、板条箱 `s_re_crate14xtop` | 文件**确实抽出来了**（`raw/all_packs/**/*.yft`），但这些 `.yft` 是另一种 fragment 布局，我们能定位到的 drawable 只有 1~3 个三角形的占位，**解析未覆盖**。**2026-10-30 用户决定暂不补** |
+| 5 | `real_ytyp` | **12** | 无名，尺寸 0.6×0.8×0 m ~ 41×0×2.5 m（栏杆/棚子碎片） | hash 不在名字表里，也定位不到模型文件 |
+| 6 | `no_definition` / `:interior` / `:nonrender` | **335** | 编辑器占位、触发器、逻辑节点 | 原型表里**根本没有模型定义** |
+| 7 | **角色 / 武器** | — | metapeds、武器包 | **不在这条流水线里**：`packs_0/1.rpf`（人物）+ 武器包属于另一个数据域，大陆场景只做静态世界 |
+
+> 另外还有 **26,440 个对象在场景里但没有 albedo**（Workbench 里显示为暖灰 0.30/0.27/0.23）：
+> 它们的贴图在 **`hd_0.rpf`（HD 植被贴图，1 GB / 23 包）** 里，那个包还没抽。
+> 补齐只涉及**贴图重绑**（`relink_materials.py`），不需要重建几何。
+
+> 本表数字全部来自构建日志与 `work/unparsed_models.json`、`export/world/missing_classified.json`，
+> 每一条都能用 `python tools\report_manifest.py` 与 `python tools\audit_full_extraction.py` 复核。
+
+### ④ v17：新增第 14 类「石块」（2026-10-30 19:10）
+
+起因：用户在瓜尔马海岸点中 `agu_01_wallstone_a_001`，画面是一坨"爆炸状尖刺"。
+查下来那 9 m 内**真实存在 19 个游戏对象**（2 块墙石 + 5 堆碎石 + 8 堆甘蔗渣 + 若干碎屑），
+几何全部正常（1~4 m、无离群顶点）—— 不是解析错，是杂物堆在 Solid 无贴图视图里看着像垃圾。
+
+按用户要求新增一类并默认隐藏：
+
+| 项 | 内容 |
+|---|---|
+| 类 key / 中文名 | `stone` / **石块** |
+| 匹配（排在 `rock` **之前**，否则 `wallstone` 会被 `rock` 的 `stone_` 先吃掉） | `wallstone\|rubble\|boulder\|cobble\|gravelpile\|rockpile\|stonepile\|stone_\|_stone\|stones_\|_rock_?small\|rock_?chunk` |
+| 命中 | **744 个对象**（0.4%）——主要是 `p_rubblebag01x`、`cvb_p_q_12_ruin_stone_*`、`agu_01_rubble_*`、`agu_01_wallstone_*`、`bgv_rock_stones_*` |
+| 默认隐藏 | ✅ 与 `lod` / `terrain_cell` / `veg` 一起（`DEFAULT_HIDDEN`），**collection 开关 + 视层眼睛两套都设** |
+| 产物 | `continent_v17.blend`（7.78 GB） |
+
+> **v17 只重跑了分类，没有重建几何**：`tools/reclassify.py` = 打开 v16 → `classify_entities --apply`
+> → 重写 manifest → 另存。耗时 **约 18 分钟**，而重建一次要 80 分钟。
+> 以后凡是"只改分类/只看可见性"的需求，都走这条路（`docs/AGENTS.md` §2.7 的延伸）。
+
+> 遗留：`s_sugarcanedebris_01x`（甘蔗渣，8 个实例）仍归 `junk`。要是也想默认藏，
+> 把它加进 `stone` 的正则或另开一类即可 —— **等用户点头**，不擅自改。
+
+### ② 铁路补全 —— "安尼斯堡看不到铁轨"的真因（v13）
+
+RDR2 的铁路网是**按区块的独立 RPF 包**。安尼斯堡所在区块的三个包
+（`jklm_15_18_rails_a/b`、`fghi_15_18_rails_a`）**只建了空目录、从没抽到文件**，
+所以实例层里只有 4 段 `ann_02_rails_*`（约 120 m）+ 几块贴花 —— 不是解析失败，是这一步没跑。
+
+本轮从 `levels_2.rpf` 把它们补抽、入库、并实例、重建：
+
+| 项 | 结果 |
+|---|---|
+| 补抽 | 1,285 个文件（**500 .ydr / 8 .ytyp / 11 .ymap / 34 .ytd**） |
+| 入库 | **500 个模型**（0 失败，401 个带法线/高光槽位，+5 张贴图） |
+| 并实例 | 500 条 → 跳过 213 个 `_lod/_slod` → **287 条**进 `wild2000_05_00/01/02` |
+| v13 数字 | `ENTITIES 151,220`（+287）/ `rail` 类 **2,193**（+160）/ `RAILS` 豁免 1,524 |
+| 安尼斯堡 900 m 内 | 铁路对象 **65 → 217**；仍低于地形面的比例 **58% → 14%** |
+
+新脚本 `tools/ingest_rail_packs.py`、`tools/merge_rail_entities.py`（幂等；备份见交接 §14.4）。
+
+### ① 槽位法线/高光补齐（v12，已并入 v13）
+
+> 🔴 一句话：以前 `assets/lib_native` 里**每个子网格只有一张漫反射**（法线/高光在写库时被丢掉），
+> 本轮补全并重建 **`continent_v12.blend`**。
+> 完整交接（根因 / 坑 / 复现命令）：`docs/交接与状态/README_交接.md` §13；
+> 技术细节：`docs/格式与资产/README_贴图与材质管线.md` §11.4。
+
+### ①-v12 做完的 5 件事
+
+| # | 事项 | 结果 |
+|---|---|---|
+| 1 | **槽位记录扩展** | `index.json` 加 `models[h].st = [[法线id, 高光id], …]`，与 `s` 等长同序。**`.mdl` 一个字节没改**（老读取器无感），`tex` 表只在末尾追加、旧 id 全部有效 |
+| 2 | **重解 5.5 万源模型** | 55,608 个 `.ydr/.yft` 全解析成功（16 进程 **3.6 分钟**），按 albedo 图层配对取 `normal_layerN` / `material_layerN` |
+| 3 | **三重校验才绑定** | 槽数一致 + `vCount/iCount` 全等 + albedo 名字一致 → 221,492/225,412 槽（98.3%）通过，最终绑 **212,207 槽**；对不上就留 `-1`（不猜，最高原则 §6.3） |
+| 4 | **解图入池** | 新增 **14,843 张**（法线 8,578 + `_ma` 6,265），池 12,214 → **27,057**；`tex/` 19,288 → **34,131** 张 PNG。`_nm` 入池时按 DirectX→OpenGL **翻 G 通道**（表里记 `gflip:1`） |
+| 5 | **材质接三张图 + 重建** | 新模块 `tools/mat_rdr2.py`（albedo→BaseColor / `_nm`→NormalMap / `_ma`→SeparateColor→Metallic+Roughness），构建与 relink 共用；`--rails --full` 重建 **v12**（7.39 GB） |
+
+### ①-v12 数字（改前 → 改后）
+
+| 口径 | 漫反射 | 法线 | 高光(`_ma`) |
+|---|---:|---:|---:|
+| 槽位（225,412 个子网格） | 97.73%（不变） | **0 → 93.38%** | **0 → 91.28%** |
+| 实例加权（场上 443,268 槽） | 94.65%（不变） | **0 → 91.11%** | **0 → 86.83%** |
+
+`continent_v12.blend` 清单（`manifest.json`）：
+
+```
+ENTITIES 150933 / 13 类 13/13 / 隐藏 43643 / 贴图用 7656 / 无 albedo 17894
+TMAPS    带法线对象 136063（5569 张法线图）/ 带高光(ORM)对象 129555（4419 张 _ma 图）
+```
+
+### 怎么核（都不用打开 blend）
+
+```powershell
+uv run python tools\report_manifest.py        # 第一行 ENTITIES + 第二行 TMAPS
+uv run python tools\audit_three_maps.py       # 槽位级 / 实例加权 / 池子分 role
+```
+
+肉眼 A/B：同机位 Eevee，`_on` = v12（三贴图），`_off` = 同一场景把 Normal/ORM 连线断开（= 旧版观感）。
+差别看地面车辙、砖缝、墙皮起伏。图在 `docs/世界与地编/img/verify/`（图不进 git）：
+
+![v12 带法线+高光](docs/世界与地编/img/verify/v12_material_on.png)
+
+![v11 观感：只有漫反射](docs/世界与地编/img/verify/v12_material_off.png)
+
+### 还剩什么（不是解析问题，是数据没有）
+
+- 法线 **2,883** 个名字 / 高光 **4,718** 个名字：**磁盘上任何 ytd 都没有**
+  （`raw/lib_gtxd` 59,960 个 + 模型同级目录 11,205 个 ytd 全扫过，**0 命中**）。
+  与老文档里"2,813 个 albedo 名无图"同源 —— 要拿到游戏原包里的子包才能继续。
+- 地形是 4 层混合 shader，现在每槽只挂**第 0 层**的法线/材质图（引擎是 4 层按权重混合），
+  近景地面会有"一层法线盖全图"的观感；要完全还原得写多层混合节点（下一轮）。
+- Workbench 只吃 `diffuse_color`，**看不到法线**；要判断凹凸必须 Eevee/Cycles 或看 manifest `TMAPS`。
+
+### 本轮改动的文件（**未提交**，按 `docs/AGENTS.md` §0 由用户用 `git_gui.py` 提交）
+
+- 新增 8：`tools/ingest_rail_packs.py`、`tools/merge_rail_entities.py`、`tools/extract_slot_textures.py`、`tools/tex_slots.py`、`tools/mat_rdr2.py`、
+  `tools/audit_three_maps.py`、`tools/render_material_ab.py`、`tools/_probe_maps.py`
+- 修改 13：`README.md`、`docs/AGENTS.md`（+3 条坑）、`docs/TODO.md`、`docs/README_骑砍2交接.md`（§5.4 重写）、
+  `docs/交接与状态/README_交接.md`（+§13）、`docs/格式与资产/README_贴图与材质管线.md`（+§11.4）、
+  `tools/README.md`、`tools/blender_continent.py`、`tools/relink_materials.py`、`tools/write_manifest.py`、
+  `tools/manifest_from_jsonl.py`、`tools/report_manifest.py`、`tools/export_sdn_props2.py`
+- 产物（不进 git）：`deliverable/blender/continent/continent_v13.blend`（主产物）+ `manifest_continent_v13.*`、
+  `continent_v12.blend` + `manifest_continent_v12.*`（上一版）、
+  `assets/lib_native/index.json`（+14,843 张法线/高光图 +500 个铁路模型）、
+  `deliverable/blender/continent/tex/` 新增 14,848 张 PNG
 
 ---
 
@@ -118,21 +301,23 @@ D 盘侧只剩**链接**（`docs` / `tools` = junction，`README.md` / 3 个 bat
 
 ---
 
-## 0. 当前状态（2026-10-29）
+## 0. 当前状态（2026-10-30）
 
 ### 0.1 唯一主产物
 
 | 文件 | 大小 | 内容 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v11.blend` | 7.38 GB | 对象 **150,936** / `ENTITIES` **150,933** / **13 类** / 整类默认隐藏 **43,643**（远景碎片 2,248 + 地形块 30,549 + 植被 10,846）/ 未分类 6,341 |
-| 同目录 `manifest.json` / `manifest_continent_v9.json` / `.jsonl` | 30.7 MB | 对象级清单：名/hash/分类/位置/bbox/**贴图名**/隐藏标记；贴图用 **7,650** 种，无 albedo 对象 **17,894**（v8 是 66,222、贴图重做前 62,467） |
+| `deliverable/blender/continent/continent_v12.blend` | 7.39 GB | 对象 **150,936** / `ENTITIES` **150,933** / **13 类** / 整类默认隐藏 **43,643**（远景碎片 2,248 + 地形块 30,549 + 植被 10,846）/ 未分类 6,341 / **带法线对象 136,063（5,569 张 `_nm`）** / **带高光(ORM)对象 129,555（4,419 张 `_ma`）** |
+| 同目录 `manifest.json` / `manifest_continent_v12.json` / `.jsonl` | 50 MB | 对象级清单：名/hash/分类/位置/bbox/**漫反射名 `t`**/**法线 `tn`**/**高光 `tm`**/隐藏标记；贴图用 **7,656** 种，无 albedo 对象 **17,894** |
+| `assets/lib_native/index.json` | 12.5 MB | 模型 **58,837** / 贴图表 **27,057**（`ab` 12,214 + `nm` 8,578 + `ma` 6,265）/ `models[h].st` = 每槽 `[法线, 高光]` |
 | `export/world/missing_classified.json` | 9.9 MB | **缺模型分桶**（LOD 块 / 真件 / 包里有无），构建时 `VERIFY` 那行也读它 |
-| 上一版 `continent_v9.blend` | 6.81 GiB | 保留作对照（v10 = v9 + 3,229 个 `.ydd` 模型） |
+| 上一版 `continent_v11.blend` | 7.38 GiB | 保留作对照（v12 = v11 + **法线/高光三贴图材质**） |
 
 核对**不需要打开 blend**：
 
 ```powershell
 uv run python tools/report_manifest.py            # 一行数字 + 明细
+uv run python tools/audit_three_maps.py           # 三贴图覆盖率（槽位级 + 实例加权）
 uv run python tools/report_manifest.py --find new_gar06_park_terrain
 ```
 
@@ -141,7 +326,8 @@ uv run python tools/report_manifest.py --find new_gar06_park_terrain
 - `continent.blend`(9.87 GB)、`continent_v2`(8.07)、`v3`(8.07)、`v4`(7.90)、`v5`(6.31)、`v6`(6.36) **已删除**（2026-10-29 清理，释放 49.94 GiB）
 - **v7 从未生成**（发现贴图缺口后主动取消）
 - 演进一句话：v2/v3 在跟地形打架（`pad_field` 压平 1.12 m），v4/v5 在跟"擅自剔除"打架（113k→137k 对象），v6 解决可核对性（清单），**v8 解决贴图正确性（按名字重绑）**，
-  **v9 解决材质身份（`alb_<贴图名>` + 一子网格一槽）与视口白块（`diffuse_color`）**，并修掉 `index.json` 未补零 key（找回 367 个模型）
+  **v9 解决材质身份（`alb_<贴图名>` + 一子网格一槽）与视口白块（`diffuse_color`）**，并修掉 `index.json` 未补零 key（找回 367 个模型），
+  **v12 解决"只有漫反射"**：每槽补 `_nm` + `_ma`（见 §0.3 #6）
 
 ### 0.3 当前已知缺陷（按观感排序）
 
@@ -152,6 +338,7 @@ uv run python tools/report_manifest.py --find new_gar06_park_terrain
 | 3 | 水面灰色平板 | 只有节点树颜色，没有视口色；`blend_method` 在 5.2 已废 | ✅ **v9 已修并出图**：`diffuse_color` + `surface_render_method='BLENDED'`（几何仍是 1 quad，水位真值 40.5 不动）→ 俯视图里水已经是蓝的 |
 | 4 | 4.4 万模型无 albedo / 5 万实体缺模型 | 两个口径都过期了。库 **58,837** 模型（3,229 个来自 `.ydd` 字典）；缺模型 **48,683 hash / 49,370 实例**，其中 **94.3% 是 LOD 合并块**（无独立资源，设计上不装），真实缺件只剩 **2,834 实例**（只有 `_ph/_occ` 代理）。贴图侧：源模型要 14,328 个贴图名，重做前 **36.2% 引用查不到图** | ✅ 贴图**整表重做**（id = 名字排序下标，11,504 张）+ 55,608 个模型按源文件重绑 + `.mdl` 回写 221,494 子网格 → 审计 **绑错 0**、无 albedo 对象 62,467 → **17,682**；模型见覆盖率核查 §12 |
 | 5 | 地图北缘 1.46% 地面是"无数据白" | 地面色图在 y > 3200（真实地图外）没有数据（源 tile 缺失） | ⚪ 真实地图外，v9 仍保留；要补可用 `tools/patch_ground_town_white.py`（默认只 probe） |
+| 6 | ~~材质只有漫反射，近景"塑料平板"~~ | 模型库 `.mdl` 每个子网格只存 1 个 texId；法线/高光在写库时被丢弃（源里其实一直有） | ✅ **v12 已修**：`index.json.models[h].st` 记录每槽 `[法线, 高光]`，槽位覆盖 **法线 93.38% / 高光 91.28%**（实例加权 91.11% / 86.83%）；池子 12,214 → 27,057 张。剩余 2,883 个法线名 + 4,718 个 `_ma` 名**磁盘上任何 ytd 都没有**（要先拿到游戏原包）。见 `docs/格式与资产/README_贴图与材质管线.md` §11.4 |
 
 ### 0.4 旧记录（10-26/27，仅供追溯，其中的产物已删）
 

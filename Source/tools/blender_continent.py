@@ -18,6 +18,9 @@ import struct
 import numpy as np
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
+# Blender 用 -P 跑脚本时不一定把 tools/ 放进 sys.path；材质模块（mat_rdr2）要能 import。
+if os.path.join(ROOT, 'tools') not in sys.path:
+    sys.path.insert(0, os.path.join(ROOT, 'tools'))
 H4 = os.environ.get('RDR2_H4', os.path.join(ROOT, 'work/terrain/H4.npy'))
 COLOR = os.path.join(ROOT, 'export/world/world_color_4096.png')
 META = os.path.join(ROOT, 'export/world/world_meta.json')
@@ -509,45 +512,15 @@ def _bsdf(mat):
   return nt.nodes.new('ShaderNodeBsdfPrincipled')
 
 
-def _mat_for(tid, texmeta, matcache, libdir):
-  """一个 albedo 一张材质，**按贴图名字缓存**（不按 tid）。
+def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir):
+  """一个槽位一张材质：漫反射 + 法线 + 材质(高光→ORM)。
 
-  2026-10-29 根修（TODO #1）：以前材质名是 `m_<tid>`、缓存键也是 tid。
-  贴图池一扩（3,025 → 5,292），已存盘 blend 里的 `m_352` 就指向了别人的图 ——
-  「门长草」「草坪发黄」都是这个。现在名字进材质名（`alb_<贴图名>`），
-  relink / 核对都能按名字对齐，池子再变也不会串号（最高原则 §6.3/§6.4）。
+  2026-10-30：法线/高光补全。三张图的节点图统一在 `tools/mat_rdr2.py`，
+  与 `relink_materials.py` 共用同一份，避免"重建"和"重挂"出两种材质。
+  没有 nm/ma 的槽位行为与以前完全一致（`nonalbedo_warmgray` / `alb_<名字>`）。
   """
-  name = _tex_name(texmeta, tid)
-  key = ('tex', name) if name else ('nonalbedo',)
-  hit = matcache.get(key)
-  if hit is not None:
-    return hit
-  mat = bpy.data.materials.new(('alb_' + _mat_slug(name)) if name else 'nonalbedo_warmgray')
-  if name:
-    mat['albedo'] = name            # 可读信息留在材质上，方便核库
-  mat.use_nodes = True
-  bsdf = _bsdf(mat)
-  img_ok = False
-  if name and 0 <= tid < len(texmeta):
-    path = os.path.join(libdir, texmeta[tid]['f'])
-    if os.path.exists(path):
-      img = bpy.data.images.load(path, check_existing=True)
-      img.colorspace_settings.name = 'sRGB'
-      node = mat.node_tree.nodes.new('ShaderNodeTexImage')
-      node.image = img
-      node.label = name
-      mat.node_tree.links.new(node.outputs['Color'], bsdf.inputs['Base Color'])
-      img_ok = True
-  if not img_ok:
-    # 没有 albedo（或索引里有但文件缺失）→ 中性暖灰，不用默认 0.8 纯白（那会满屏白块）
-    bsdf.inputs['Base Color'].default_value = (0.30, 0.27, 0.23, 1.0)
-    # Workbench / Solid 只看 diffuse_color（不看节点树）：不设它就还是默认 0.8 灰白，
-    # 于是"无 albedo"的件在默认视图里全是一片白 —— 这就是"城区地面发白/白块"的根因之一。
-    mat.diffuse_color = (0.30, 0.27, 0.23, 1.0)
-  bsdf.inputs['Roughness'].default_value = 0.85
-  mat.roughness = 0.85
-  matcache[key] = mat
-  return mat
+  import mat_rdr2
+  return mat_rdr2.get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, matcache)
 
 
 def load_model_mesh(libdir, entry, texmeta, matcache, cache):
@@ -573,14 +546,14 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   faces = []
   valid_subs = []
   base = 0
-  for (tid, vc, ic, po, no, uo, io_) in subs:
+  for si, (tid, vc, ic, po, no, uo, io_) in enumerate(subs):
     pos = np.frombuffer(buf, dtype=np.float32, count=vc * 3, offset=po).reshape(-1, 3)
     nrm = np.frombuffer(buf, dtype=np.float32, count=vc * 3, offset=no).reshape(-1, 3)
     uv = np.frombuffer(buf, dtype=np.float32, count=vc * 2, offset=uo).reshape(-1, 2)
     idx = np.frombuffer(buf, dtype=np.uint32, count=ic, offset=io_)
     if ic == 0 or vc == 0 or int(idx.max()) >= vc:
       continue            # 索引越界/空段：丢掉这一段，别让整个模型崩
-    valid_subs.append((tid, vc, ic))
+    valid_subs.append((tid, vc, ic, si))
     verts_all.append(pos)
     nrm_all.append(nrm)
     uv_all.append(uv)
@@ -616,15 +589,20 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   # 2026-10-29 根修（TODO #1）：以前按 tid 去重 → 槽数 ≠ 子网格数，
   # 外部脚本（relink_materials）没法把「第 i 个子网格」映射到材质槽，
   # 59,385 个网格被跳过。现在槽 i 恒等于 valid_subs[i]，可按索引重挂。
+  # 2026-10-30：每个槽再带法线/高光（index 里 `st`，与 `s` 等长同序）。
+  st = entry.get('st') or []
   mats = []
-  for (tid, vc, ic) in valid_subs:
-    mats.append(_mat_for(tid, texmeta, matcache, libdir))
+  for (tid, vc, ic, si) in valid_subs:
+    pair = st[si] if 0 <= si < len(st) else None
+    ntid = pair[0] if pair else -1
+    mtid = pair[1] if pair else -1
+    mats.append(_mat_for(tid, ntid, mtid, texmeta, matcache, libdir))
   for m in mats:
     me.materials.append(m)
 
   mi = np.empty(nf, np.int32)
   p0 = 0
-  for slot, (tid, vc, ic) in enumerate(valid_subs):
+  for slot, (tid, vc, ic, si) in enumerate(valid_subs):
     cnt = ic // 3
     mi[p0:p0 + cnt] = slot
     p0 += cnt
@@ -1034,6 +1012,9 @@ def verify(out):
            s.get('veg_should_delete', -1), s.get('hidden_terrain', 0),
            miss, seen, 100.0 * miss / max(1, seen), s.get('textures_used', 0),
            'PASS' if ok else 'FAIL'))
+  print('VERIFY TMAPS 带法线对象 %d（%d 张法线图）/ 带高光(ORM)对象 %d（%d 张 _ma 图）'
+        % (s.get('with_normal_objects', 0), s.get('normal_textures_used', 0),
+           s.get('with_orm_objects', 0), s.get('orm_textures_used', 0)))
   cls = s.get('classes', {})
   print('[full] 分类明细 %s' % ', '.join('%s:%d' % (k, cls[k]) for k in sorted(cls)))
   bk = BUILD_STATS.get('buckets') or {}

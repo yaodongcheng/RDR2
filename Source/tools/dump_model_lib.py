@@ -91,7 +91,11 @@ def write_model(M, h, outdir, tex):
         p = np.asarray(g['pos'], np.float64)
         bmin = np.minimum(bmin, p.min(0))
         bmax = np.maximum(bmax, p.max(0))
-    if not (bmin < bmax).all():
+    # 2026-10-30 修正：以前要求**三个轴都严格 bmin<bmax**，于是所有"完全扁平"的网格
+    # （地面/地台/贴花/地板：dz 恰好为 0）被静默判为退化、整只丢掉 ——
+    # 全量抽取里这类文件有上千个（`agu_back_floor003` 之类）。
+    # 现在只拒"真正退化"（对角线长度为 0 的一个点网格）。
+    if float(np.max(bmax - bmin)) <= 1e-6:
         return None
 
     subs = []
