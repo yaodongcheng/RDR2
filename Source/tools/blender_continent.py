@@ -63,6 +63,8 @@ def parse():
                   help='兼容旧命令：等价于不开 --pad（现在本来就默认关）')
   ap.add_argument('--no-water', action='store_true',
                   help='不建全局水面（审计子块用；不影响分类/清单）')
+  ap.add_argument('--corrections', default='',
+                  help='审计纠错清单 CSV（pattern,target_class,reason），传给 classify_entities')
   ap.add_argument('--no-conj-quat', action='store_true')  # 默认取共轭（RDR2 四元数旋向与 Blender 相反）
   # 铁路：名字带 _r_c_ 且包围盒扁宽，会同时命中 TERRAIN_CELL / flat_wide 两条剔除规则。
   # 不开这个开关，全图铁路会被静默丢掉（2026-10-27 修正）。
@@ -946,10 +948,10 @@ def main():
   print('SAVED %s %.2f GB' % (a.out, size))
 
   if a.full:
-    run_postprocess(a.out)
+    run_postprocess(a.out, a.corrections)
 
 
-def run_postprocess(out):
+def run_postprocess(out, corrections=''):
   """--full：分类 → 删植被 → 地形 patch 归隐藏 → manifest + 校验。
 
   全部在本进程内跑，避免二次加载 6.4 GB。
@@ -973,7 +975,8 @@ def run_postprocess(out):
       _sys.argv = old
 
   print('=== [full] 1/4 分类（12 类集合树） ===')
-  _run('classify_entities', ['--apply', '--out', out])
+  _run('classify_entities', ['--apply', '--out', out] +
+       (['--corrections', corrections] if corrections else []))
 
   if VEG_MODE == 'keep':
     print('=== [full] 2/4 植被：keep（按要求原样保留） ===')

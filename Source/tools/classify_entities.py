@@ -21,11 +21,13 @@ import os
 import re
 import sys
 import json
+import csv
 import argparse
 import collections
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from veg_rules import VEG, VEG_EXCLUDE          # 植被判定唯一一份（strip_vegetation 也用这个）
+from class_registry import ROAD, RUIN            # 道路/废墟判定词（RULES 里要用，必须在 RULES 之前）
 
 # 盆栽 / 花艺 / 花槽 —— 是**道具**。分类时要抢在 bldg/part 之前把它们让给 prop 规则，
 # 否则 `p_plantpotwallnbx02x` 会被 part 的 `wall` 接走（2026-10-30 v20 实测 30 个）。
@@ -53,114 +55,15 @@ GEOM_SKIP = re.compile(
     re.I)
 
 # 分类：(key, 中文名, 正则)  —— 顺序即优先级
-RULES = [
-    # 前两类是"结构性"的，必须先吃：否则 `j_1114_r_a_rai_lod13` 会被 rail 抢走，
-    # 远景碎片就永远清不干净。
-    ('lod', '远景碎片', re.compile(
-        r'_area_slod|_em_slod|_dslod|_slod|_lod(?=\d|_|$)|_l\d(?=_|$)', re.I)),
-    # 地形块：游戏自带的地表高度块，和我们的 Terrain 重复、高度对不上 → 默认隐藏。
-    # 三族都要收（全部 1024 m 见方，实测都压在地图内/边缘，与高度图冲突）：
-    #   ① `a_03__hd_0_0_1`（**双下划线** + hd_0，64 m 小块，3 万多个）
-    #   ② `out_b_04_hd_05`（外围地形，85 个在场景里）
-    #   ③ `outg_a_03_hd_03`（外围地形另一套，71 个在场景里）
-    # 2026-10-30 用户报 `out_c_05_hd_13`"怎么还有"—— 原先这族归 unknown、可见。
-    ('terrain_cell', '地形块', re.compile(r'__hd_0_|^outg?_[a-z]_\d+_hd_\d+', re.I)),
-    # 地下 / 停放件（2026-10-30 用户裁定：**分类成「地下」并默认隐藏**）。
-    # 这些是关卡里"停用"的辅助物，游戏不渲染，装进场景就是地底下的东西：
-    #   `wld_tempbox3` 等 4 个停在 (761,1822,-1001.7)；`q_11_damn` 停在原点 z=-200。
-    # 另有两条兜底（见 main()）：`tag=parked_offmap`、位置 **z < -80 m**（海床最低才 -34.9 m）。
-    ('underground', '地下停放', re.compile(r'tempbox|_damn(?![a-z])', re.I)),
-    # 水面块（2026-10-30）：`a_water_lan_b_014` 这类游戏水面瓦片，和我们那张 z=40.5 的单水面
-    # 同高打架，用户报"水面上奇怪的东西"。全部归这里、默认隐藏（含带贴图的瀑布/冰面）。
-    ('watertile', '水面块', re.compile(r'^a_water', re.I)),
-    # 占位 / 代理（2026-10-30）：游戏不渲染的音频代理、遮挡盒、阴影代理、cube 占位。
-    #   34 个 `*_audiobox_donotdelete` / `*emitterdummy*`、`*_occ_placeholderbox*`、
-    #   `amb_pun_00`（1 m 立方体）、`h_16p_cubedelete001`、`*_proxy`（shadow/audio proxy）。
-    ('placeholder', '占位代理', re.compile(
-        r'donotdelete|dontdelete|emitterdummy|placeholder|_occ_|occ_test_box|'
-        r'proxy|amb_pun|cubedelete', re.I)),
-    ('rail', '铁路', re.compile(
-        r'railr|cross|_r_c_|_r_b_|_rc_\d|sleeper|sle\d|railroadtie|trestle|tressle|\btun(nel)?\b|'
-        r'\._r_|_rails|railroad|tie0?\d|track_?switch|'
-        # 2026-10-30 补：站内/矿道轨道、道床、挡车器、煤矿轨（原先漏判成 decal/unknown/prop）。
-        # 注意**不要**用泛化的 `_r_[abc]_`：那样会把 `*_r_a_tres*`（木栈桥）和
-        # `*_r_a_bri*`（铁路桥）从 bldg/struct 抢进 rail，两类就空了（实测 170 个）。
-        r'maintrack|northtrack|southtrack|minetrack|rail_?buffer|coatrack|_rhd_\d|'
-        # 2026-10-30 三修：**枕木/道砟是独立的地面片**（`*_rail_decal_*` / `*_track_decal_*`，
-        # 贴图就是 `railroad_sleeper*`），原来全归 decal → 启动器一关 decal 就"铁轨上没有枕木"。
-        r'rail[_-]?decal|track[_-]?decal|'
-        r'b_r_|_r_[abc]_dec', re.I)),
-    ('struct', '桥梁结构', re.compile(
-        r'bridge|_bri\d|viaduct|trestle|drawbridge|abutment|retaining|pier\d|wharf|dock(?!house)|'
-        r'_slope(_dec)?|_truss|girder|culvert|watertower|silo|tank\d', re.I)),
-    ('decal', '道路地面贴花', re.compile(
-        r'decal|grndec|ground_dec|puddle|dirt|dust|gravel|skid|stain|mudstain|trackmark|rut|patch|mud_|'
-        r'oil(slick)?|blood|gore|road_?mark|sidewalk|roadway|_road|path_|trail_|'
-        r'ground_?decal|grounddecal|shadow|shad_', re.I)),
-    ('veg', '植被', VEG),
-    # 2026-10-30 用户要求新增：**石块**（散落的墙石 / 碎石堆 / 鹅卵石 / 大块石），默认隐藏。
-    # 起因：瓜尔马海岸一小片地上叠了 2 块墙石 + 5 堆碎石 + 8 堆甘蔗渣，
-    #       在 Solid 无贴图视图里像"一坨爆炸的尖刺"，用户要求单独归一类并默认藏起来。
-    # 必须排在 `rock`（岩石地形）之前：`wallstone` 否则会被 rock 先吃掉。
-    # 🔴 只收"散件"：泛化的 `_stone`/`stone_` 会把塔（`agu_tower_stone_*`）、
-    #    石头房（`scr_01_stonehs_roof/wall/ext`）、巨石阵（`wll_stonehenge*`）一起
-    #    吞进默认隐藏 —— 2026-10-30 v17 实测误伤 19 个，所以这里只认"碎/堆/块"词。
-    ('stone', '石块', re.compile(
-        r'wallstone|rubble|cobble|gravelpile|rockpile|stonepile|boulder|'
-        r'rock_?stones|ruin_?stone|rock_?chunk', re.I)),
-    ('rock', '岩石地形', re.compile(
-        r'rock|boulder|cliff|stone_|outcrop|sandstone|gravelpile|_cliff', re.I)),
-    ('veh', '载具', re.compile(
-        r'wagon|cart(?!ridge)|carriage|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
-        r'p_train_|trolley|handcar|barge|raft|stagecoach', re.I)),
-    ('bldg', '建筑', re.compile(
-        r'_ext_|bldg|building|church|chapel|saloon|store|shop|bank|hotel|barn|shed|cabin|'
-        r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
-        r'depot|mill|livery|blacksmith|inn|mansion|manor|house|home\d|courthouse|'
-        r'postoffice|storefront|res\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
-        r'undertaker|gunsmith|tailor|butcher|doctor|photograph|newspaper', re.I)),
-    ('part', '建筑部件', re.compile(
-        r'wall|roof|porch|fence|fencing|gate|door|window|stair|balustr|railing|rail_?post|'
-        r'deck|beam|pillar|column|framing|trim|awning|sign_?post|boardwalk|plank|lumber|'
-        r'scaffold|ladder|fencepen|pen\d|hitching|trough|gutter|shutter|chimney|'
-        r'foundation|support|brace|joist|stud|veranda|canopy|pergola|trellis|woodboard|board\d|'
-        r'_glue|_outerwall|_shell$|_shell_', re.I)),
-    ('junk', '杂物堆', re.compile(
-        r'debris|debirs|rubble|trash|garbage|junk|scrap|cloth|cotton|bale|bundle|sugarcane|cane_|'
-        r'inv_|_stks|twgs|twig|branch|leaves|leaf_|pile|papers|newspaper|sack|rags', re.I)),
-    ('prop', '道具', re.compile(
-        r'barrel|crate|box\d|chair|table|lamp|lantern|bucket|bottle|wheel|crate|tool|'
-        r'anvil|sack|stove|bed|desk|shelf|cabinet|piano|safe|cash|register|counter|'
-        r'bench|crate|barrel|trough|coffin|grave|headstone|cross_?mark|post|pole|'
-        r'sign|banner|flag|crate|bucket|pump|well|hitching|cart|saddle|rug|curtain|'
-        r'p_|^s_|marker|cookfire|tin\d|crate\d|hay|stump|splitwood|woodsplit', re.I)),
-]
-
-# 「兜底规则」：只对**前面一条都没中**的对象生效（= 原本会落到 unknown 的）。
-# 用它可以给已有类别补 token，而**不会抢走任何既有归属**。
-# 2026-10-29：道路/地面贴花的补充 token 放这里 —— 既不新建类别（同一个东西只有一个类），
-# 也不会因为它们排在 prop 之后而漏掉。
-LEFTOVER = [
-    ('decal', re.compile(
-        r'_rds(?=_|$)|_dec(?=\d|_|$)|_dcl(?=\d|_|$)|_ground(?=_|$)|'
-        r'(?<![a-z])street(?=_|$)|(?<![a-z])road(?=_|$)|(?<![a-z])path(?=_|$)', re.I)),
-    # 盆栽 / 花艺 / 装饰件：植被判定把它们排除了，它们本来就是**道具**
-    # ⚠️ `plantpot` 必须在这里也写一份：只从 veg 排除的话，`p_plantpotwallnbx02x`
-    #    会被 `part` 的 `wall` 规则先接走（30 个实例，v19 实测），类别标成"建筑部件"。
-    ('prop', re.compile(r'p_pot_|plantpot|flowerarng|p_cs_|dressing|planter', re.I)),
-]
-
-# 收集所有类（去重，保持 RULES 的顺序）—— 建集合/打印都用它
-ALL_CLASSES = []
-for _k, _zh, _rx in RULES:
-    if _k not in [c[0] for c in ALL_CLASSES]:
-        ALL_CLASSES.append((_k, _zh))
-ALL_CLASSES.append(('unknown', '未分类'))
+from class_rules import (  # noqa: E402
+    RULES, LEFTOVER, PLANT, ALL_CLASSES,
+    classify_name, apply_hard_rules, load_corrections, apply_corrections,
+)
 
 # 默认隐藏的类（对应"归类不搬走、整类藏起来"的规范）
 # 🔴 唯一一份在 class_registry.py（write_manifest / report_manifest / tour 都 import 它）。
 #    2026-10-30 加 `stone`：用户要求「石块」整类默认隐藏（瓜尔马海岸那堆墙石/碎石）。
-from class_registry import DEFAULT_HIDDEN
+from class_rules import DEFAULT_HIDDEN
 
 
 # ── 地表贴图-几何：判据实现 ──────────────────────────────────────────
@@ -242,34 +145,16 @@ def load_names():
     return d
 
 
-def classify(name):
-    if not name:
-        return 'unknown'
-    # 🔴 先剥掉 Blender 的 `.001` 重复后缀：`_lod$` / `_dec$` 这类**行尾正则**
-    # 遇到 `.001` 会失配（2026-10-30 实测：79 个 LOD 会被判成 rock 而显示出来）。
-    # names.txt 有名字时不会带后缀，但查不到 hash 时用的是对象名，必须防这一手。
-    b = re.sub(r'\.\d{3}$', '', name.split('/')[-1])
-    for key, _, rx in RULES:
-        if key == 'veg' and VEG_EXCLUDE.search(b):
-            continue                # 盆栽/花艺是道具，不是植被
-        # 盆栽/花艺/花槽：`p_plantpotwallnbx02x` 这类会先被 part 的 `wall` 抢走
-        # （2026-10-30 v20 实测 30 个仍标成"建筑部件"）→ 跳过 bldg/part，交给后面的 prop 规则。
-        if key in ('bldg', 'part') and PLANT.search(b):
-            continue
-        if rx.search(b):
-            return key
-    for key, rx in LEFTOVER:        # 兜底：只对前面都没中的生效
-        if rx.search(b):
-            return key
-    return 'unknown'
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--report', action='store_true')
     ap.add_argument('--apply', action='store_true')
     ap.add_argument('--out', default='')
+    ap.add_argument('--corrections', default='',
+                    help='人工纠错清单 CSV（pattern,target_class,reason）；最后应用于每个对象')
     a = ap.parse_args(argv())
+
+    overrides = load_corrections(a.corrections)
 
     names = load_names()
     ent = bpy.data.collections.get('ENTITIES')
@@ -306,7 +191,7 @@ def main():
             unmatched['(无 hash 属性且名字不是 e_<hash>)'] += 1
             continue
         n = names.get(hx, '') or o.name
-        k = classify(n)
+        k = classify_name(n)
         # 属性判定（名字判不出来，但对象身上带着标签）
         if o.get('hide_tag') == 'terrain_cell':
             k = 'terrain_cell'
@@ -348,6 +233,9 @@ def main():
                         k = 'underground'
             except Exception:
                 pass
+        tex_names = [m.name for m in getattr(o.data, 'materials', []) if m]
+        k = apply_corrections(k, n, tex_names, overrides)
+        k = apply_hard_rules(k, n)
         buckets[k].append(o)
         if k == 'unknown':
             unmatched[n.split('/')[-1] if n else '(names.txt 查不到)'] += 1

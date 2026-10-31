@@ -14,7 +14,7 @@ import bpy
 
 argv = sys.argv
 ARGS = argv[argv.index('--') + 1:] if '--' in argv else []
-OUT = r'D:/BrainMaker/_test/audit/continent_top.png'
+OUT = r'D:/BrainMaker/大镖客2解包分析/deliverable/blender/regions_support/continent_top.png'
 RES = 4096
 TEXTURE = False
 if '--out' in ARGS:

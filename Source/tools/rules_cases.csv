@@ -1,0 +1,17 @@
+name,textures,expected,note
+p_crossflower02x,,veg,rail 不能吃裸 cross
+shwb_kudwall3,,veg,葛藤树/墙不能被 part 的 wall 抢
+smb_kudzowalls_05,,veg,kudzo 拼写
+p_sap_maple_ad_sim,,veg,树苗缩写
+q_12__bigjunction,,road,junc 硬规则
+q_12__jun01,,road,jun+数字
+cal_tabacco_01,,bldg,烟草仓
+cal_infirmary_a,,bldg,医务室（bldg 关键词缺 infirmary）
+new_pie_train_43_2,,bldg,铁路边楼房
+cvb_01_ruin,,ruin,废墟硬规则
+shwb_bri_a_00,,struct,bri 桥（_bri 后接字母也要收）
+o_13_04_rrcross_01_decal,,road,道口路面
+reg_scm_tracking02,,decal,马蹄印贴花
+p_11_cle_swaps_pre,,decal,地表替换片
+crp_cornstalks_ca_sim,,veg,农作物
+m_12__13_de10,road_muddyroad_03_ab|hea_track_decal_02_abte,road,按贴图判道路

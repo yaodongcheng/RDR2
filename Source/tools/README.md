@@ -1,5 +1,7 @@
 # tools 脚本索引
 
+> 🔴 **改分类前先读** [`docs/格式与资产/分类体系与判定规则.md`](../docs/格式与资产/分类体系与判定规则.md)（19 类 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单 / 已验证的坑）。
+
 > 按职责分类。所有脚本从项目根目录运行：`uv run python tools/<脚本>.py`
 > 脚本之间用 `sys.path.insert(0, tools)` + `import 模块名` 互相引用，**不要移动文件**。
 
@@ -230,6 +232,8 @@
 | `_check_tour_vis_unit.py` | 检查 | 合成场景单测：类名解析 + `show_all/apply_defaults/cat_show/only/full` 的可见性（秒级，不加载 blend） | 控制台 `=== UNIT OK ===` |
 | `_check_tour_behavior.py` | 检查 | 真 blend 行为检查：逐函数调用并打印 data/eye 两套状态；与 `_check_class_visibility.py`（存盘态）互补 | 控制台 |
 | `_check_bat.py` | 检查 | **bat 交付前必过**：静态规则（GBK/CRLF、echo 转义、引号、pause）+ 干跑（list/19/99） | 控制台 PASS/FAIL |
+| `_check_rules.py` | 检查 | **分类规则自检**：类表合法性、纠错冗余、`rules_cases.csv` 用例回归（改分类后必跑） | 控制台 PASS/FAIL |
+| `rules_cases.csv` | 数据 | 分类回归用例（名字/贴图 → 期望类），新增规则时同步加一行 | — |
 | `_probe_rail_wide.py` | 探针 | 安尼斯堡铁路远景：`top` / `oblique` / `wide` | `_railcheck/{top,oblique,wide}.png` |
 | `_probe_rail_close.py` | 探针 | 断口近景：`close_top` / `close_along` / `close_yard` | `_railcheck/close_*.png` |
 | `_probe_rail_ties.py` | 探针 | 枕木近景：A（有 dec 片）/ B（无 dec 片） | `_railcheck/tie_*.png` |

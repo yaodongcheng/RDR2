@@ -13,7 +13,7 @@ import blender_tour as tour   # noqa: E402
 
 SPECS = [('lod', '远景碎片'), ('terrain_cell', '地形块'), ('underground', '地下停放'),
          ('watertile', '水面块'), ('placeholder', '占位代理'),
-         ('veg', '植被'), ('stone', '石块'), ('prop', '道具'), ('decal', '道路地面贴花')]
+         ('veg', '植被'), ('stone', '石块'), ('prop', '道具'), ('decal', '地面贴花')]
 
 # 合成场景必须覆盖 DEFAULT_HIDDEN 的全部类；以后加类忘了补这里，要在这里炸掉
 _missing = [k for k in tour.DEFAULT_HIDDEN if k not in [x[0] for x in SPECS]]

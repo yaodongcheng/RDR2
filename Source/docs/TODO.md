@@ -1,221 +1,175 @@
-# TODO —— 交接版（2026-10-31 核对）
+# TODO —— 交接版（2026-10-31 晚）
 
-> 交接顺序：1) `docs/交接与状态/README_交接.md`（上一轮到哪了，最新一节 = 本轮）2) 本文件 3) `docs/AGENTS.md`（长任务 / 禁开大文件 / 已知坑）4) `docs/最高原则_单一管线与分块即裁剪.md`（五条禁令）
-> 历史 TODO 在 `docs/交接与状态/TODO.md`。
-
----
-
-## 0. 一句话状态（2026-10-31 按产物实测）
-
-**唯一主产物：`deliverable/blender/continent/continent_v23.blend`**（7.78 GB，建 2026-10-30 23:27，`manifest_continent_v23.json` → **PASS**）
-
-| 项 | 数 |
-|---|---:|
-| 对象 / ENTITIES | 184,035 / **184,032** |
-| 分类 | **17 类 17/17**（明细见 §4.1） |
-| 默认隐藏合计 | **49,918**（地形块 30,839 · 地下停放 8,335 · 植被 7,472 · 远景 LOD 2,290 · 石块 648 · 水面块 321 · 占位 13） |
-| 未分类 `unknown` | 7,143（3.9%） |
-| 贴图用 / 无 albedo | 8,209 张 / **26,440 个对象**（拆解见 §2.2） |
-| 带法线 / 带 ORM 对象 | 162,566（5,991 张）/ 153,413（4,722 张） |
-| 模型库 / 贴图表 | **71,790** / **32,878** |
-
-**这一版已经做到**：游戏 `levels_*.rpf` 2,158 个嵌套包全抽（0 空包 / 176,097 文件 / 58.58 GB）；抽出的 72,407 个 `.ydr/.yft` 入库 71,790（99.15%）；tiles 233,104 条实例里 184,032 条建成对象；位置/四元数/缩放完整率 **100.000%**；分类从"垃圾桶制"改成 17 类划分制（v18~v23 逐轮收口，细节见交接 §16）。
+> 交接阅读顺序：1) 本文（最上面就是下一步）2) `docs/格式与资产/分类体系与判定规则.md`（19 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（§1.7 bat 纪律 · §1.8 分类入口 · §1.9 目录纪律）4) `docs/交接与状态/README_交接.md`（历史）。
+> **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
 
 ---
 
-## 1. 还剩什么（按优先级）
+## ★ 下一步（新 session 从这一节开始）：批量生成 22 个「有网格」的区域裁剪
 
-> 判据：**能观感验收的排前面；等用户拍板/等新数据源的排后面**。每行都带可复核的数字。
+### 0. 一句话
 
-| P | 事项 | 现在卡在哪（实测） | 下一步 |
-|---|---|---|---|
-| **P1** | **泥路面发白（粘连贴图名）** | `ann_04_d_maintrack_*` 渲出来是白带。ytd SYS 里名字本身是 `std_annesburg_muddyroad_03_ab` + `..._al` 两段粘连，我们取到的是近白那张（RGB 均值 218）。量级：贴图表里这种粘连名 **1,285 个 / 8,720 个子网格**；发白集中在 `std_annesburg_muddyroad_03`（253 处）、`_01`（114）、`road_muddyroad_03`（69）、`road_muddyroadtnt_02`（83） | 解粘连名时**选 `_ab` 子资源**（不要 `_al`）→ 重跑贴图表 + 重绑 + 重建。涉及 `rdr2_ytd.py` 与贴图表生成 |
-| **P1** | **2,813 个 albedo 名没有图**（占引用 2.0%） | 已排除四个来源（见 §2.3）：hd_0 命中 0 · textures_0/1 内容全是 UI/deferred probe（命中 0）· update_1~3 没有 ytd/ydr · appdata0_update 只有 1 个 `.dat` + 1 个 `.xml`。这 2,813 个名的模型槽位是 `-1`，所以清单里表现为"无 albedo 槽" | 换找法：**按 ydr 里记录的纹理引用 hash 反查**（不再按名字搜 RPF）。工具缺口 = 现在没有"纹理 hash → 包内条目"的索引 |
-| **P1** | **铁路 14% 埋在地形面以下** | H4 地形 4 m/px 表达不了路堑；安尼斯堡以北仍是"轨面陷进土里" | **等用户拍板**：要不要切地形开路堑（最高原则 §6.2 禁擅自改地形） |
-| **P2** | **室内 319 个 hash** | 146 包已解包、2,301 模型入库、79 包已摆；缺 MLO `rooms/portals` 变换 | 用 3 栋已知房子做三角验证（老阻塞） |
-| **P2** | **`rpf_available` 1,770 个 hash 只有物理代理** | 包里只有 `_ph/_occ`，没有可渲染几何 | 只能等新数据源，或按缺件记录 |
-| **P2** | **`no_definition` 306 个 hash** | ytyp 里查不到定义，来源不明 | 下一轮用 `archetype_swaps.ymt` 之类查 |
-| **P2** | **地形 4 层混合没还原** | 每个槽只挂第 0 层的法线/材质图；引擎是 4 层按权重混合，近景会有"一层法线盖全图"的观感 | 在 `mat_rdr2.py` 里写多层混合节点（下一轮） |
-| **P2** | **渲染图左下/右下有异常灰块** | `_test/ann/v16ann_full.png` 可见，疑似地形块缺失/未贴图 | 没查；先用 `report_manifest` 对照那块坐标的对象与类 |
-| **P3** | **`plantpot` 30 个还标成建筑部件** | 代码已改（veg 排除 + prop 兜底 + `bldg/part` 前置跳过），**等下一次 reclassify 自动归位** | 下次 reclassify 后核对这 30 个 |
-| **P3** | **`unknown` 7,143 个** | 每轮靠用户点名收口（v21~v23 就是这么把 und/watertile/placeholder/rail 收掉的） | 继续按"用户点名 → 补规则 → reclassify（约 18 分钟，不要重建）"循环 |
-| **搁置** | **504 个 fragment 道具 / 1,158 条实例**（衣物/纸张/木料/旗帜/弹药/箱顶） | 文件已抽出（`raw/all_packs/**/*.yft`），是另一种 fragment 布局，能定位到的 drawable 只有 1~3 个三角形的占位 | **用户 2026-10-30 决定暂不补**；补 = 解析新布局（1,244 真实例 = 0.53%） |
+大陆 v23 目前还是 **17 类旧规则**；分类规则已升级到 **19 类**（新增 `road`、`ruin`），区域 #19 已验证 PASS。接下来把**可见对象 > 0** 的 22 个区域各裁一个 blend，逐个对账；全部 PASS 后再对大陆跑一次，出 v24。
 
-### 1.1 本轮核对发现的两个「文档与产物不符」（已回填，留档）
+### 1. 目录约定（2026-10-31 用户裁定，照 `sdn_full2/`、`guarma/`、`willard/` 的先例）
 
-| 项 | 文档原写法 | 实测 |
-|---|---|---|
-| `underground` 数量 | 交接 §16.6 的 v23 行写 **1,158**（那是旧的 `x=y=0` 规则） | **8,335** —— v23 建库前 2 分钟规则改成了"9 点取最低地形，比对象最高点高 10 m 即判地下"。其中 **5,891 个 z>50**（高山），抽样含冷杉/岩石；**建议抽查是否在陡坡误伤**（4 m/px 地形在崖边取样误差可能 >10 m） |
-| `hd_0.rpf` | README 待办写"**未抽**（1 GB / 23 包，26,440 个无 albedo 多半靠它补）" | 状态文件记 `done（0 new / 320 dup）`，但**磁盘上 0 个文件**；320 条 = 292 个基础名，其中**只有 1 个被场景模型引用**，与 2,813 缺名的交集 **0** ⇒ **补 hd_0 对场景没有可见收益**，假设推翻 |
-
----
-
-## 2. 已关闭 / 已排除（别再查）
-
-### 2.1 已关闭的旧 TODO
-
-| 项 | 结论 |
-|---|---|
-| `update_1..4.rpf` 未核对 | **已核对**：`update_1/2/3` 里 0 个 ytd/ydr；`update_4` = 5,704 个 ytd + 17 个 ydd，已抽取（4,969 个新 ytd 入库） |
-| `appdata0_update.rpf` 未查 | **已查**：2 个条目（1 `.dat` + 1 `.xml`），不含贴图 |
-| 植被"应删未删 416" | **口径已改**（交接 §16.3）：新判据 = "默认隐藏类里还露着的对象"，v19 起为 **0** |
-| `real_ytyp` 3,061 无几何 | **已解决**：压在 `.ydd` 字典里（子 drawable 用自己的 hash），已入库 3,229 个模型 |
-| 贴图表 id↔名字↔文件错位 | **已重做**：按名字重建 11,504 条，55,608 模型全量重绑，审计绑错 0 |
-| 城区"白块" / 水面灰板 / willard 陷地 | 已修/已数值化验证（交接 §11~§13） |
-| `lod_combine` 无名块 46,532 | **不是缺口**：引擎运行时合并的远景替身，磁盘上没有独立资源；`lod` 类整类默认隐藏 |
-
-### 2.2 "26,440 个无 albedo" 的真实构成（2026-10-31 从 v23 jsonl 拆）
-
-| 类别 | 数 | 含义 |
-|---|---:|---|
-| 完全没有 albedo 槽（全部材质走 `ntex_` 兜底） | **15,094** | 模型 `.mdl` 里 albedo id = `-1`；小道具占大头（jug / ashtray / book / can / pot …） |
-| 部分子网格走兜底材质 | **11,346** | 其中 **11,239 个**的贴图名其实**有图**（在 `have` 里）⇒ 是材质回退，不是缺图；剩下 62 个名字未知、45 个混合 |
-
-> 所以"无 albedo"不等于"贴图没抽到"。真正缺图的名字是 §2.3 那 2,813 个。
-
-### 2.3 2,813 个缺名的四个来源已逐个排除
-
-| 来源 | 检查 | 结果 |
-|---|---|---|
-| `hd_0.rpf` | 索引 320 条 → 292 个基础名 | 与缺名交集 **0**；被场景引用的基础名只有 1 个 |
-| `textures_0.rpf` | `hashindex` 8,380 个 ytd（45 顶层 + 14 嵌套包） | 内容 = deferred probes / AMV 网格 / underwater height / item UI；与缺名交集 **0** |
-| `textures_1.rpf` | `hashindex` 3,376 个 ytd | 内容 = UI（journal/pausemenu/discovery/newspaper…）；与缺名交集 **0** |
-| `update_1~3` / `appdata0_update` | 条目清点 | 没有 ytd/ydr / 只有 dat+xml |
-
-> 顺带发现：`textures/item_textures.rpf` 里 338 个 ytd 用现有 `rdr2_ytd.py` 解析出 **0 个名字**（另一种字典布局）。这批是 UI 物品图，不影响世界场景，但如果以后要做物品图标，解析器要补这个布局。
-
----
-
-## 3. 五分钟上手（不用开 7.8 GB）
-
-```powershell
-# 启动器（自动挑最新的 continent_v*.blend，并执行默认隐藏）
-双击 打开大陆_流畅.bat
-
-# 不开 Blender 核对
-uv run python tools\report_manifest.py
-uv run python tools\report_manifest.py --find new_gar06_park_terrain
-uv run python tools\report_manifest.py --class rail --limit 20
-
-# 缺模型到底缺什么
-python tools\audit_missing_models.py
-
-# 保存态的类可见性（三层验收之一）
-blender -b <blend> -P tools\_check_class_visibility.py
+```
+D:\BrainMaker\大镖客2解包分析\deliverable\blender\
+├── regions\                         ← 只放区域 blend
+│   └── <编号>_<tile>.blend          （例：19_wild2000_04_02.blend）
+└── regions_support\                 ← 验证内容
+    ├── region_list.csv              ← 批量清单 + 状态（已建：22 行，19=done，其余 todo）
+    ├── region_corrections.csv       ← 全局纠错清单（一份，共用）
+    ├── overview\                    ← 全图俯视图/图例（可选）
+    └── <编号>_<tile>\               ← 每区域一个验证子目录
+        └── manifest_<编号>_<tile>.json / .jsonl
 ```
 
-**整类默认隐藏的七类**（N 面板勾上就显示）：地形块 · 地下停放 · 植被 · 远景 LOD · 石块 · 水面块 · 占位代理。2026-10-29 起不再有 `HIDDEN_*` 垃圾桶集合 —— 藏 = 整类关掉，对象仍留在类里。
+- **`regions\` 里只允许 `.blend`**；manifest / 预览图 / CSV 一律进 `regions_support\`。
+- 日志：`D:\BrainMaker\_logs\region_<编号>.log`。
+- 编号 = 俯视图图例的 `#1~#47`（`regions_support\tile_legend.csv`）。
+
+### 2. 要跑的区域（22 块）
+
+不做：24 个「可见对象 = 0」的块；4 个只有 4 个对象的边角桩（#1/#2/#8/#9）；**瓜玛 #40**（战役不含它）。
+
+| 批 | 编号 | tile | 可见对象 |
+|---|---|---|---:|
+| 1 | #19 | `wild2000_04_02` | 26,018（**已完成**） |
+| 1 | #20 | `wild2000_05_02` | 21,855 |
+| 2 | #18 | `wild2000_03_02` | 15,199 |
+| 2 | #12 | `wild2000_04_01` | 12,062 |
+| 2 | #11 | `wild2000_03_01` | 11,556 |
+| 2 | #13 | `wild2000_05_01` | 11,081 |
+| 2 | #23 | `wild2000_01_03` | 8,158 |
+| 2 | #17 | `wild2000_02_02` | 7,077 |
+| 2 | #24 | `wild2000_02_03` | 4,077 |
+| 3 | #10 | `wild2000_02_01` | 3,008 |
+| 3 | #25 | `wild2000_03_03` | 2,027 |
+| 3 | #26 | `wild2000_04_03` | 1,717 |
+| 3 | #4 | `wild2000_03_00` | 1,347 |
+| 3 | #22 | `wild2000_00_03` | 1,232 |
+| 3 | #5 | `wild2000_04_00` | 1,066 |
+| 3 | #6 | `wild2000_05_00` | 697 |
+| 3 | #3 | `wild2000_02_00` | 78 |
+| 3 | #27 | `wild2000_05_03` | 57 |
+| 3 | #33 | `wild2000_04_04` | 29 |
+| 3 | #16 | `wild2000_01_02` | 11 |
+| 3 | #21 | `wild2000_06_02` | 7 |
+| 3 | #30 | `wild2000_01_04` | 2 |
+
+### 3. 单块命令（可直接复制的模板）
+
+**A. 从零构建一块**（Blender 进程内跑完整链：几何 → 分类 → 植被/地形/LOD 隐藏 → 清单）
+
+```powershell
+Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+cmd /c 'tools\run.cmd D:\BrainMaker\_logs\region_20.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend" --lib "D:\BrainMaker\大镖客2解包分析\assets\lib_native" --only-tile wild2000_05_02 --step 8 --rails --full --no-water --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv"'
+```
+
+**B. 已建好的区域只重跑分类/纠错**（约 3~5 分钟，不重建几何）
+
+```powershell
+Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+cmd /c 'tools\run.cmd D:\BrainMaker\_logs\region_20_fix.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend"'
+```
+
+**C. 对账（每块必跑）**
+
+```powershell
+python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\tools\_check_region.py" --tile wild2000_05_02 --audit "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\20_wild2000_05_02\manifest_20_wild2000_05_02.jsonl"
+```
+
+> 说明：A 构建会把 manifest 写在 blend 旁边。**必须**把它移到 `regions_support\<编号>_<tile>\`（`_apply_corrections.py` 会自动挪；纯 A 构建要手动 `Move-Item`）。判据永远是 `_check_region.py` **PASS**（19 类计数逐项一致）。
+
+### 4. 批量驱动（待实现 `tools/build_regions.py`）
+
+要求：
+
+| 项 | 规定 |
+|---|---|
+| 输入 | `regions_support/region_list.csv`（列：`number,tile,blend,visible,status`） |
+| 执行 | **一次一个 Blender**（内存/磁盘），顺序按编号；每块调 A 命令 |
+| 断点 | `status=done` 跳过；`--resume` 默认开启；`--force` 重跑；`--only 19,20` 指定 |
+| 归位 | 构建完把 `manifest_<编号>_<tile>.json/.jsonl` 移到 `regions_support\<编号>_<tile>\` |
+| 对账 | 立刻跑 `_check_region.py`；**FAIL 就停**，不继续下一块 |
+| 日志 | `D:\BrainMaker\_logs\region_<编号>.log`；驱动自身日志 `_logs\build_regions.log` |
+| 备份 | 构建前设 `save_version=0`，**不生成 `.blend1`**（`reclassify.py` 已有先例） |
+| 状态 | 每块结束更新 `region_list.csv` 的 `status`（todo/done/failed） |
+
+### 5. 验收 / 停止条件
+
+- 单块：`_check_region.py` PASS（对象数 + 19 类计数一致）；`manifest` 的 `classes_n == classes_expected == 19`。
+- 批量：22 块 `status=done`，无 `failed`。
+- 任何一块 FAIL：**停止批量**，修规则/纠错 → 跑 `_check_rules.py` → 用 B 命令重跑该块。
+
+### 6. 磁盘 / 时间
+
+- 单块约 **0.4~0.9 GB**（`--step 8 --no-water`；#19 实测 860 MB），22 块合计约 **10~15 GB**；
+- 单块 5~12 分钟，**22 块约 3~4 小时**；
+- 做完不用的块可删（`region_list.csv` 留状态，`--only` 可重跑）。
 
 ---
 
-## 4. 文件清单
+## ★ 批量之后：大陆收口（v24）
 
-### 4.1 v23 分类明细（17 类）
+1. 用**同一份纠错清单**把 v23 重分类成 v24（**新建文件，不覆盖 v23**）：
 
-| 类 | 数 | 类 | 数 |
-|---|---:|---|---:|
-| prop 道具 | 72,786 | rail 铁路 | 2,978 |
-| terrain_cell 地形块 | 30,839 | veh 载具 | 2,802 |
-| part 建筑部件 | 19,139 | lod 远景碎片 | 2,290 |
-| junk 杂物 | 17,139 | struct 结构 | 1,461 |
-| underground 地下停放 | 8,335 | stone 石块 | 648 |
-| veg 植被 | 7,472 | watertile 水面块 | 321 |
-| unknown 未分类 | 7,143 | placeholder 占位代理 | 13 |
-| rock 岩石 | 3,800 | light / terrain / water | 1 / 1 / 1 |
-| decal 地面贴花 | 3,618 | **合计** | **184,035** |
+```powershell
+Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+cmd /c 'tools\run.cmd D:\BrainMaker\_logs\continent_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v24.blend"'
+```
 
-### 4.2 有效产物
-
-| 文件 | 大小 | 说明 |
-|---|---|---|
-| `deliverable/blender/continent/continent_v23.blend` | 7.78 GB | **当前主产物**（2026-10-30 23:27，PASS） |
-| `…/manifest_continent_v23.json` / `.jsonl` | 1.3 KB / 59 MB | 汇总 + 对象级清单 |
-| `…/manifest.json` | 1.3 KB | 恒定指向最新一次的汇总 |
-| `export/world/missing_classified.json` | 9.9 MB | 缺模型分类明细（逐 hash：桶/名字/来源 ytyp/bbox） |
-| `export/levels/town/archetype_assetnames.json` | 13.2 MB | 96,141 条 archetype：hash → assetName/bbox/来源 |
-| `work/rpf_index/all.tsv` | 7.1 MB | RPF 全量 drawable 索引（包 + hash + 大小 + 名字） |
-| `work/unparsed_models.json` | 720 KB | 4,076 个未能入库的文件逐条 |
-| `assets/lib_native/` | — | 模型 **71,790** / 贴图表 **32,878** |
-| `deliverable/blender/sdn_full2/` · `willard/` · `guarma/` | — | 历史管线产物，只作证据，**不作验收对象** |
-
-> **磁盘上最多保留 3 个版本**（AGENTS §2.8）。当前 v22 / v23 两个，够回退；再出新品先删更早的（删除命令交给用户）。
-
-### 4.3 建议删除（等用户点头）
-
-| 目录/文件 | 占用 | 原因 |
-|---|---|---|
-| `work/lib_gtxd/txd_game/` | 28.5 GiB | 19,058 个 ytd，几乎全是 `ui_*`/`metaped_*`，场景不用 |
-| `archive/废弃_sdn_full管线/` | 4.3 GiB | 废弃 glTF 管线产物 |
-| `assets/lib_native/index_before_*` | 约 100 MB | 多轮改库备份，确认后删 |
-| ~~`work/_probe_itemtex/` + `work/_probe_textures*.tsv`~~ | 约 344 MB | 2026-10-31 核对 `textures_0/1` 的临时探针，**已删** |
+2. 验收：manifest `classes_n == classes_expected == 19`、`verdict=PASS`；`_check_class_visibility.py` 确认 `road` 隐藏、`ruin` 显示。
+3. 之后所有区域重建都自动继承 19 类 + 纠错清单。
 
 ---
 
-## 5. 关键脚本
+## 当前状态（2026-10-31 晚）
+
+### 区域 #19（已完成，可作模板）
+
+- `deliverable\blender\regions\19_wild2000_04_02.blend`（860 MB，`--no-water`）
+- 29,843 对象 / **19 类 19/19** / 对账 **PASS**
+- 隐藏 4,528（lod 470 / terrain_cell 999 / veg 2,486）
+
+### 分类体系（现已 19 类，规则唯一真身 = `tools/class_rules.py`）
+
+- 新增类：`road`（道路，**默认隐藏**）· `ruin`（废墟，**默认显示**）；
+- 硬规则：**名字含 `junc` 一律 road**（无例外）；名字含 `ruin` 一律 ruin（`lod/underground` 除外）；
+- 纠错清单：`regions_support\region_corrections.csv`（14 条，id 1/2/3/4/6~15）；
+- 回归：`tools/rules_cases.csv`（16 条用例），`_check_rules.py` 全过；内置关键词最近补了 `infirmary`（bldg）、`_bri(?!ck)`（struct）
+- 改分类流程与坑：见 `docs/格式与资产/分类体系与判定规则.md`。
+
+### 相关脚本
 
 | 脚本 | 用途 |
 |---|---|
-| `tools/blender_continent.py` | **唯一构建入口**：`--rails --full [--veg hide\|delete\|keep] [--pad] [--bbox x0,y0,x1,y1] [--only-tile <id>]` |
-| `tools/reclassify.py` | **只改分类不重建**：打开最新 blend → `classify_entities --apply` → 重写 manifest → 另存（约 18 分钟） |
-| `tools/class_registry.py` | 17 类 + `DEFAULT_HIDDEN` **唯一一份**；分类/巡视/面板/清单全部 import 它 |
-| `tools/classify_entities.py` | 分类规则（名字正则 + 属性兜底 + 地下判定） |
-| `tools/report_manifest.py` | 不开 Blender 核对 + `--find/--class/--tile` 查询 |
-| `tools/manifest_from_jsonl.py` | 0.5 秒从 jsonl 反算汇总（替代 20~35 分钟的两遍扫描） |
-| `tools/audit_missing_models.py` | 缺模型分桶（LOD 块 / 真件 / 包里有无 / 来源 ytyp） |
-| `tools/audit_full_extraction.py` | 全抽取四列验收（包级 / 模型级 / 实例级 / 变换） |
-| `tools/audit_three_maps.py` | 漫反射/法线/ORM 覆盖率（槽位级 + 实例加权） |
-| `tools/extract_all_packs.py` | 2,158 个嵌套包全抽（约 45 分钟） |
-| `tools/ingest_rail_packs.py` / `merge_rail_entities.py` | 模型入库（含 `.yft`）/ 实例并进 tiles（幂等） |
-| `tools/extract_slot_textures.py` + `tools/tex_slots.py` + `tools/mat_rdr2.py` | 法线/ORM 槽位提取、绑定、材质节点（构建与 relink 共用） |
-| `tools/relink_materials.py` | 给已存盘 blend 按当前 index 重挂材质（槽位按子网格序） |
-| `tools/export_rail_preview.py` | **不经过 Blender** 的铁路 glTF-free 预览（three.js 页面，2026-10-31 新增） |
-| `tools/blender_tour.py` / `blender_autoload.py` / `rdr2_cat_ui.py` | 巡视相机 / 启动器 / N 面板 |
-| `tools/_check_tour_vis_unit.py` / `_check_tour_behavior.py` | **可见性回归检查**（合成场景秒级 / 真 blend 行为）；7 个验收渲染脚本见 `tools/README.md`「验收渲染 / 可见性检查」 |
-| `tools/run.cmd` / `read_text.py` / `_unbuffer.py` / `watch_build.ps1` | 起子进程 / 读 GBK / 行缓冲 / 长任务看门狗 |
+| `tools/class_rules.py` | **规则唯一真身**（19 类 / RULES / 硬规则 / 纠错解析） |
+| `tools/classify_entities.py` | Blender 驱动（建集合树、几何兜底） |
+| `tools/_apply_corrections.py` | 已建区域重跑分类（含纠错、清单归位） |
+| `tools/_check_region.py` | 区域对账（v23 + 纠错 vs 区域 manifest） |
+| `tools/_check_rules.py` | 规则自检（合法性 / 冗余 / 用例） |
+| `tools/_probe_tile_atlas.py` / `_probe_tile_labels.py` | 整图俯视渲染 / 地块编号 |
+| `打开大陆_流畅.bat` | 双击选编号打开区域（`regions\<编号>_<tile>.blend`） |
 
 ---
 
-## 6. 常用命令
+## 遗留清理（等用户确认后执行）
 
-```powershell
-# 全量重建（实测 60~90 分钟；先过 AGENTS §2.7 三条门禁）
-cmd /c 'tools\run.cmd D:\BrainMaker\build_vN.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_vN.blend --lib D:\BrainMaker\大镖客2解包分析\assets\lib_native --rails --full'
-
-# 只重分类（不重建，约 18 分钟）
-cmd /c 'tools\run.cmd D:\BrainMaker\_reclass.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\reclassify.py -- --blend <最新 blend>'
-
-# 小范围试验（3~6 分钟）
-cmd /c 'tools\run.cmd D:\BrainMaker\_t.log "<blender>" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out D:\BrainMaker\_test\t.blend --lib D:\BrainMaker\大镖客2解包分析\assets\lib_native --rails --full --only-tile wild2000_05_00 --bbox 2900,2100,3100,2300'
-
-# 核对 / 缺口 / 库
-python tools\report_manifest.py
-python tools\audit_missing_models.py
-python tools\audit_full_extraction.py
-python tools\rpf_index.py
-python tools\extract_by_hash.py --dry
-python tools\normalize_lib_index.py --dry
-```
-
-> ⚠️ 需要 `numpy/PIL` 的脚本用系统 `python`；`uv run python` 是空环境，只适合不依赖第三方库的小脚本。
-> ⚠️ 解包前先关游戏（rpf 被独占锁）；`set TEMP=D:\BrainMaker\_tmp`（别用 C 盘，见 AGENTS §4）。
+| 文件 | 原因 |
+|---|---|
+| `deliverable\blender\regions\19_wild2000_04_02.blend1` | Blender 自动备份（860 MB）；新构建已要求 `save_version=0` |
+| `deliverable\blender\regions_support\_probe_cards_wide.json` / `_probe_crosscards.json` | 一次性探针输出 |
+| `D:\BrainMaker\_logs\test2.bat` / `test_launcher.bat` / `bat_dump.txt` | 调试 bat 的临时文件 |
 
 ---
 
-## 7. 已知坑
+## 禁止事项（交接红线）
 
-全部在 `docs/AGENTS.md` §4（30 条）。最常踩的 5 条：
-
-1. **别把"重建 blend"当进度条**（一次 60~90 分钟）→ 先跑 `audit_full_extraction.py` 四列收口。
-2. **`-b` 测不出启动器画面** → 启动器行为只认 GUI 双击 bat。
-3. **`Collection.hide_viewport` ≠ `LayerCollection.hide_viewport`** → 两套一起设。
-4. **贴图只存 tid 不存名字会串号** → 一律按名字绑定。
-5. **`hex()` 不补零**（第 N 次）→ 文件名/JSON key/对象名一律 `'0x%08x'`。
-
----
-
-## 8. 下游（骑砍2 落地，不在本仓库）
-
-本仓库只负责"解包 → Blender 全集"。送进骑砍2 的管线仍在旧数据上：
-
-- `Modules/RDR2/SceneObj/rdr2_sanit_denis/scene.xscene` 是 **2026-10-26** 的导出（1.78 MB，圣丹尼斯 6,568 个实例），**未接 v23**。
-- 交接文档：`LivingWorldNpcs/plans/大镖客2还原/00-总纲.md` 顶部「⏭ 下一步 TODO」三条（①圣丹尼斯实体完整性核查 ②LOD0~6 + TRF ③`custom.rdr2 openscene` 进场景），仍全部未完成。
+1. **不要改 `continent_v23.blend`**（7.3 GB 主产物）；要升级就出 `continent_v24.blend`；
+2. **不要在 `D:\BrainMaker` 根放任何文件**；新目录先问（见 `AGENTS.md` §1.9）；
+3. **不要手动改 `regions_support\region_corrections.csv` 之外再抄一份规则**；规则值只进 `class_rules.py`；
+4. **不要跳过 `_check_rules.py` / `_check_region.py`**；
+5. **不要同时跑两个 Blender**（内存/磁盘竞争）；
+6. **不要生成 `.blend1`**（构建脚本设 `save_version=0`）。

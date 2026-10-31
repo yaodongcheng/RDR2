@@ -35,7 +35,7 @@ for col in bpy.data.collections:
              (lc.exclude if lc else 'n/a'), (lc.hide_viewport if lc else 'n/a')))
 
 # 抽样看对象自身
-for nm in ('C_lod_远景碎片', 'C_terrain_cell_地形块', 'C_veg_植被', 'C_stone_石块', 'C_decal_道路地面贴花'):
+for nm in ('C_lod_远景碎片', 'C_terrain_cell_地形块', 'C_veg_植被', 'C_stone_石块', 'C_decal_地面贴花'):
     col = bpy.data.collections.get(nm)
     if not col:
         print('（找不到集合 %s）' % nm)

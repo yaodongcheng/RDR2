@@ -117,6 +117,19 @@
 
 `tools/_check_bat.py` 做两件事：① 静态规则逐条扫（上面每一条）② **干跑**——把 `start` 换成 echo、`pause` 换成 echo，带 `list / 19 / 99` 三种参数跑一遍，确认能解析到目标、错误分支有提示、不中途语法错。
 
+### 1.8 分类规则唯一入口：`docs/格式与资产/分类体系与判定规则.md`
+
+**改任何分类前先读它**（19 类 / 默认隐藏表 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单语义 / 已验证的坑 / 标准改法）。**规则值唯一真身 = `tools/class_rules.py`**；`classify_entities.py` 只是 Blender 驱动、`class_registry.py` 只是转出口，`veg_rules.py` 放植被词表。改完跑 `python tools/_check_rules.py`（合法性 + 冗余 + `tools/rules_cases.csv` 用例回归）。
+
+### 1.9 D:\BrainMaker 目录纪律（2026-10-31 立；起因：区域裁剪产物散到根目录被用户抓包）
+
+| 规则 | 内容 |
+|---|---|
+| **根目录零文件** | `D:\BrainMaker\` **根下只允许既有的一级目录**，禁止放任何文件（脚本 / JSON / 图 / 日志 / bat）；违者一律算未归口 |
+| **区域裁剪固定一处** | `D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\` **只放区域 blend**（`<编号>_<tile>.blend`，与 `sdn_full2/`、`guarma/`、`willard/` 同规矩，本质就是大陆各区域的裁剪）；验证内容（manifest / 俯视图 / 图例 / `region_corrections.csv`）放同级 **`regions_support/`**（对应 `sdn_support/` 的先例） |
+| **新建目录先问** | 任何新目录（包括 `%PROJ%` 下的子目录）先问用户；工具默认输出路径必须指向**已批准目录**，不许用 `%PROJ%\..` 之类的上跳路径 |
+| **一次性文件即用即删** | 临时 bat / dump / 探针 JSON 用完删除，不留在 `_logs` 或数据根 |
+
 ---
 
 ## 2. 长任务执行规范（2026-10-28 事故后强制）

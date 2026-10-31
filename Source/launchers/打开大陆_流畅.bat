@@ -16,7 +16,7 @@ if not defined PROJ (
 )
 
 set "BLENDDIR=%PROJ%\deliverable\blender\continent"
-for %%P in ("%PROJ%\..") do set "AUDDIR=%%~fP\_test\audit"
+set "AUDDIR=%PROJ%\deliverable\blender\regions"
 for %%P in ("%PROJ%\..") do set "LOGDIR=%%~fP\_logs"
 set "LOG=%LOGDIR%\launcher.log"
 if not exist "%LOGDIR%" mkdir "%LOGDIR%" >nul 2>nul
@@ -26,7 +26,7 @@ if not exist "%LOGDIR%" mkdir "%LOGDIR%" >nul 2>nul
 set "ARG=%~1"
 if "%ARG%"=="" (
   echo.
-  echo   输入编号打开审计分块（例如 19），直接回车打开最新大陆。
+  echo   输入编号打开区域裁剪（例如 19），直接回车打开最新大陆。
   echo   输入 list 列出所有；也可以直接输入 blend 路径。
   set /p ARG=请输入:
 )
@@ -37,8 +37,8 @@ if /i "%ARG%"=="list" (
   echo [大陆版本]
   dir /b /o-d "%BLENDDIR%\continent_v*.blend" 2>nul
   echo.
-  echo [审计分块]
-  dir /b /o-d "%AUDDIR%\audit_*.blend" 2>nul
+  echo [区域裁剪]
+  dir /b /o-d "%AUDDIR%\*.blend" 2>nul
   echo.
   pause
   exit /b 0
@@ -47,13 +47,13 @@ if /i "%ARG%"=="list" (
 if not "%ARG%"=="" (
   echo %ARG%| findstr /r "^[0-9][0-9]*$" >nul
   if not errorlevel 1 (
-    for /f "delims=" %%F in ('dir /b /o-d "%AUDDIR%\audit_%ARG%_*.blend" 2^>nul') do if not defined BLEND set "BLEND=%AUDDIR%\%%F"
+    for /f "delims=" %%F in ('dir /b /o-d "%AUDDIR%\%ARG%_*.blend" 2^>nul') do if not defined BLEND set "BLEND=%AUDDIR%\%%F"
     if not defined BLEND (
       echo.
-      echo [ERROR] 没找到审计块 #%ARG%
+      echo [ERROR] 没找到区域 #%ARG%
       echo         目录：%AUDDIR%
-      echo         可用分块：
-      dir /b /o-d "%AUDDIR%\audit_*.blend" 2>nul
+      echo         可用区域：
+      dir /b /o-d "%AUDDIR%\*.blend" 2>nul
       echo.
       pause
       exit /b 1
@@ -91,7 +91,7 @@ if not exist "%BLEND%" (
 
 echo 正在打开：%BLEND%
 echo   用法：打开大陆_流畅.bat            ^(默认最新大陆^)
-echo         打开大陆_流畅.bat 19         ^(审计分块 #19^)
+echo         打开大陆_流畅.bat 19         ^(区域裁剪 #19^)
 echo         打开大陆_流畅.bat list       ^(列出所有大陆/分块^)
 echo         打开大陆_流畅.bat ^<路径.blend^>
 echo.

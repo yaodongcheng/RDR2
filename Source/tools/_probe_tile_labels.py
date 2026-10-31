@@ -31,7 +31,7 @@ def font(size, bold=False):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--img', default=os.path.join(ROOT, '_test/audit/continent_top.png'))
+    ap.add_argument('--img', default=os.path.join(ROOT, 'deliverable/blender/regions_support/continent_top.png'))
     ap.add_argument('--manifest', default=MANIFEST)
     ap.add_argument('--out', default='')
     a = ap.parse_args()

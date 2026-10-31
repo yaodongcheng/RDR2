@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 MANIFEST = os.path.join(ROOT, 'deliverable/blender/continent/manifest_continent_v23.jsonl')
-OUT = os.path.join(ROOT, 'export/world/audit')
+OUT = os.path.join(ROOT, 'deliverable/blender/regions_support')
 
 # 世界范围（与 H4 一致）
 X0, Y0, RES = -7684.0, -8196.0, 4.0
@@ -30,7 +30,7 @@ COLORS = {
     'prop': (78, 121, 167), 'part': (242, 142, 43), 'junk': (225, 87, 89),
     'rock': (118, 183, 178), 'bldg': (89, 161, 79), 'struct': (237, 201, 72),
     'veh': (176, 122, 161), 'rail': (255, 157, 167), 'unknown': (156, 117, 95),
-    'decal': (186, 176, 172),
+    'road': (230, 180, 90), 'decal': (186, 176, 172),
     'lod': (205, 205, 205), 'terrain_cell': (225, 225, 225),
     'underground': (190, 190, 190), 'watertile': (170, 190, 210),
     'placeholder': (210, 170, 210), 'veg': (140, 190, 140), 'stone': (170, 170, 170),
