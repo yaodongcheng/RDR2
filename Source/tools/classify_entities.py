@@ -31,7 +31,9 @@ from veg_rules import VEG, VEG_EXCLUDE          # 植被判定唯一一份（str
 # 否则 `p_plantpotwallnbx02x` 会被 part 的 `wall` 接走（2026-10-30 v20 实测 30 个）。
 PLANT = re.compile(r'plantpot|p_pot_|flowerarng|planter', re.I)
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 数据根：与 blender_continent.py 保持一致（写死，别按 __file__ 推——
+# 从 Source\tools 启动时会推成 Source，找不到 work/terrain/H4.npy）。
+ROOT = r'D:/BrainMaker/大镖客2解包分析'
 NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
 AUDIT = os.path.join(ROOT, 'export/world/classify_unmatched.csv')
 

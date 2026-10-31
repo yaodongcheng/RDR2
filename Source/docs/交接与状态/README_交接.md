@@ -689,6 +689,8 @@ python tools\list_unparsed_models.py         # 未入库逐条清单
 | v22 | **二修铁路**（v21 只修好了路基，轨面/枕木仍藏在 decal）：Annesburg 以北真正的轨面是 `jklm_1518b_r_*` / `j_1518b_r_dec_*`、枕木是 `j_1518_r_a_dec_*`（贴图 `railroad_sleeper*`）—— 全落在 **decal**，而启动器默认关 decal。rail 规则补 `b_r_` 与 `_r_[abc]_dec`（**不加** `_r_[abc]_`，否则木栈桥/铁路桥 170 个会被抢走） | **PASS**；rail 2,592 → **2,641**，decal 3,966。**用渲图验收**（启动器同款可见性）：主线连续、枕木在、站场股道在 —— `D:\BrainMaker\_railcheck\close_top.png` / `close_along.png` / `close_yard.png` / `top.png` / `oblique.png` / `wide.png` |
 | v23 | 用户点名两件事：① **枕木/道砟是独立地面片**（`*_rail_decal_*` / `*_track_decal_*`，贴图 `railroad_sleeper*`），340 个全在 decal → 被启动器藏 ⇒ "铁轨上没有枕木"。rail 规则补 `rail[_-]?decal|track[_-]?decal`；② **停在原点的实体**（`cumb_rock_hero_01` / `bgv_rock_04.020` / `dis_pun_00` 等，源数据 x=y=0）不是坐标兜底，是关卡"停放"件：源 tiles 实测 **1,141 条** x=y=0。加规则 `|x|<1 且 |y|<1` → `underground`（中文名改「地下停放」） | **PASS**；rail 2,641 → **2,980**（+339 枕木/道砟）、underground 17 → **1,158**、decal 3,966 → 3,625、veg −558 / rock −426（都是原点停放件） |
 
+> ⚠️ **2026-10-31 更正（v23 那一行）**：v23 实际是 `underground` **8,335**，不是上面写的 1,158 —— 建库前 2 分钟（`classify_entities.py` 23:25，blend 23:28）把"原点停放"规则换成了 **"9 点取最低地形，比对象最高点高 10 m 即判地下"**，原点那批与 tempbox 都仍被覆盖。其中 **5,891 个 z>50**（高山），抽样含冷杉/岩石 ⇒ **需抽查是否在陡坡误伤**（4 m/px 地形在崖边取样误差可能 >10 m）。v23 清单实测的 17 类数字见 `docs/TODO.md` §4.1。
+
 **两条规则教训（都写在 `veg_rules.py` 与 `classify_entities.py` 的注释里）**：
 
 1. `VEG_EXCLUDE` **不能加 `_wall`** —— 为了踢掉 `tum_04__tumbleweed_wall` 会把
@@ -718,3 +720,39 @@ python tools\list_unparsed_models.py         # 未入库逐条清单
 `rdr2_cat_ui.py` · `veg_rules.py` · `write_manifest.py` · `manifest_from_jsonl.py` ·
 `report_manifest.py` · `_check_class_links.py` · `_check_class_visibility.py` ·
 `docs/交接与状态/README_交接.md` · `docs/AGENTS.md`
+
+---
+
+## 17. 2026-10-31 · 只读核对：剩余 TODO 与两条旧结论推翻
+
+> 本轮**没有重建 blend、没有改代码**，只核对产物与源数据；结论已回填 `docs/TODO.md`（重写）与 `README.md` 顶部待办表。
+
+### 17.1 基准（按 `manifest_continent_v23.json` 实测）
+
+`continent_v23.blend`（7.78 GB，2026-10-30 23:27）→ **PASS**：对象 184,035 / ENTITIES 184,032 / **17 类 17/17** / 隐藏 49,918 / 未分类 7,143 / 贴图用 8,209 / 无 albedo 26,440 / 带法线 162,566 / 带 ORM 153,413。
+
+### 17.2 关闭的旧 TODO
+
+| 项 | 结论 |
+|---|---|
+| `update_1..4.rpf` 未核对 | 已核对：`update_1/2/3` 里 **0 个 ytd/ydr**；`update_4` = 5,704 ytd + 17 ydd，已抽取 |
+| `appdata0_update.rpf` 未查 | 已查：只有 1 个 `.dat` + 1 个 `.xml`，不含贴图 |
+| 植被"应删未删 416" | 口径已改（§16.3），v19 起为 **0** |
+
+### 17.3 推翻的两条结论
+
+1. **`hd_0.rpf` 不是缺贴图的解药**：状态文件记 `done（0 new / 320 dup）` 但磁盘 0 个文件；320 条 = 292 个基础名，其中**只有 1 个被场景模型引用**，与 2,813 个缺名的交集 **0**。
+2. **`textures_0/1.rpf` 也不是**：`hashindex` 实测 8,380 + 3,376 个 ytd，内容全是 deferred probes / AMV 网格 / underwater height / UI（journal、pausemenu、discovery、newspaper…），与缺名交集 **0**。
+   ⇒ 2,813 个 albedo 缺名的下一步 = **按 ydr 里的纹理引用 hash 反查**（现有管线没有"纹理 hash → 包内条目"索引）。
+
+### 17.4 新发现（待办，不影响本轮验收）
+
+| 项 | 证据 |
+|---|---|
+| `item_textures.rpf` 338 个 ytd 现有解析器读出 **0 个名字** | 另一种字典布局；这批是 UI 物品图，不影响世界场景，做物品图标前要补 |
+| `underground` 8,335 与文档写的 1,158 不符 | 见 §16.6 下方更正；5,891 个 z>50，抽样含树/岩石，建议抽查 |
+| 26,440 无 albedo 的构成 | 15,094 完全无槽 + 11,346 部分子网格回退（后者 11,239 个名字**有图** ⇒ 材质回退，不是缺图） |
+
+### 17.5 本轮产生的临时探针（已删）
+
+`work/_probe_textures0.tsv` · `work/_probe_textures1.tsv` · `work/_probe_itemtex/`（约 344 MB）—— 2026-10-31 核对完已删，不需要再清。

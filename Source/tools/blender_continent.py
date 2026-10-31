@@ -61,6 +61,8 @@ def parse():
                   help='城区地台压平（默认关；地形只用原生 H4）')
   ap.add_argument('--no-pad', action='store_true',
                   help='兼容旧命令：等价于不开 --pad（现在本来就默认关）')
+  ap.add_argument('--no-water', action='store_true',
+                  help='不建全局水面（审计子块用；不影响分类/清单）')
   ap.add_argument('--no-conj-quat', action='store_true')  # 默认取共轭（RDR2 四元数旋向与 Blender 相反）
   # 铁路：名字带 _r_c_ 且包围盒扁宽，会同时命中 TERRAIN_CELL / flat_wide 两条剔除规则。
   # 不开这个开关，全图铁路会被静默丢掉（2026-10-27 修正）。
@@ -908,7 +910,8 @@ def main():
   clear()
   setup_world()
   terrain(a.step, use_pad=USE_PAD)
-  water()
+  if not a.no_water:
+    water()
   if a.lib and not a.terrain_only:
     bb = None
     if a.bbox:

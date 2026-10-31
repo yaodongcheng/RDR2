@@ -219,6 +219,34 @@
 > ⚠️ 抽包这一步不在脚本里（要游戏文件）：`rdr2rpf.exe extract levels_2.rpf <out> levels/rdr3/area/rails/<包>.rpf`，
 > 再把抽出来的 `.rpf` 解一层。完整命令见 `docs/交接与状态/README_交接.md` §14。
 
+## 验收渲染 / 可见性检查（2026-10-31 归口，7 个）
+
+> **来源**：原先散落在 `D:\BrainMaker\` 根的 7 个一次性脚本（10-30 19:42 ~ 10-31 07:26 建），
+> 按 `docs/AGENTS.md` §1.6 归口到 `tools/`。**产物仍在 `D:\BrainMaker\_railcheck\`**（交接 §16.6 引用了那批图）。
+> 相关旧工具：`_check_class_visibility.py`（存盘态逐集合 dump）· `_probe_vis_state.py`（v11 时代的 saved vs `show_all` 对照，已被上面两个覆盖）。
+
+| 脚本 | 类别 | 用途 | 产物 |
+|---|---|---|---|
+| `_check_tour_vis_unit.py` | 检查 | 合成场景单测：类名解析 + `show_all/apply_defaults/cat_show/only/full` 的可见性（秒级，不加载 blend） | 控制台 `=== UNIT OK ===` |
+| `_check_tour_behavior.py` | 检查 | 真 blend 行为检查：逐函数调用并打印 data/eye 两套状态；与 `_check_class_visibility.py`（存盘态）互补 | 控制台 |
+| `_check_bat.py` | 检查 | **bat 交付前必过**：静态规则（GBK/CRLF、echo 转义、引号、pause）+ 干跑（list/19/99） | 控制台 PASS/FAIL |
+| `_probe_rail_wide.py` | 探针 | 安尼斯堡铁路远景：`top` / `oblique` / `wide` | `_railcheck/{top,oblique,wide}.png` |
+| `_probe_rail_close.py` | 探针 | 断口近景：`close_top` / `close_along` / `close_yard` | `_railcheck/close_*.png` |
+| `_probe_rail_ties.py` | 探针 | 枕木近景：A（有 dec 片）/ B（无 dec 片） | `_railcheck/tie_*.png` |
+| `_probe_rail_r02.py` | 探针 | `jklm_1518b_r_02`（3075,1511）近景 | `_railcheck/r02_*.png` |
+| `_probe_blend_ab.py` | 探针 | 任意两个 blend 同机位 A/B（默认 v22/v23）：normal + rail-only | `_railcheck/ab_<版本>_*.png` |
+
+```powershell
+# 可见性单测（秒级；不加载 7.8 GB）
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --factory-startup -P tools\_check_tour_vis_unit.py
+
+# 铁路渲图（Blender 要打开 7.8 GB blend，约 5~10 分钟）
+cmd /c 'tools\run.cmd D:\BrainMaker\_railcheck\wide.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_probe_rail_wide.py'
+```
+
+**保留判定**：`_check_*` 长期保留（回归检查）；`_probe_*` 是**证据脚本**，重跑即覆盖同名图，
+交接文档还引用这些图 —— **别删**；要开新主题就新建 `_probe_*` 并在本表登记。
+
 ## 格式解析库（被其他脚本 import）（13 个）
 
 - `rage_meta.py`

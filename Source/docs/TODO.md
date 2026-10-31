@@ -1,266 +1,221 @@
-# TODO —— 交接版（2026-10-29 01:30）
+# TODO —— 交接版（2026-10-31 核对）
 
-> 交接顺序：1) `docs/交接与状态/README_交接.md`（上一轮到哪了，最新一节 = 本轮；末尾有"尚未查清"）2) 本文件 3) `AGENTS.md`（长任务/禁开大文件/已知坑）4) `docs/最高原则_单一管线与分块即裁剪.md`（五条禁令）
+> 交接顺序：1) `docs/交接与状态/README_交接.md`（上一轮到哪了，最新一节 = 本轮）2) 本文件 3) `docs/AGENTS.md`（长任务 / 禁开大文件 / 已知坑）4) `docs/最高原则_单一管线与分块即裁剪.md`（五条禁令）
 > 历史 TODO 在 `docs/交接与状态/TODO.md`。
->
-> 📌 **2026-10-29 分类重构（另一条线）**：分类体系已改成「13 类 + 整类隐藏，不搬对象」，
-> 🆕 **2026-10-30 新增第 14 类 `stone`（石块，默认隐藏）**：墙石 / 碎石堆 / 鹅卵石 / 大块石，由 `rank` 在 `rock` 之前匹配（`wallstone|rubble|boulder|cobble|gravelpile|stonepile|stone_|_stone|...`）。
-> 产出 `continent_v11.blend`（未分类 35,757 → 6,341）。细节、性能修复与**尚未查清的地表碎片问题**
-> 见 `docs/交接与状态/README_交接.md` **§12**。
 
 ---
 
-## 0.5 上一轮的"最重要下一步"已经做完，而且**结论被推翻了**
+## 0. 一句话状态（2026-10-31 按产物实测）
 
-上一轮把「补全模型库：从 ytyp 取 `assetName` → 按 hash 抽 → 入库 → 重建」列为头号任务，
-目标是「未命名实例 50,007 → <5,000」。四步全部做完，实测结果：
+**唯一主产物：`deliverable/blender/continent/continent_v23.blend`**（7.78 GB，建 2026-10-30 23:27，`manifest_continent_v23.json` → **PASS**）
 
-| 步 | 原计划 | 实测结果 |
+| 项 | 数 |
+|---|---:|
+| 对象 / ENTITIES | 184,035 / **184,032** |
+| 分类 | **17 类 17/17**（明细见 §4.1） |
+| 默认隐藏合计 | **49,918**（地形块 30,839 · 地下停放 8,335 · 植被 7,472 · 远景 LOD 2,290 · 石块 648 · 水面块 321 · 占位 13） |
+| 未分类 `unknown` | 7,143（3.9%） |
+| 贴图用 / 无 albedo | 8,209 张 / **26,440 个对象**（拆解见 §2.2） |
+| 带法线 / 带 ORM 对象 | 162,566（5,991 张）/ 153,413（4,722 张） |
+| 模型库 / 贴图表 | **71,790** / **32,878** |
+
+**这一版已经做到**：游戏 `levels_*.rpf` 2,158 个嵌套包全抽（0 空包 / 176,097 文件 / 58.58 GB）；抽出的 72,407 个 `.ydr/.yft` 入库 71,790（99.15%）；tiles 233,104 条实例里 184,032 条建成对象；位置/四元数/缩放完整率 **100.000%**；分类从"垃圾桶制"改成 17 类划分制（v18~v23 逐轮收口，细节见交接 §16）。
+
+---
+
+## 1. 还剩什么（按优先级）
+
+> 判据：**能观感验收的排前面；等用户拍板/等新数据源的排后面**。每行都带可复核的数字。
+
+| P | 事项 | 现在卡在哪（实测） | 下一步 |
+|---|---|---|---|
+| **P1** | **泥路面发白（粘连贴图名）** | `ann_04_d_maintrack_*` 渲出来是白带。ytd SYS 里名字本身是 `std_annesburg_muddyroad_03_ab` + `..._al` 两段粘连，我们取到的是近白那张（RGB 均值 218）。量级：贴图表里这种粘连名 **1,285 个 / 8,720 个子网格**；发白集中在 `std_annesburg_muddyroad_03`（253 处）、`_01`（114）、`road_muddyroad_03`（69）、`road_muddyroadtnt_02`（83） | 解粘连名时**选 `_ab` 子资源**（不要 `_al`）→ 重跑贴图表 + 重绑 + 重建。涉及 `rdr2_ytd.py` 与贴图表生成 |
+| **P1** | **2,813 个 albedo 名没有图**（占引用 2.0%） | 已排除四个来源（见 §2.3）：hd_0 命中 0 · textures_0/1 内容全是 UI/deferred probe（命中 0）· update_1~3 没有 ytd/ydr · appdata0_update 只有 1 个 `.dat` + 1 个 `.xml`。这 2,813 个名的模型槽位是 `-1`，所以清单里表现为"无 albedo 槽" | 换找法：**按 ydr 里记录的纹理引用 hash 反查**（不再按名字搜 RPF）。工具缺口 = 现在没有"纹理 hash → 包内条目"的索引 |
+| **P1** | **铁路 14% 埋在地形面以下** | H4 地形 4 m/px 表达不了路堑；安尼斯堡以北仍是"轨面陷进土里" | **等用户拍板**：要不要切地形开路堑（最高原则 §6.2 禁擅自改地形） |
+| **P2** | **室内 319 个 hash** | 146 包已解包、2,301 模型入库、79 包已摆；缺 MLO `rooms/portals` 变换 | 用 3 栋已知房子做三角验证（老阻塞） |
+| **P2** | **`rpf_available` 1,770 个 hash 只有物理代理** | 包里只有 `_ph/_occ`，没有可渲染几何 | 只能等新数据源，或按缺件记录 |
+| **P2** | **`no_definition` 306 个 hash** | ytyp 里查不到定义，来源不明 | 下一轮用 `archetype_swaps.ymt` 之类查 |
+| **P2** | **地形 4 层混合没还原** | 每个槽只挂第 0 层的法线/材质图；引擎是 4 层按权重混合，近景会有"一层法线盖全图"的观感 | 在 `mat_rdr2.py` 里写多层混合节点（下一轮） |
+| **P2** | **渲染图左下/右下有异常灰块** | `_test/ann/v16ann_full.png` 可见，疑似地形块缺失/未贴图 | 没查；先用 `report_manifest` 对照那块坐标的对象与类 |
+| **P3** | **`plantpot` 30 个还标成建筑部件** | 代码已改（veg 排除 + prop 兜底 + `bldg/part` 前置跳过），**等下一次 reclassify 自动归位** | 下次 reclassify 后核对这 30 个 |
+| **P3** | **`unknown` 7,143 个** | 每轮靠用户点名收口（v21~v23 就是这么把 und/watertile/placeholder/rail 收掉的） | 继续按"用户点名 → 补规则 → reclassify（约 18 分钟，不要重建）"循环 |
+| **搁置** | **504 个 fragment 道具 / 1,158 条实例**（衣物/纸张/木料/旗帜/弹药/箱顶） | 文件已抽出（`raw/all_packs/**/*.yft`），是另一种 fragment 布局，能定位到的 drawable 只有 1~3 个三角形的占位 | **用户 2026-10-30 决定暂不补**；补 = 解析新布局（1,244 真实例 = 0.53%） |
+
+### 1.1 本轮核对发现的两个「文档与产物不符」（已回填，留档）
+
+| 项 | 文档原写法 | 实测 |
 |---|---|---|
-| 1 | `ytyp_archetypes.py` 增存 `assetName` 并回填 | ❌ **前提不成立**：96,141 条 archetype 的 `+88` 与 `+112` **完全相同（0 条不同）**，`name == assetName`，没有第二个名字可挖。工具已改成按对存（`tools/ytyp_assetnames.py`） |
-| 2 | RPF 按 hash 定位 drawable | ✅ 新建 `rdr2rpf hashindex`（原地读嵌套 TOC）+ `tools/rpf_index.py`：18 个顶层包 → **4,021 个 RPF / 74,449 个 drawable 条目**，索引 7.1 MB |
-| 3 | 抽件 + 入库 | ⚠️ 缺模型里 **1,834 个** hash 能在包里命中；抽出 1,832 个，**能解析出几何的只有 1 个**（其余全是 `_vfx/_slod/_lights/_helper/_ph/_proxy`，无面） |
-| 4 | 重建 | ✅ 见 §2；**但"未命名"本身不是缺口**，见下 |
+| `underground` 数量 | 交接 §16.6 的 v23 行写 **1,158**（那是旧的 `x=y=0` 规则） | **8,335** —— v23 建库前 2 分钟规则改成了"9 点取最低地形，比对象最高点高 10 m 即判地下"。其中 **5,891 个 z>50**（高山），抽样含冷杉/岩石；**建议抽查是否在陡坡误伤**（4 m/px 地形在崖边取样误差可能 >10 m） |
+| `hd_0.rpf` | README 待办写"**未抽**（1 GB / 23 包，26,440 个无 albedo 多半靠它补）" | 状态文件记 `done（0 new / 320 dup）`，但**磁盘上 0 个文件**；320 条 = 292 个基础名，其中**只有 1 个被场景模型引用**，与 2,813 缺名的交集 **0** ⇒ **补 hd_0 对场景没有可见收益**，假设推翻 |
 
-**推翻的结论**（证据全在 `docs/世界与地编/RDR2_整图覆盖率核查_20261026.md` §10）：
+---
 
-> 那 4.98 万个"未命名 archetype"里，**46,532 个 hash / 46,536 个实例是 LOD 合并块**
-> （定义它们的 ytyp 全叫 `*_lod_combine_metadata*`；bbox 中位 **64 m**、P90 **128 m**；
-> 77.5% 的实例水平 0.5 m 内就盖着已装好的具名件）。
-> 游戏在运行时按子 archetype 现场合并这层远景 LOD，**磁盘上没有独立 `.ydr/.yft`**。
-> 它们不是"缺件"，也不该按 HD 装进场景。
+## 2. 已关闭 / 已排除（别再查）
 
-**新口径（唯一权威，脚本 `tools/audit_missing_models.py`，明细 `export/world/missing_classified.json`）**：
+### 2.1 已关闭的旧 TODO
 
-| 桶 | hash | 实例 | 占比 | 处置 |
-|---|---:|---:|---:|---|
-| `lod_block` | 46,532 | 46,536 | 88.1% | **不装**（不是缺口）；统计里单列 |
-| `real_ytyp` | 3,061 | 3,268 | 6.2% | 真实件，包里查不到 → 下一步（§0.6） |
-| `rpf_available`（含 nonrender/interior） | 1,833 | 2,487 | 4.7% | 包里只有无几何代理 → 装不了 |
-| `no_definition`（含 interior/nonrender） | 486 | 515 | 1.0% | ytyp 里查不到，来源待查 |
-| **合计** | **51,912** | **52,806** | 100% | |
-
-验收对照：
-
-| 旧验收 | 实测 |
+| 项 | 结论 |
 |---|---|
-| 未命名实例 50,007 → <5,000 | **46,536 个是 LOD 块（不是缺口）**；真实缺件 3,268 + 515 = **3,783 实例 < 5,000** ✅ |
-| 圣丹尼斯未命名大件 2,124 → <300 | 严格框内缺 2,399，其中 LOD 2,116 → **真缺口 283 < 300** ✅ |
+| `update_1..4.rpf` 未核对 | **已核对**：`update_1/2/3` 里 0 个 ytd/ydr；`update_4` = 5,704 个 ytd + 17 个 ydd，已抽取（4,969 个新 ytd 入库） |
+| `appdata0_update.rpf` 未查 | **已查**：2 个条目（1 `.dat` + 1 `.xml`），不含贴图 |
+| 植被"应删未删 416" | **口径已改**（交接 §16.3）：新判据 = "默认隐藏类里还露着的对象"，v19 起为 **0** |
+| `real_ytyp` 3,061 无几何 | **已解决**：压在 `.ydd` 字典里（子 drawable 用自己的 hash），已入库 3,229 个模型 |
+| 贴图表 id↔名字↔文件错位 | **已重做**：按名字重建 11,504 条，55,608 模型全量重绑，审计绑错 0 |
+| 城区"白块" / 水面灰板 / willard 陷地 | 已修/已数值化验证（交接 §11~§13） |
+| `lod_combine` 无名块 46,532 | **不是缺口**：引擎运行时合并的远景替身，磁盘上没有独立资源；`lod` 类整类默认隐藏 |
+
+### 2.2 "26,440 个无 albedo" 的真实构成（2026-10-31 从 v23 jsonl 拆）
+
+| 类别 | 数 | 含义 |
+|---|---:|---|
+| 完全没有 albedo 槽（全部材质走 `ntex_` 兜底） | **15,094** | 模型 `.mdl` 里 albedo id = `-1`；小道具占大头（jug / ashtray / book / can / pot …） |
+| 部分子网格走兜底材质 | **11,346** | 其中 **11,239 个**的贴图名其实**有图**（在 `have` 里）⇒ 是材质回退，不是缺图；剩下 62 个名字未知、45 个混合 |
+
+> 所以"无 albedo"不等于"贴图没抽到"。真正缺图的名字是 §2.3 那 2,813 个。
+
+### 2.3 2,813 个缺名的四个来源已逐个排除
+
+| 来源 | 检查 | 结果 |
+|---|---|---|
+| `hd_0.rpf` | 索引 320 条 → 292 个基础名 | 与缺名交集 **0**；被场景引用的基础名只有 1 个 |
+| `textures_0.rpf` | `hashindex` 8,380 个 ytd（45 顶层 + 14 嵌套包） | 内容 = deferred probes / AMV 网格 / underwater height / item UI；与缺名交集 **0** |
+| `textures_1.rpf` | `hashindex` 3,376 个 ytd | 内容 = UI（journal/pausemenu/discovery/newspaper…）；与缺名交集 **0** |
+| `update_1~3` / `appdata0_update` | 条目清点 | 没有 ytd/ydr / 只有 dat+xml |
+
+> 顺带发现：`textures/item_textures.rpf` 里 338 个 ytd 用现有 `rdr2_ytd.py` 解析出 **0 个名字**（另一种字典布局）。这批是 UI 物品图，不影响世界场景，但如果以后要做物品图标，解析器要补这个布局。
 
 ---
 
-## 0.6 真正的下一步（都不在本管线里，需要新数据源）
+## 3. 五分钟上手（不用开 7.8 GB）
 
-1. **~~`real_ytyp` 3,061 个 hash~~ → 已在 `.ydd` 里找到并入库**（2026-10-29，见覆盖率核查 §12）：
-   16,766 个 `.ydd`（1.6 GB）→ 62,499 个子 drawable hash；3,061 个 real_ytyp **全部命中**，
-   入库 **3,229 个模型 / 224.4 万面**。缺模型 51,912 → **48,683 hash / 49,370 实例**，
-   其中 **94.3% 是 LOD 合并块**（设计上不装）。剩 `rpf_available` 1,770 hash 只有无几何代理。
-2. **室内 319 个 hash**：卡在 MLO `rooms/portals` 变换（老阻塞，见 §5 #室内）。
-3. **~~贴图表 id↔名字↔文件 三者有错位~~ → 已彻底重做**（2026-10-29，详见覆盖率核查 §11）：
-   贴图表整表按**名字**重建（`id = 名字排序下标`，`tex/<id>.png` 由 ytd 按名字解出），
-   55,608 个模型全部按**源文件**重绑，`.mdl` 回写 221,494 个子网格；
-   审计 600 模型 / 2,416 子网格 → **绑错 0**。剩余 2,813 个名字（2.0% 引用）所有包里都没有图。
-4. `no_definition` 486 个 hash：来源不明（ytyp 里没有），下一轮用 `archetype_swaps.ymt` 之类查。
+```powershell
+# 启动器（自动挑最新的 continent_v*.blend，并执行默认隐藏）
+双击 打开大陆_流畅.bat
 
----
+# 不开 Blender 核对
+uv run python tools\report_manifest.py
+uv run python tools\report_manifest.py --find new_gar06_park_terrain
+uv run python tools\report_manifest.py --class rail --limit 20
 
-## 一句话状态
+# 缺模型到底缺什么
+python tools\audit_missing_models.py
 
-**唯一主产物：`deliverable/blender/continent/continent_v16.blend`**（7.78 GB / 7.24 GiB，2026-10-30）
-对象 **184,032** / 13 类 13/13 / 隐藏 44,335（地形 30,683、植被 11,362）/ 贴图用 **8,209** / 无 albedo **26,440**
-/ **带法线对象 162,566（5,991 张）/ 带 ORM 对象 153,413（4,722 张 `_ma`）** / `rail` 类 **2,246**。
-模型库 **71,790** / 贴图表 **32,878**；缺模型 49,072 实例（其中 **46,536 是 LOD 合并块**、1,236 nonrender、890 rpf_available、**1,244 真缺口 = 0.53%**）。
-
-**v16 = 全抽取版**（v14 的 151,350 → 184,032，**+32,682 个对象**）：
-游戏 `levels_*.rpf` 里 **2,158 个嵌套包全抽**（0 空包 / 176,097 文件 / 58.58 GB），
-模型 72,407 个文件 → 入库 71,790（**99.15%**），实例 200,720 → **233,104** 条并进 tiles。
-本轮修掉两个"静默丢数据"的 bug：**完全扁平网格被判退化丢弃**（回收 1,033 个）、**入库只扫 `.ydr` 漏掉 7,389 个 `.yft`**（回收 2,365 个）。
-详见 `docs/交接与状态/README_交接.md` §15。
-
-**残留**：
-1. **1,521 个模型文件解析不出几何**（470 个 `.yft` fragment 布局未覆盖 + 1,051 个 VFX/混合着色器），对应 **1,244 个实例（0.53%）**；
-2. 2,883 个法线 + 4,718 个 `_ma` 贴图名解不出图 —— 可能装在 **`hd_0.rpf`（HD 植被贴图，1 GB / 23 包）**，尚未抽；
-3. `update_1..4.rpf` 补丁包**没核对过**，可能含覆盖版模型；
-4. 14% 的铁路件仍在 H4（4 m/px）地形面以下 —— 要不要切路堑等用户拍板（最高原则 §6.2）。
-5. 植被"应删未删 416"是 v11 起就有的既有项，与本轮无关，构建判定仍显示 FAIL。
-
----
-
-## 1. 五分钟上手
-
-```
-① 双击 打开大陆_流畅.bat   → 自动打开目录里最新的 continent_v*.blend（当前 v9）
-② 3D 视图按 N              → 「RDR2」页签：13 类开关 / 全图·当前地块 / 水面 / 水位
-③ 验贴图                   → 搜 new_gar06_park_terrain（材质名现在是 alb_<贴图名>）
-④ 不开 blend 核对          → uv run python tools/report_manifest.py
-⑤ 缺模型到底缺什么         → python tools/audit_missing_models.py
+# 保存态的类可见性（三层验收之一）
+blender -b <blend> -P tools\_check_class_visibility.py
 ```
 
-整类默认隐藏的三类（N 面板勾上就显示）：**远景碎片**（2,248）· **地形块**（30,549）· **植被**（10,846）。
-2026-10-29 起不再有 `HIDDEN_*` 垃圾桶集合 —— 藏 = 整类关掉，对象仍留在类里。
+**整类默认隐藏的七类**（N 面板勾上就显示）：地形块 · 地下停放 · 植被 · 远景 LOD · 石块 · 水面块 · 占位代理。2026-10-29 起不再有 `HIDDEN_*` 垃圾桶集合 —— 藏 = 整类关掉，对象仍留在类里。
 
 ---
 
-## 2. 文件清单
+## 4. 文件清单
 
-### 有效产物
+### 4.1 v23 分类明细（17 类）
+
+| 类 | 数 | 类 | 数 |
+|---|---:|---|---:|
+| prop 道具 | 72,786 | rail 铁路 | 2,978 |
+| terrain_cell 地形块 | 30,839 | veh 载具 | 2,802 |
+| part 建筑部件 | 19,139 | lod 远景碎片 | 2,290 |
+| junk 杂物 | 17,139 | struct 结构 | 1,461 |
+| underground 地下停放 | 8,335 | stone 石块 | 648 |
+| veg 植被 | 7,472 | watertile 水面块 | 321 |
+| unknown 未分类 | 7,143 | placeholder 占位代理 | 13 |
+| rock 岩石 | 3,800 | light / terrain / water | 1 / 1 / 1 |
+| decal 地面贴花 | 3,618 | **合计** | **184,035** |
+
+### 4.2 有效产物
 
 | 文件 | 大小 | 说明 |
 |---|---|---|
-| `deliverable/blender/continent/continent_v11.blend` | 7.38 GB | **当前主产物（2026-10-29 分类重构）**：对象 **150,936** / `ENTITIES` **150,933** / **13 类** / 整类默认隐藏 **43,643**（远景碎片 2,248、地形块 30,549、植被 10,846）/ 未分类 **6,341** / 贴图用 7,650 / 无 albedo 17,894。v10 保留作对照 |
-| `deliverable/blender/continent/continent_v9.blend` | 6.81 GiB | 上一版（v10 = v9 + 3,229 个 `.ydd` 模型），保留作对照 |
-| `.../manifest_continent_v9.json` / `.jsonl` / `manifest.json` | 30.7 MB | 对象级清单 + 汇总（汇总由 `manifest_from_jsonl.py` 0.5 秒反算） |
-| `docs/世界与地编/img/verify/v10_city.png` | — | **v10 俯视验证图**（水已蓝、无纯白块、草坪是草）；同目录 `v8_city.png`/`v9b_*.png` 是历次对照 |
-| `export/world/missing_classified.json` | 9.9 MB | **缺模型的分类明细**（逐 hash：桶/名字/来源 ytyp/bbox） |
-| `export/levels/town/archetype_assetnames.json` | 13.2 MB | 96,141 条 archetype：hash → assetName/bbox/来源 ytyp |
+| `deliverable/blender/continent/continent_v23.blend` | 7.78 GB | **当前主产物**（2026-10-30 23:27，PASS） |
+| `…/manifest_continent_v23.json` / `.jsonl` | 1.3 KB / 59 MB | 汇总 + 对象级清单 |
+| `…/manifest.json` | 1.3 KB | 恒定指向最新一次的汇总 |
+| `export/world/missing_classified.json` | 9.9 MB | 缺模型分类明细（逐 hash：桶/名字/来源 ytyp/bbox） |
+| `export/levels/town/archetype_assetnames.json` | 13.2 MB | 96,141 条 archetype：hash → assetName/bbox/来源 |
 | `work/rpf_index/all.tsv` | 7.1 MB | RPF 全量 drawable 索引（包 + hash + 大小 + 名字） |
-| `deliverable/blender/sdn_full2/sdn_full2.blend` | 1.30 GiB | 圣丹尼斯单城 r=2000（历史管线产物，只作证据） |
-| `deliverable/blender/willard/willard_full.blend` | 1.03 GiB | 夏洛蒂家（**旧管线产物**：对象全 `e_<hash>`、Water 仍是 2048² 网格） |
-| `deliverable/blender/guarma/guarma.blend` | 0.29 GiB | 瓜马岛 |
-| `assets/lib_native/` | — | 模型 **55,608** / 贴图 **7,074**（含 1,782 张按 id 补登记的孤儿贴图） |
+| `work/unparsed_models.json` | 720 KB | 4,076 个未能入库的文件逐条 |
+| `assets/lib_native/` | — | 模型 **71,790** / 贴图表 **32,878** |
+| `deliverable/blender/sdn_full2/` · `willard/` · `guarma/` | — | 历史管线产物，只作证据，**不作验收对象** |
 
-### 建议删除（等你点头，脚本可一次性清）
+> **磁盘上最多保留 3 个版本**（AGENTS §2.8）。当前 v22 / v23 两个，够回退；再出新品先删更早的（删除命令交给用户）。
+
+### 4.3 建议删除（等用户点头）
 
 | 目录/文件 | 占用 | 原因 |
 |---|---|---|
-| `work/lib_gtxd/txd_game/` | **28.5 GiB** | 19,058 个 ytd，几乎全是 `ui_*`/`metaped_*`（角色/UI），场景不用 |
+| `work/lib_gtxd/txd_game/` | 28.5 GiB | 19,058 个 ytd，几乎全是 `ui_*`/`metaped_*`，场景不用 |
 | `archive/废弃_sdn_full管线/` | 4.3 GiB | 废弃 glTF 管线产物 |
-| `continent_v8.blend1` / `willard_full_orig.blend` | 6.81 + 1.03 GiB | 上一版/原始备份 |
-| `assets/lib_native/index_before_*` | 3 × 8.8 MB | 本轮三次改库的备份，确认后可删 |
-
-### 已删除（别再找）
-
-`continent.blend`(9.87 GB) · `continent_v2`(8.07) · `v3`(8.07) · `v4`(7.90) · `v5`(6.31) · `v6`(6.36) ·
-`raw/verify/tile_test.blend`(2.43) · `raw/_scratch/tile_test/tile_v6test.blend`(0.93) · `raw/sdn/test_ground.blend`(0.02)。
-**v7 从未生成。** 合计释放 49.94 GiB。
+| `assets/lib_native/index_before_*` | 约 100 MB | 多轮改库备份，确认后删 |
+| ~~`work/_probe_itemtex/` + `work/_probe_textures*.tsv`~~ | 约 344 MB | 2026-10-31 核对 `textures_0/1` 的临时探针，**已删** |
 
 ---
 
-## 3. 关键脚本
+## 5. 关键脚本
 
 | 脚本 | 用途 |
 |---|---|
 | `tools/blender_continent.py` | **唯一构建入口**：`--rails --full [--veg hide\|delete\|keep] [--pad] [--bbox x0,y0,x1,y1] [--only-tile <id>]` |
-| `tools/postprocess_continent.py` | 补跑分类/植被/地形隐藏/清单 |
-| `tools/report_manifest.py` | **不开 Blender 核对** + `--find/--class/--tile` 查询 |
-| `tools/audit_missing_models.py` | **缺模型分类**（LOD 块 / 真件 / 包里有无 / 来源 ytyp）+ 据点拆分 |
-| `tools/ytyp_assetnames.py` | 1,026 个 ytyp → 96,141 条 archetype（hash / assetName / bbox / 来源） |
-| `tools/rpf_index.py` | RPF 全量索引（调 `rdr2rpf hashindex`） |
-| `tools/extract_by_hash.py` | 按 **RPF 条目 hash** 抽 drawable（调 `rdr2rpf extracthash`） |
-| `tools/normalize_lib_index.py` | **修 index.json 未补零 key**（本轮找回 367 个模型） |
-| `tools/patch_ground_town_white.py` | 地面色图"无数据白"体检/补洞（默认 probe） |
-| `tools/write_manifest.py` | 写对象级清单；材质名 `alb_<贴图名>` / `nonalbedo_*` 都认 |
-| `tools/rebind_textures.py` | 模型→贴图**按名字**重绑（禁 fuzzy） |
-| `tools/relink_materials.py` | 给**已存盘** blend 按当前 index 重挂材质（槽位按子网格序，不再"首次出现去重"） |
-| `tools/hide_lod.py` / `hide_terrain_patches.py` | 远景 LOD / 地形 patch / 地图外占位盒 → 隐藏集合（都不删） |
-| `tools/classify_entities.py` | **13 类**分类（2026-10-29：新增 `lod`/`terrain_cell`；`decal` 补名字+几何兜底；`veg` 收窄到真植被） |
-| `tools/render_check.py` | 无 GUI 俯视检查图（Workbench+TEXTURE，几秒一张） |
-| `tools/extract_missing_from_game.py` / `ingest_extracted_models.py` | 抽缺失模型 / 增量入库（先备份 index） |
-| `tools/run.cmd` / `read_text.py` / `_unbuffer.py` / `watch_build.ps1` | 本机起子进程 / 读 GBK / 行缓冲 / 长任务看门狗 |
+| `tools/reclassify.py` | **只改分类不重建**：打开最新 blend → `classify_entities --apply` → 重写 manifest → 另存（约 18 分钟） |
+| `tools/class_registry.py` | 17 类 + `DEFAULT_HIDDEN` **唯一一份**；分类/巡视/面板/清单全部 import 它 |
+| `tools/classify_entities.py` | 分类规则（名字正则 + 属性兜底 + 地下判定） |
+| `tools/report_manifest.py` | 不开 Blender 核对 + `--find/--class/--tile` 查询 |
+| `tools/manifest_from_jsonl.py` | 0.5 秒从 jsonl 反算汇总（替代 20~35 分钟的两遍扫描） |
+| `tools/audit_missing_models.py` | 缺模型分桶（LOD 块 / 真件 / 包里有无 / 来源 ytyp） |
+| `tools/audit_full_extraction.py` | 全抽取四列验收（包级 / 模型级 / 实例级 / 变换） |
+| `tools/audit_three_maps.py` | 漫反射/法线/ORM 覆盖率（槽位级 + 实例加权） |
+| `tools/extract_all_packs.py` | 2,158 个嵌套包全抽（约 45 分钟） |
+| `tools/ingest_rail_packs.py` / `merge_rail_entities.py` | 模型入库（含 `.yft`）/ 实例并进 tiles（幂等） |
+| `tools/extract_slot_textures.py` + `tools/tex_slots.py` + `tools/mat_rdr2.py` | 法线/ORM 槽位提取、绑定、材质节点（构建与 relink 共用） |
+| `tools/relink_materials.py` | 给已存盘 blend 按当前 index 重挂材质（槽位按子网格序） |
+| `tools/export_rail_preview.py` | **不经过 Blender** 的铁路 glTF-free 预览（three.js 页面，2026-10-31 新增） |
+| `tools/blender_tour.py` / `blender_autoload.py` / `rdr2_cat_ui.py` | 巡视相机 / 启动器 / N 面板 |
+| `tools/_check_tour_vis_unit.py` / `_check_tour_behavior.py` | **可见性回归检查**（合成场景秒级 / 真 blend 行为）；7 个验收渲染脚本见 `tools/README.md`「验收渲染 / 可见性检查」 |
+| `tools/run.cmd` / `read_text.py` / `_unbuffer.py` / `watch_build.ps1` | 起子进程 / 读 GBK / 行缓冲 / 长任务看门狗 |
 
 ---
 
-## 4. 常用命令
+## 6. 常用命令
 
 ```powershell
-# 全量重建（实测 45~55 分钟）
+# 全量重建（实测 60~90 分钟；先过 AGENTS §2.7 三条门禁）
 cmd /c 'tools\run.cmd D:\BrainMaker\build_vN.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_vN.blend --lib D:\BrainMaker\大镖客2解包分析\assets\lib_native --rails --full'
 
-# 小范围试验（3~6 分钟）：单地块 + bbox
-cmd /c 'tools\run.cmd D:\BrainMaker\_t.log "<blender>" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out D:\BrainMaker\_test\t.blend --lib <abs>\assets\lib_native --rails --full --only-tile wild2000_05_00 --bbox 2900,2100,3100,2300'
+# 只重分类（不重建，约 18 分钟）
+cmd /c 'tools\run.cmd D:\BrainMaker\_reclass.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\reclassify.py -- --blend <最新 blend>'
 
-# 单步补丁（加载+存盘 7~10 分钟）
-cmd /c 'tools\run.cmd D:\BrainMaker\_p.log "<blender>" -b <blend> --python tools\_unbuffer.py -P tools\hide_lod.py -- --shots'
+# 小范围试验（3~6 分钟）
+cmd /c 'tools\run.cmd D:\BrainMaker\_t.log "<blender>" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out D:\BrainMaker\_test\t.blend --lib D:\BrainMaker\大镖客2解包分析\assets\lib_native --rails --full --only-tile wild2000_05_00 --bbox 2900,2100,3100,2300'
 
 # 核对 / 缺口 / 库
-uv run python tools/report_manifest.py --find new_gar06_park_terrain
-python tools/audit_missing_models.py
-python tools/rpf_index.py
-python tools/extract_by_hash.py --dry
-python tools/normalize_lib_index.py --dry
+python tools\report_manifest.py
+python tools\audit_missing_models.py
+python tools\audit_full_extraction.py
+python tools\rpf_index.py
+python tools\extract_by_hash.py --dry
+python tools\normalize_lib_index.py --dry
 ```
 
-> ⚠️ 需要 `numpy`/`PIL` 的脚本用 **`python`**（系统 Python 3.12 已装）；`uv run python` 是空环境，
-> 只适合不依赖第三方库的小脚本。
+> ⚠️ 需要 `numpy/PIL` 的脚本用系统 `python`；`uv run python` 是空环境，只适合不依赖第三方库的小脚本。
+> ⚠️ 解包前先关游戏（rpf 被独占锁）；`set TEMP=D:\BrainMaker\_tmp`（别用 C 盘，见 AGENTS §4）。
 
 ---
 
-## 5. 未完成（按优先级，2026-10-29 重排）
+## 7. 已知坑
 
-| # | 事项 | 现状（数据） | 下一步 |
-|---|---|---|---|
-| ~~**1**~~ | ~~`real_ytyp` 3,061 个 hash 无几何~~ | ✅ **已解决**（覆盖率核查 §12）：它们被打包在 `.ydd` 字典里（子 drawable 用自己的 hash，所以按 hash 找 `.ydr` 永远找不到）。16,766 个 `.ydd` → 62,499 个子 drawable hash，**3,061 个全部命中**；`tools/ingest_ydd_models.py` 入库 **3,229 个模型 / 3,918 子网格 / 224.4 万面**；缺模型 51,912 → **48,683 hash**（94.3% 是 LOD 块） | 残余 `rpf_available` 1,770 hash 只有 `_ph/_occ` 代理，装不了 |
-| **2** | 室内 319 个 hash | 146 包已解包、2,301 模型入库、79 包已摆；缺 MLO `rooms/portals` 变换 | 用 3 栋已知房子做三角验证（老阻塞） |
-| 3 | 贴图"根本不是那张图" | ✅ **已彻底重做**（详见覆盖率核查 §11）：从 13 个包抽全 **57,235 个 ytd**（41.1 GB → 落盘 34,622 个），名字索引 **6,431 → 128,289**；55,608 个模型**全部**按源文件重绑（0 失败、几何 100% 一致）；贴图表按名字重建 **11,504 条**（`id = 名字排序下标`）；`.mdl` 回写 **221,494 个子网格**；审计 600 模型 / 2,416 子网格 → **绑错 0** | 残余：**2,813 个名字没有图**（占引用 2.0%），13 个包已抽完，下一步查 `appdata0_update.rpf` 与加密子包 |
-| 4 | 地面贴图"无数据白" | 图内 1.84 M px（1.46%）近白，全在 **y > 3200 的地图北缘**（真实地图外） | 已确诊**不是**城区发白；要不要补由你定（`patch_ground_town_white.py`） |
-| 5 | 城区"白块" | ✅ **已定位并修**：不是地面色图，是"无 albedo 材质"在 Workbench 里用默认 0.8 灰白 | v9 起材质带 `diffuse_color`（暖灰），重建后复看 |
-| 6 | 水面灰板 | ✅ 已修：v9 起水材质带 `diffuse_color` + `surface_render_method='BLENDED'` | 重建后复看 |
-| 7 | willard 陷地未验证 | ✅ 已数值化验证（见"本轮已做掉"）：主屋 dz −0.69 m = 正常埋深 | 无 |
-| 8 | 资产快照未上传 | ✅ 已上传：`python git_assets.py save --yes` → 远程 `assets` 分支 `94c08a2`，6 个文件 57.5 MB | 换机时 `python git_assets.py load` |
-| 9 | 远景碎片 2,248 与 HD 重叠 | 归入 `lod` 类、整类默认隐藏 | 保持默认隐藏 + N 面板开关 |
+全部在 `docs/AGENTS.md` §4（30 条）。最常踩的 5 条：
 
-### 还缺什么（2026-10-29 收尾，全部有据可查）
-
-| 事 | 数 | 为什么还差 | 下一步 |
-|---|---|---|---|
-| `.ydd` 新模型在 v10 里还没贴图 | **2,179** 个网格 | 它们的材质槽数≠子网格数，`relink_materials` 会跳过；`relink_from_mdl` 实测也 0 变更（槽数仍不匹配，待查） | **重建 v11** 即可（`.mdl` 里 tid 已正确，构建时就会挂对） |
-| 贴图名没有任何 ytd | **2,813** 个（2.0% 引用） | 13 个包已全抽（57,235 个 ytd）；`update_1..3`/`common_0` 里没有 ytd；`appdata0_update.rpf` 还没查 | 查 `appdata0_update.rpf` / 被加密未索引的子包 |
-| `rpf_available` 无几何 | **1,770 hash / 2,424 实例** | 包里只有 `_ph/_occ` 物理代理，没面 | 只能等新数据源，或按 §6.5 记"缺件" |
-| `.mdl` 不存贴图名 | — | 现在 id = 名字排序下标，名字集合一变就要重跑 `tex_table_rebuild` + `patch-only` | 终极修：`SUB` 记录加名字字段 |
-
-### 本轮已做掉（别再查）
-
-- ~~`--bbox` 未做~~：已加（按实体原点过滤，精确裁剪仍用 `crop_blend.py`）
-- ~~classify 的 `ivy` 误命中 `privy`~~：正则改 `(?<![a-z])ivy|(?<![a-z])vine`
-- ~~两个 z≈−1002 m 的异常对象~~：查清是 RDR2 关卡设计"停"在地图外的 4 个 `*_tempbox*` 占位盒，
-  数据不改，`hide_tag='parked_offmap'` → `HIDDEN_PARKED`
-- ~~blend 材质仍是旧 tid~~：根修完成——材质按**贴图名字**建（`alb_<name>`）、
-  **一个子网格一个槽**（不再去重），已存盘 blend 可用 `relink_materials.py` 按槽位重挂
-- ~~`index.json` key 未补零~~：`normalize_lib_index.py` + `write_model` 改 `'0x%08x'`，找回 **367** 个模型
-- ~~1,782 张孤儿贴图（"白块"根因）~~：`tex/` 里有 7,074 张 PNG，`tex` 表只登记 5,292 张 →
-  32.5% 子网格引用越界 tid。`register_orphan_textures.py` 按 **id** 补登记（`tex<id>` + `x:1` 标记，
-  抽样像素比对 5/5 一致），**20,858 个模型 / 23,099 个实例恢复 albedo**；v9 已 `--relink` 重挂
-- ~~willard 陷地未验证~~：改用 `tools/audit_ground_contact.py` 在**当前管线产物**上出数：
-  willard 区 8 个建筑件中位 dz **−0.15 m**、贴地 50%，主屋 `roc_01_ext_home01` dz **−0.69 m**
-  （= 文档记录的正常地基埋深 0.68 m）。旧的 `willard_full.blend` 是旧管线产物（对象全是 `e_<hash>`、
-  Water 仍是 2048² 网格 4.19 M 顶点），**不作为验收对象**
+1. **别把"重建 blend"当进度条**（一次 60~90 分钟）→ 先跑 `audit_full_extraction.py` 四列收口。
+2. **`-b` 测不出启动器画面** → 启动器行为只认 GUI 双击 bat。
+3. **`Collection.hide_viewport` ≠ `LayerCollection.hide_viewport`** → 两套一起设。
+4. **贴图只存 tid 不存名字会串号** → 一律按名字绑定。
+5. **`hex()` 不补零**（第 N 次）→ 文件名/JSON key/对象名一律 `'0x%08x'`。
 
 ---
 
-## 6. 本轮已完成（2026-10-29，别重复）
+## 8. 下游（骑砍2 落地，不在本仓库）
 
-| 项 | 结果 |
-|---|---|
-| ytyp 按对解析 | 1,026 个 ytyp / **96,141** 条 archetype；证明 `name == assetName`（0 条不同） |
-| RPF 全量索引 | **4,021** 个 RPF（含嵌套）/ **74,449** 个 drawable 条目 / 7.1 MB TSV |
-| 缺模型分类（重跑后） | 48,683 hash / 49,370 实例：`lod_block` 46,532（94.3%，非缺口）/ `rpf_available` 1,770 / `no_definition` 306 / `real_ytyp` 12 —— 原 51,912 里的 3,229 个已从 `.ydd` 入库 |`r`n| 缺模型分类（历史口径） | 51,912 hash → `lod_block` 46,532 / `real_ytyp` 3,061 / `rpf_available` 1,833 / `no_definition` 486 |
-| 按 hash 抽件 | 新建 `extracthash`，抽出 6 个（缺模型里只剩 8 个没抽过） |
-| 入库 | 再入库 1 个（其余 1,831 个 load 返回 None：`_vfx/_slod/_lights`，无几何） |
-| index 规范化 | 3,430 个非规范 key → 全部 `0x%08x`；**找回 367 个此前查不到的模型** |
-| 材质根修 | 按贴图名建材质 + 一子网格一槽（`alb_<name>`），`relink_materials` 同步改成按槽位 |
-| 视口色 | 无 albedo 材质/水面/顶点色材质都设 `diffuse_color`（Workbench 不再一片白） |
-| 地图外占位盒 | 4 个 `*_tempbox*` → `hide_tag='parked_offmap'` → `HIDDEN_PARKED` |
-| `--bbox` | 已加（`--bbox x0,y0,x1,y1`，坐标 = RDR2 世界米） |
-| 分类正则 | `privy` 不再进植被；`p_ivy_01`/`ragwort_vine` 仍进植被 |
-| 重建 | `continent_v9.blend`（`--rails --full`）+ `--relink` 重挂材质（**191,158 个材质槽**）+ manifest：**对象 147,500 / ENTITIES 103,898 / 隐藏 43,599 / 待隐藏未隐藏 0 / 贴图用 6,967 / 无 albedo 17,682 → PASS** |
-| 俯视验证图 | `docs/世界与地编/img/verify/{v9b,v10}_{city,park}.png`（水蓝、无纯白块、草坪是草）对照 `v8_city.png` |
-| 清单收尾提速 | `tools/manifest_from_jsonl.py`：`write_manifest` 的收尾两遍扫描 20~35 分钟 → **0.5 秒** |
-| **贴图彻底重做** | 抽全 57,235 个 ytd（41.1 GB）→ 名字索引 **128,289**；55,608 模型全量按源重绑；贴图表 **11,504 条**（名字排序定 id）；`.mdl` 回写 **221,494 子网格**；审计 **绑错 0**；relink 换 **191,158 个材质槽** |
-| 已知坑补充 | `--only txd` 抽不到世界贴图（ytd 藏在 props 包里）；`extracthash` 遇到游戏在跑会锁包 |
-| 文档 | 覆盖率核查 §10（含 §10.6 孤儿贴图）、最高原则 §6.4 两次复发 + §6.6、AGENTS §4、tools/README、本文件、README |
+本仓库只负责"解包 → Blender 全集"。送进骑砍2 的管线仍在旧数据上：
 
----
-
-## 7. 已知坑（详见 AGENTS.md §4）
-
-- **贴图只存 tid 不存名字 → 池子一变就串号**：现已改为按名字建材质，别再退回按 tid
-- **`hex()` 不补零**（6.4 复发）：材质名、文件名、index key、对象名一律 `'0x%08x'`
-- **Workbench / Solid 不看节点树**：材质必须设 `diffuse_color`，否则一律默认灰白（白块）
-- 已存盘 blend 不会跟随 index 更新：重绑之后必须 relink 或重建
-- 长任务别用阻塞命令；实测单步"加载+存盘"= 7~10 分钟
-- 从 pwsh 直接起 python/blender → `Access is denied` / `0xc0000142` 弹窗 → 走 `tools\run.cmd`
-- Blender `-b` 日志全缓冲 → 加 `--python tools/_unbuffer.py`
-- 游戏运行时 rpf 被独占锁 → 抽包前先关 RDR2
-- `cmd` 把 `--packs a,b,c` 的逗号当分隔符 → 用空格
-- `--lib` 必须绝对路径
-- `uv run python` 没有第三方库（numpy/PIL）→ 用 `python`
+- `Modules/RDR2/SceneObj/rdr2_sanit_denis/scene.xscene` 是 **2026-10-26** 的导出（1.78 MB，圣丹尼斯 6,568 个实例），**未接 v23**。
+- 交接文档：`LivingWorldNpcs/plans/大镖客2还原/00-总纲.md` 顶部「⏭ 下一步 TODO」三条（①圣丹尼斯实体完整性核查 ②LOD0~6 + TRF ③`custom.rdr2 openscene` 进场景），仍全部未完成。
