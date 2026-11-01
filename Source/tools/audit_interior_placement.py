@@ -47,14 +47,16 @@ def main():
     ap.add_argument('--json', default='')
     a = ap.parse_args()
     lib = json.load(open(LIB, encoding='utf-8'))['models']
-    _all = sorted(os.listdir(os.path.join(ROOT, 'raw/_interiors')))
+    # 2026-11-01：室内包已并入 raw/all_packs（<包名>/ 平铺，与旧 raw/_interiors 布局一致），
+    # 只取 *_int 包，其余包没有 .ytyp 会在下面被跳过。
+    _all = sorted(d for d in os.listdir(os.path.join(ROOT, 'raw/all_packs')) if d.endswith('_int'))
     pkgs = _all if a.all else _all[:a.n]
     results = []
     print('%-22s %-6s %-9s %-9s %s' % ('包', '件数', '室内尺寸', '宿主尺寸', '四边间隙/是否包住'))
     for pkg in pkgs:
-        yp = os.path.join(ROOT, 'raw/_interiors', pkg, pkg + '.ytyp')
+        yp = os.path.join(ROOT, 'raw/all_packs', pkg, pkg + '.ytyp')
         if not os.path.exists(yp):
-            cand = glob.glob(os.path.join(ROOT, 'raw/_interiors', pkg, '*.ytyp'))
+            cand = glob.glob(os.path.join(ROOT, 'raw/all_packs', pkg, '*.ytyp'))
             if not cand:
                 continue
             yp = cand[0]

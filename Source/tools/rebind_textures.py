@@ -56,7 +56,8 @@ def main():
 
     src = json.load(open(MODELS, encoding='utf-8'))
     # 追加「按文件名哈希对上的」模型：库里 48,594 个模型没有 models.json 源路径，
-    # 其中约 9,780 个能在 export/models / raw / work 里找到同名 .ydr/.yft/.ydd
+    # 其中约 9,780 个能在 raw/all_packs / raw/sdn / work 里找到同名 .ydr/.yft/.ydd
+    # （2026-11-01：旧的 export/models 池已废弃，其内容就是 all_packs 的子集）
     # （archetype hash == joaat(文件名)），这些同样能按名字重绑。
     extra = os.path.join(ROOT, 'work/model_file_map.json')
     if os.path.exists(extra):

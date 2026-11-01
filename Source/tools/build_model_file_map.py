@@ -2,10 +2,10 @@
 """把磁盘上散落的 `.ydr/.yft` 按 **joaat(文件名)** 汇总成 `hash -> 路径` 映射。
 
 `work/model_file_map.json` 是 `rebind_textures` / `rebind_models_from_sources` 的输入，
-之前只有 19,780 条（来自 export/models 与 raw 的旧扫描）。本轮从游戏包按 RPF 条目 hash
-抽出了 `raw/_libsrc/` 里的 2.7 万个源文件，必须重新汇总，否则重绑会漏掉它们。
+之前只有 19,780 条（来自旧的 export/models 池与 raw 的扫描，该池已于 2026-11-01 废弃）。
+抽出的源文件（`raw/all_packs/` 下的 13 万个 `.ydr/.yft`）必须汇总，否则重绑会漏掉它们。
 
-    python tools/build_model_file_map.py --dirs raw/_libsrc raw export/models work/sdn/models
+    python tools/build_model_file_map.py --dirs raw/all_packs raw/_missing work/sdn/models
 """
 import os
 import sys
@@ -15,8 +15,7 @@ import argparse
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 OUT = os.path.join(ROOT, 'work/model_file_map.json')
-DEFAULT_DIRS = ['raw/_libsrc', 'raw/_missing', 'export/models', 'raw', 'work/sdn/models',
-                'work/lib_models']
+DEFAULT_DIRS = ['raw/all_packs', 'raw/_missing', 'raw', 'work/sdn/models', 'work/lib_models']
 
 
 def joaat(s):
@@ -66,7 +65,7 @@ def main():
             else:
                 h = joaat(base)
             k = '0x%08x' % h
-            # 优先 raw/_libsrc（本轮新抽的、来源最确定）
+            # 优先 all_packs（本轮源树，来源最确定）
             if k not in m:
                 m[k] = f
                 added += 1

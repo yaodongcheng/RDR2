@@ -31,8 +31,8 @@ OUT = os.path.join(ROOT, 'work/lib_gtxd/txd_all')
 TMP = os.path.join(ROOT, 'work/_ytd_tmp')
 STATE = os.path.join(ROOT, 'work/extract_ytd_state.json')
 INV = os.path.join(ROOT, 'work/rpf_inventory.json')
-EXIST_DIRS = ['work/lib_gtxd/txd', 'work/lib_gtxd/txd_world', 'work/lib_gtxd/txd_game',
-              'work/sdn/gtxd/txd', 'work/sdn/gtxd/txd_int', 'work/towns', OUT]
+EXIST_DIRS = ['work/all_packs', 'work/lib_gtxd/txd', 'work/lib_gtxd/txd_game',
+              'work/sdn/gtxd/txd', 'work/sdn/gtxd/txd_int', OUT]
 
 
 def existing_names():

@@ -673,14 +673,13 @@ def main():
         used = {i[0] for i in insts}
         print(f'实例 {len(insts)} 个（去重前 {len(raw)}），模型 {len(used)} 个')
 
-    # 贴图库
-    tex_dirs = [os.path.join(ROOT, 'export/models')]
-    for d in (os.path.join(ROOT, 'work/sdn/gtxd/txd'),):
-        if os.path.isdir(d):
-            tex_dirs.append(d)
-    tex_dirs += [x for x in a.ytd.split(',') if x] + ydr_dirs
-    tl = TexLib(tex_dirs, a.maxs)
-    print(f'贴图库 {len(tl.idx)} 名（{len(tl.files)} 个 ytd）')
+    # 贴图库：2026-11-01 起走 work/tex_name_index.json（原 export/models 目录已废弃）；
+    # 调用方给的 --ytd 目录 / ydr 目录作为补扫源（索引查不到时才读）。
+    from lazy_tex import LazyTexLib
+    extra = [x for x in a.ytd.split(',') if x] + list(ydr_dirs)
+    tl = LazyTexLib(a.maxs, extra_dirs=extra)
+    print('贴图库 %d 名（索引 work/tex_name_index.json，补扫目录 %d 个）'
+          % (len(tl.idx), len(tl.extra_dirs)))
 
     models = {}
     tmiss = Counter()

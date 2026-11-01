@@ -131,8 +131,8 @@ def main():
         ydr = ','.join([models,
                         os.path.join(ROOT, 'work/sdn/props'),
                         os.path.join(ROOT, 'work/sdn/props2')])
-        ytd = ','.join([os.path.join(ROOT, 'work/sdn/gtxd/txd'),
-                        os.path.join(ROOT, 'export/models')])
+        # 2026-11-01：export/models 已废弃，贴图由 work/tex_name_index.json 提供
+        ytd = ','.join([os.path.join(ROOT, 'work/sdn/gtxd/txd')])
         cmd = [sys.executable, os.path.join(ROOT, 'tools/export_sdn_gltf.py'),
                '--cx', str(cx), '--cy', str(cy), '--r', str(r),
                '--ydr', ydr, '--ytd', ytd, '--chunk', '160',

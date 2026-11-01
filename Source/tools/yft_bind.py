@@ -162,10 +162,12 @@ def read_yft_names(path):
     return out
 
 
+# 2026-11-01：原 `export/models/fragments/*.yft` 随 export/models 一并废弃；
+# 这三个碎片已从 packs_0/1 重抽到 raw/_missing/fragments/（其余碎片按需同样重抽）。
 DEFAULT_HUMAN_YFT = [
-    'export/models/fragments/meta_base_player.yft',
-    'export/models/fragments/meta_base_abe.yft',
-    'export/models/fragments/meta_base_male.yft',
+    'raw/_missing/fragments/metaped_fragments_rpf/meta_base_player.yft',
+    'raw/_missing/fragments/metaped_fragments_rpf/meta_base_abe.yft',
+    'raw/_missing/fragments/metaped_fragments_rpf/meta_base_male.yft',
 ]
 
 

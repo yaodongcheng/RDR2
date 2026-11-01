@@ -20,7 +20,8 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import dump_model_lib as DL   # noqa: E402
 
 LIB = os.path.join(ROOT, 'assets/lib_native')
-SRC = os.path.join(ROOT, 'raw/_interiors')
+# 2026-11-01：室内包已并入 raw/all_packs（<包名>/ 平铺），只扫 *_int 包
+SRC = os.path.join(ROOT, 'raw/all_packs')
 
 
 def joaat(s):
@@ -42,7 +43,7 @@ def main():
 
     idx = json.load(open(os.path.join(LIB, 'index.json'), encoding='utf-8'))
     have = {int(k, 16) for k in idx['models']}
-    files = [p for p in glob.glob(os.path.join(SRC, '**', '*.ydr'), recursive=True)]
+    files = [p for p in glob.glob(os.path.join(SRC, '*_int', '**', '*.ydr'), recursive=True)]
     todo = []
     for p in files:
         h = joaat(os.path.splitext(os.path.basename(p))[0])

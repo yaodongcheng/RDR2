@@ -38,10 +38,12 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 
 LIB = os.path.join(ROOT, 'assets/lib_native')
-PACKS = [os.path.join(ROOT, 'raw/rails_extract', d) for d in ('jklma', 'jklmb', 'fghia')]
+# 2026-11-01：铁路包已并入 raw/all_packs，短名对应关系（逐字节相同）：
+#   jklma → jklm_15_18_rails_a · jklmb → jklm_15_18_rails_b · fghia → fghi_15_18_rails_a
+PACKS = [os.path.join(ROOT, 'raw/all_packs', d)
+         for d in ('jklm_15_18_rails_a', 'jklm_15_18_rails_b', 'fghi_15_18_rails_a')]
 BASEDIRS = [os.path.join(ROOT, 'work/lib_gtxd/txd'),
-            os.path.join(ROOT, 'work/sdn/gtxd/txd'),
-            os.path.join(ROOT, 'export/models')]
+            os.path.join(ROOT, 'work/sdn/gtxd/txd')]
 
 MAGIC = None
 
@@ -69,7 +71,9 @@ class TexShim:
         for t in meta:
             if t.get('n'):
                 self.by_name.setdefault(t['n'].lower(), t['id'])
-        self.tl = G.TexLib(list(extra_dirs) + BASEDIRS, maxs)
+        # 2026-11-01：走索引（work/tex_name_index.json），调用方目录作为补扫
+        from lazy_tex import LazyTexLib
+        self.tl = LazyTexLib(maxs, extra_dirs=list(extra_dirs) + BASEDIRS)
         self.maxs = maxs
         self.added = 0
 

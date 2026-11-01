@@ -32,12 +32,14 @@ def main():
     want = collections.Counter(e[0] for e in E)
 
     have = set()
-    for f in glob.glob(os.path.join(ROOT, "export/models/buildings*/*/**/*.ydr"), recursive=True):
+    # 2026-11-01：export/models 已废弃 → 直接取 all_packs 的对应包
+    from pool_models import iter_models, area_lod_ydds
+    for f in iter_models('buildings_all', ('.ydr',)):
         have.add(joaat(os.path.splitext(os.path.basename(f))[0]))
     need = set(h for h in want if h not in have)
     print(f"valentine archetypes={len(want)}  already covered by .ydr={len(have & set(want))}  need={len(need)}")
 
-    ydd = sorted(glob.glob(os.path.join(ROOT, "export/models/area_lod_ydd*/*.ydd")))
+    ydd = sorted(area_lod_ydds())
     print("ydd files:", len(ydd))
 
     out = {}

@@ -118,10 +118,12 @@ def main():
     a = ap.parse_args()
 
     MAXS = a.maxs
-    tex_dirs = [os.path.join(ROOT, 'export/models')] + [x for x in a.ytd.split(',') if x]
+    # 2026-11-01：贴图改走 work/tex_name_index.json（原 export/models 目录已废弃）
     hp_path = a.out.replace('town.json', 'hpatch.json')
-    index, nfiles = build_index(tex_dirs)
-    print(f'贴图索引 {len(index)} 名（{nfiles} 个 .ytd）')
+    from lazy_tex import LazyTexLib
+    TL = LazyTexLib(MAXS, extra_dirs=[x for x in a.ytd.split(',') if x])
+    index = TL.idx          # 名字 → 索引条目（下面模糊匹配要用它的键表）
+    print('贴图索引 %d 名（work/tex_name_index.json）' % len(index))
 
     # ---- 模型名表（joaat → 文件）----
     byname = {}
@@ -221,9 +223,7 @@ def main():
         if name in tex_cache:
             return tex_cache[name]
         im = None
-        ent = index.get(clean_name(name).lower())
-        if ent:
-            im, _ = dec_entry(*ent)
+        im, _ = TL.get(name)
         if im is None:
             stem = name.lower()
             base = re.sub(r'_(ab|abal|al|abte|nm|ma|mb|d|s|ct|dr)$', '', stem)
@@ -238,8 +238,7 @@ def main():
                 if best and best[0] >= 1:
                     cands = [best[1]]
             if cands:
-                y, t = index[sorted(cands)[0]]
-                im, _ = dec_entry(y, t)
+                im, _ = TL.get(sorted(cands)[0])
         if im is None:
             tex_cache[name] = None
             return None

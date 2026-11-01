@@ -47,8 +47,11 @@ def main():
 
     # 候选 ydr：铁路包 + 模型库里的 n_1114_r_*
     cands = {}
-    for d in ('work/rails_extract/c114', 'work/rails_extract/rb_a', 'work/rails_extract/rb_b',
-              'work/rails_extract/c1518', 'work/sdn/models'):
+    # 2026-11-01：铁路包已并入 raw/all_packs（短名对应：c114→nopq_11_14_rails_c ·
+    #   rb_a→nopq_11_14_rails_a · rb_b→nopq_11_14_rails_b · c1518→nopq_15_18_rails_a）
+    for d in ('raw/all_packs/nopq_11_14_rails_c', 'raw/all_packs/nopq_11_14_rails_a',
+              'raw/all_packs/nopq_11_14_rails_b', 'raw/all_packs/nopq_15_18_rails_a',
+              'work/sdn/models'):
         for f in glob.glob(os.path.join(ROOT, d, '*.ydr')):
             n = os.path.splitext(os.path.basename(f))[0]
             if 'n_1114_r_' not in n:

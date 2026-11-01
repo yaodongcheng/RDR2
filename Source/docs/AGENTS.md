@@ -284,6 +284,7 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 
 | 坑 | 现象 | 对策 |
 |---|---|---|
+| 🔴 **目录联接 ≠ 第二份副本**（2026-11-01 实锤） | 判 `raw/models` 与 `export/models` "内容 100% 相同" → 删了 `raw/models`，结果 `export/models` 是**指向它的 junction**，当场悬空，15 个脚本静默拿到空池 | **比对/删除任何目录前先 `Get-Item -Force \| fl LinkType,Target`**；`STRUCTURE.md` §三有全部联接清单（`export/models → raw/models`、`export/levels/collision → raw/collision`、`work → raw` …）。联接的"内容相同"是定义使然，不构成重复证据 |
 | `--lib` 传相对路径 | `bpy.data.images.load` 报 `Cannot read '.../tex/NNNN.png'` | **必须绝对路径** |
 | `dump_model_lib.py` 直接重跑 | index 从 54,925 被覆盖成 10,076（它只处理 `models.json` 的 10,893 条） | 先备份 index；只能增量补，不能整体重跑 |
 | `strip_vegetation` 用 `ent.objects` | 分类后对象在子集合里 → 数到 0 个 | 用 `all_objects` |

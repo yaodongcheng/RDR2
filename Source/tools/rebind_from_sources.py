@@ -41,7 +41,8 @@ FILEMAP = os.path.join(ROOT, 'work/model_file_map.json')
 REPORT = os.path.join(ROOT, 'work/rebind_sources_report.json')
 TEXDIR = os.path.join(LIB, 'tex')
 
-SEARCH_GLOBS = ('export/models', 'raw', 'work/sdn/models', 'work/lib_models')
+# 2026-11-01：export/models 已废弃（其内容就是 raw/all_packs 的子集）
+SEARCH_GLOBS = ('raw', 'work/sdn/models', 'work/lib_models')
 
 
 def load_sources():

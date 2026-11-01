@@ -47,7 +47,9 @@ def main():
         MIND[e[0]] = min(MIND.get(e[0], 9e9), d)
     print(f"big(mesh ext>={BIG}) 全留；小物件只留 {NEAR}m 内")
     out = {}
-    files = glob.glob(os.path.join(ROOT, "export/models/area_lod_ydd*/*.ydd"))
+    # 2026-11-01：export/models 已废弃 → 直接取 all_packs 的 area_lod_combine 包
+    from pool_models import area_lod_ydds
+    files = area_lod_ydds()
     for p in files:
         name = os.path.basename(p)
         try:

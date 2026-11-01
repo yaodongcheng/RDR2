@@ -24,19 +24,27 @@ A = json.load(open(os.path.join(TOWN, "archetypes.json"), encoding="utf-8"))
 MESH = json.load(open(os.path.join(TOWN, "valentine_meshes.json"), encoding="utf-8"))
 _TEXF = []
 _env = os.environ.get("BM_TEX", "")
+WOOD_B64 = ""
 if _env and os.path.exists(_env):
     _TEXF = [_env]
-else:
-    for _pat in ("**/*_BC3_sRGB.png", "**/*_BC3.png", "**/*wood*.png"):
-        _TEXF += sorted(_glob.glob(os.path.join(ROOT, "export/models/textures", _pat), recursive=True))
-        if _TEXF:
-            break
-WOOD_B64 = ""
-if _TEXF:
     from PIL import Image as _I
     import io as _io
-    _im = _I.open(_TEXF[0]).resize((512,512)).convert("RGB")
+    _im = _I.open(_TEXF[0]).resize((512, 512)).convert("RGB")
     _b = _io.BytesIO(); _im.save(_b, "PNG"); WOOD_B64 = base64.b64encode(_b.getvalue()).decode()
+else:
+    # 2026-11-01：export/models/textures 已废弃 → 走贴图名索引找一张木纹
+    import lazy_tex as _LT
+    _lib = _LT.LazyTexLib(512)
+    _name = next((k for k in _lib.idx if 'wood' in k and k.endswith('_ab')), None)
+    if _name:
+        _im, _ = _lib.get(_name)
+        if _im is not None:
+            from PIL import Image as _I
+            import io as _io
+            _im = _im.resize((512, 512)).convert("RGB")
+            _b = _io.BytesIO(); _im.save(_b, "PNG")
+            WOOD_B64 = base64.b64encode(_b.getvalue()).decode()
+            _TEXF = [_name]
 print("wood texture:", _TEXF[0] if _TEXF else "NONE")
 
 # ---- T5: 每栋建筑的原生贴图（由 tools/extract_building_textures.py 产出）----

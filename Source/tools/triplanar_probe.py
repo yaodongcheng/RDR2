@@ -4,14 +4,19 @@ import numpy as np
 from PIL import Image
 from rdr2_ydr import Res, extract_at
 R="D:/BrainMaker/大镖客2解包分析"
-f=R+"/export/models/buildings/val_01_/val_01_trainstn_ext.ydr"
+# 2026-11-01：export/models 已废弃；模型改从 all_packs 取，贴图改走 tex_name_index
+f=R+"/raw/all_packs/val_01_/val_01_trainstn_ext.ydr"
 res=Res(open(f,'rb').read())
 info,ms=extract_at(res,0,'high')
 pos=[];idx=[];b=0
 for m in ms:
     pos+=m['positions']; idx+=[i+b for i in m['indices']]; b+=m['vertex_count']
 P=np.array(pos,dtype=np.float32).reshape(-1,3); I=np.array(idx,dtype=np.int64)
-tex=Image.open(R+"/export/models/textures/val_01_trainstn/03_nbx_wall_woodplank_16_ab_BC1_sRGB.png").resize((512,512)).convert('RGB')
+import lazy_tex as LT
+_im,_d = LT.LazyTexLib(512).get('nbx_wall_woodplank_16_ab')
+if _im is None:
+    raise SystemExit('probe: 找不到 nbx_wall_woodplank_16_ab')
+tex=_im.resize((512,512)).convert('RGB')
 bio=io.BytesIO(); tex.save(bio,'PNG')
 three=open(R+"/export/levels/town/three.module.js",encoding="utf-8").read().replace("</script","<\/script")
 html='''<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;background:#111}#s{padding:4px 8px;color:#9c9;font:12px monospace}</style></head><body>

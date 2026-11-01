@@ -55,10 +55,20 @@
 - `fill_model_lib.py`
 - `make_ground_mask.py`
 
-## 模型库缺口诊断 / RPF 全量索引（2026-10-29 新增，7 个）
+## 模型库缺口诊断 / RPF 全量索引（2026-10-29 新增，2026-11-01 补 2 个 → 9 个）
 
 > 结论先看 `docs/世界与地编/RDR2_整图覆盖率核查_20261026.md` §10：
 > 「未命名 5 万」里 46,532 个是 **LOD 合并块**，不是缺口。这一组脚本就是产出那条结论的工具链。
+> 目录归属看 `docs/格式与资产/资产目录方案.md`。
+
+- `rpf_inventory.py`  **游戏侧总账**：只读 TOC 盘点每个顶层包的资产（默认 `--exts ytd,ydd`），
+  产出 `work/rpf_inv/<包>.tsv` + `work/rpf_inventory.json`。包表**扫游戏目录**，不再硬编码
+  （旧版漏了 `textures_0/1`，直接导致 5,875 张贴图从未被抽取）
+- `census_coverage.py`  **对账**：游戏侧（上面那份）vs 磁盘侧，按文件名算五类覆盖率，
+  输出 `ext / 游戏唯一 / 磁盘覆盖 / 缺 / 覆盖率`，五类都 ≥99.9% 判 PASS
+- `dedupe_vs_allpacks.py`  **去重**：删「在参照树里有逐字节副本」的文件（同名+同大小 → MD5 复核），
+  默认 dry-run；`--ref` 可换成别的池（例：清 `npc` 贴图时用 `--ref raw/lib_gtxd/txd_game`）。
+  清单落 `work/dedupe_<目录>.json`
 
 - `ytyp_assetnames.py`    1,026 个 ytyp → 96,141 条 archetype（`hash / assetName / bbox / 来源文件`）。
   证明了 `+88 == +112 100%`（`assetName` 与 `name` 同值，没有第二个名字可挖）

@@ -42,7 +42,10 @@ def main():
     out = {}
     ok = fail = 0
     for nm, h in want.items():
-        found = glob.glob(os.path.join(ROOT, "export/models/props/*/" + nm))
+        from pool_models import find as pool_find
+        _stem, _ext = os.path.splitext(nm)
+        _hit = pool_find(_stem, cat='props', exts=(_ext.lower(),)) if _ext else pool_find(_stem, cat='props')
+        found = [_hit] if _hit else []
         if not found:
             fail += 1; continue
         f = found[0]

@@ -11,8 +11,11 @@
 ## 为什么要建它
 
 源模型里引用的贴图名有 **45.9% 不在** `rebind_textures` 用的那个池（3 个目录 / 6,431 名）里 ——
-因为池根本没包含 `txd_world`(646 个 / 3.58 GB) 和 `txd_game`(19,058 个 / 28.65 GB)。
+因为池根本没包含 `txd_game`(19,058 个 / 28.65 GB) 和 levels 源树里的 `props/p_xxx.rpf` 内嵌贴图。
 建完索引就能回答："这些名字到底在磁盘上有没有图"。
+
+> 2026-11-01：`txd_world` / `towns` 已并入 `raw/all_packs` 并删除；默认扫描目录改成
+> `all_packs` + `txd` + `txd_game` + `txd_all`（后者只剩非 levels 包独有的贴图）。
 
 ## 用法
 
@@ -37,13 +40,12 @@ import rdr2_ytd as T
 
 OUT = os.path.join(ROOT, 'work/tex_name_index.json')
 DEFAULT_DIRS = [
+    'work/all_packs',          # 2026-11-01：级别的源树（txd_all 的重复件已清，只剩非 levels 贴图）
     'work/lib_gtxd/txd',
-    'work/lib_gtxd/txd_world',
     'work/lib_gtxd/txd_game',
     'work/lib_gtxd/txd_all',
     'work/sdn/gtxd/txd',
     'work/sdn/gtxd/txd_int',
-    'work/towns',
 ]
 
 

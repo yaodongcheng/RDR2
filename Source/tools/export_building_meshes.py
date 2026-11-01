@@ -38,7 +38,8 @@ def main():
                '_shad', 'magiclantern_dec', 'aucb_dec', 'resf_dec', '_em00',
                '_int_', '_lod', 'pr_combo', 'audioemitter', 'glue_02', 'rds_hay')
 
-    ydr_files = glob.glob(os.path.join(ROOT, "export/models/buildings*/*/**/*.ydr"), recursive=True)
+    from pool_models import iter_models
+    ydr_files = list(iter_models('buildings_all', ('.ydr',)))
     out = {}
     parsed = 0
     skipped = 0

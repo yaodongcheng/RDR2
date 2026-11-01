@@ -22,7 +22,8 @@ def main():
     trees = json.load(open(os.path.join(town, "veg_instances.json")))
 
     files = {}
-    for f in glob.glob(os.path.join(ROOT, "export/models/veg/*/*")):
+    from pool_models import category_dirs, iter_files
+    for f in iter_files(category_dirs('veg'), ('.ydr', '.ydd', '.yft', '.ytd')):
         base = os.path.splitext(os.path.basename(f))[0]
         h = 0
         for c in base.lower().encode():

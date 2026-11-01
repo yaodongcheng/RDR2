@@ -100,9 +100,10 @@ def main():
     matcache, meshcache = {}, {}
     made = placed = 0
     for pkg in ok:
-        yp = os.path.join(ROOT, 'raw/_interiors', pkg, pkg + '.ytyp')
+        # 2026-11-01：室内包已并入 raw/all_packs（<包名>/ 平铺）
+        yp = os.path.join(ROOT, 'raw/all_packs', pkg, pkg + '.ytyp')
         if not os.path.exists(yp):
-            cand = glob.glob(os.path.join(ROOT, 'raw/_interiors', pkg, '*.ytyp'))
+            cand = glob.glob(os.path.join(ROOT, 'raw/all_packs', pkg, '*.ytyp'))
             if not cand:
                 continue
             yp = cand[0]

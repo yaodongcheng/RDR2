@@ -47,8 +47,9 @@ def texlib():
     global TEXLIB
     if TEXLIB is None:
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        TEXLIB = G.TexLib([os.path.join(root, "export/weapons/models"),
-                           os.path.join(root, "raw/models/weapons")], maxs=1024)
+        # 2026-11-01：走索引（work/tex_name_index.json），武器专属目录作为补扫
+        from lazy_tex import LazyTexLib
+        TEXLIB = LazyTexLib(1024, extra_dirs=[os.path.join(root, "export/weapons/models")])
     return TEXLIB
 
 

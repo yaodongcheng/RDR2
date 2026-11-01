@@ -50,9 +50,9 @@ def load_any(path):
 
 class Tex:
     def __init__(self, lib, maxs=512):
-        self.tl = EX.TexLib([os.path.join(ROOT, 'work/lib_gtxd/txd'),
-                             os.path.join(ROOT, 'work/sdn/gtxd/txd'),
-                             os.path.join(ROOT, 'export/models')], maxs)
+        # 2026-11-01：贴图改走 work/tex_name_index.json（原 export/models 目录已废弃）
+        from lazy_tex import LazyTexLib
+        self.tl = LazyTexLib(maxs)
         self.dir = os.path.join(lib, 'tex')
         os.makedirs(self.dir, exist_ok=True)
         self.by_name = {}

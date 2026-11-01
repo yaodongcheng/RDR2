@@ -16,7 +16,9 @@ from ytd_to_png import dds, FMT, FMT_NAME
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 TOWN = os.path.join(ROOT, 'export/levels/town')
-BUILD = os.path.join(ROOT, 'export/models/buildings_jklm')
+# 2026-11-01：export/models 已废弃 → 直接取 all_packs 里建筑相关包
+BUILD = os.path.join(ROOT, 'raw/all_packs')
+BUILD_CATS = ('buildings_jklm', 'buildings')
 OUT = os.path.join(TOWN, 'valentine_textures.json')
 MAXS = 256
 
@@ -55,8 +57,9 @@ for v in meshes.values():
 print(f'需要 {len(need)} 张贴图')
 
 # ---- 1) .ytd 名字索引 ----
+from pool_models import iter_ytd, iter_models
 index = {}
-for f in glob.glob(BUILD + '/**/*.ytd', recursive=True):
+for f in iter_ytd('buildings_all'):
     try:
         y = T.Ytd(open(f, 'rb').read())
         for t in y.textures():
@@ -86,7 +89,7 @@ print(f'  从 .ytd 解出 {len(out)}')
 # ---- 2) .ydr 内嵌 ----
 rest = need - set(out)
 byname = {}
-for f in glob.glob(BUILD + '/**/*.ydr', recursive=True):
+for f in iter_models('buildings_all', ('.ydr',)):
     byname.setdefault(os.path.splitext(os.path.basename(f))[0], f)
 for v in meshes.values():
     if not rest:

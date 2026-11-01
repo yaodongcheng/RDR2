@@ -41,7 +41,9 @@ class Tex:
     """和 dump_model_lib.Tex 同契约，但允许传入额外 ytd 目录。"""
 
     def __init__(self, lib, dirs, maxs=512):
-        self.tl = EX.TexLib(dirs, maxs)
+        # 2026-11-01：走索引（work/tex_name_index.json）；dirs 里存在的目录作为补扫
+        from lazy_tex import LazyTexLib
+        self.tl = LazyTexLib(maxs, extra_dirs=dirs)
         self.dir = os.path.join(lib, 'tex')
         os.makedirs(self.dir, exist_ok=True)
         self.idx = {}
@@ -81,9 +83,9 @@ def main():
     idx = json.load(open(idxp, encoding='utf-8'))
     models, texmeta = idx['models'], idx['tex']
 
+    # 2026-11-01：export/models 已废弃；前两项是补扫目录，索引里没有的才读
     dirs = [os.path.join(ROOT, 'work/lib_gtxd/txd'),
             os.path.join(ROOT, 'work/sdn/gtxd/txd'),
-            os.path.join(ROOT, 'export/models'),
             a.ydr_dir]
 
     tex = Tex(lib, dirs, a.maxs)

@@ -27,7 +27,9 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 LIB = os.path.join(ROOT, 'assets/lib_native')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
-PACKS = [os.path.join(ROOT, 'raw/rails_extract', d) for d in ('jklma', 'jklmb', 'fghia')]
+# 2026-11-01：铁路包已并入 raw/all_packs（短名对应见 ingest_rail_packs.py）
+PACKS = [os.path.join(ROOT, 'raw/all_packs', d)
+         for d in ('jklm_15_18_rails_a', 'jklm_15_18_rails_b', 'fghi_15_18_rails_a')]
 NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
 
 X0, Y0, WORLD, TILE = -7684.0, -8196.0, 12296.0, 2000.0

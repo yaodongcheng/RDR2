@@ -76,7 +76,9 @@ def joaat(s):
 
 def build_index():
     idx = {}
-    files = glob.glob(os.path.join(ROOT, 'export/models/**/*.ytd'), recursive=True)
+    # 2026-11-01：export/models 已废弃 → 直接取 all_packs 里建筑相关包的 .ytd
+    from pool_models import iter_ytd
+    files = list(iter_ytd('buildings_all'))
     if os.path.isdir(GTXD):
         files += glob.glob(os.path.join(GTXD, '*.ytd'))
     for f in files:
@@ -168,7 +170,8 @@ def main():
     print(f'小镇中心 ≈ ({cx:.1f}, {cy:.1f})；半径 {RADIUS} m 内取实例')
 
     byname = {}
-    for f in glob.glob(os.path.join(ROOT, 'export/models/buildings_jklm/**/*.ydr'), recursive=True):
+    from pool_models import iter_models
+    for f in iter_models('buildings_jklm', ('.ydr',)):
         byname[os.path.splitext(os.path.basename(f))[0]] = f
     EXCLUDE = ('_em_slod', '_slod', 'audioproxy', 'vfx_', 'helper', 'lights_holder',
                '_decal', 'decal', '_props_', 'props_debris', 'footboards', '_dcl', '_veg',

@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import rdr2_ydr as Y
 
 OUT = os.path.join(ROOT, 'work/ydd_index.json')
-DIRS = ['work/lib_gtxd/ydd_all']
+DIRS = ['work/lib_gtxd/ydd_all', 'work/all_packs']
 
 
 def main():

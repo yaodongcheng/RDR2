@@ -21,24 +21,31 @@ GAME = r'H:/EPICGAMES/RedDeadRedemption2'
 DLL = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/rdr2rpf.dll')
 OUTDIR = os.path.join(ROOT, 'work/rpf_inv')
 REPORT = os.path.join(ROOT, 'work/rpf_inventory.json')
-PACKS = ['levels_0', 'levels_1', 'levels_2', 'levels_3', 'levels_4', 'levels_5',
-         'levels_6', 'levels_7', 'packs_0', 'packs_1', 'data_0', 'common_0', 'hd_0',
-         'rowpack_0', 'update_1', 'update_2', 'update_3', 'update_4', 'shaders_x64']
+# 2026-11-01：包表改成直接扫游戏目录。旧版硬编码 19 个包，
+# 漏了 textures_0 / textures_1 / anim_0 / movies_0 / appdata0_update ——
+# 后果是 extract_ytd_all 从没跑过 textures_0，27% 的贴图（5,875 张）一直没抽。
+def list_packs():
+    out = []
+    for f in sorted(os.listdir(GAME)):
+        if f.lower().endswith('.rpf') and os.path.isfile(os.path.join(GAME, f)):
+            out.append(os.path.splitext(f)[0])
+    return out
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--exts', nargs='+', default=['ytd,ydd'],
-                    help='扩展名（空格或逗号分隔）：ytd,ydd')
-    ap.add_argument('--packs', nargs='+', default=PACKS)
+    ap.add_argument('--exts', nargs='+', default=['ydr,yft,ydd,ytd,ybn'],
+                    help='扩展名（空格或逗号分隔）：ydr,yft,ydd,ytd,ybn')
+    ap.add_argument('--packs', nargs='+', default=None, help='默认扫游戏目录下全部顶层 .rpf')
     ap.add_argument('--depth', type=int, default=8)
     a = ap.parse_args()
     exts = ';'.join(t for x in a.exts for t in x.replace(';', ',').split(',') if t)
     os.makedirs(OUTDIR, exist_ok=True)
 
+    packs = a.packs or list_packs()
     inv = {}
     t0 = time.time()
-    for pk in a.packs:
+    for pk in packs:
         arc = os.path.join(GAME, pk + '.rpf')
         if not os.path.exists(arc):
             print('[inv] 跳过（不存在）%s' % pk)
