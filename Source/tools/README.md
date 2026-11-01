@@ -2,6 +2,19 @@
 
 > 🔴 **改分类前先读** [`docs/格式与资产/分类体系与判定规则.md`](../docs/格式与资产/分类体系与判定规则.md)（19 类 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单 / 已验证的坑）。
 
+## 🔴 RDR2 两层材质（2026-11-01 实测；B 工程进行中，见 `docs/TODO.md`）
+
+- **现象**：区域 #20 的 `new_pie_03_dockmed3`（以及一批码头/墙体）在 Material Preview 里**整块黑**，但材质节点、贴图文件都正常。
+- **根因**：源 ydr 用 `standard_2lyr` / `standard_2lyr_pxm` 两层着色器，槽位是
+  `lyr0diffusetex` + `lyr1diffusetex` + `controltexturetex`（另有 `tintpalettetex` 256×4、`dirtdiffusetex`）。
+  `export_sdn_props2.pick_albedo()` **只取第 0 层**；当第 0 层是遮罩（实测 `nbx_wall_woodplank_11long_rotted_ab`：alpha 8%、RGB 0.034）时，就会整块黑。
+  真正的基底是第 1 层（`nbx_wall_woodplank_11long_ab`：不透明、RGB 0.31）。
+- **范围**：`raw/sdn/models` 3,309 个 `.ydr` 里 **852 个用 2lyr**；`standard_dirt` 692 个的 dirt 层也被忽略；
+  `control` / `palette` 目前**没有抽取**（贴图池只覆盖 albedo/normal/material）。
+- **已确认可用的解析入口**：`rdr2_ydr.extract_at(res, 0, 'high')` 的 `texs_detail` 已带 `slot/param/role/name`，
+  role 包含 `albedo` / `albedo2` / `normal` / `normal2` / `materialA/B` / `control` / `albedo_dirt`。
+- **不要**再用「按贴图平均色/名字猜」的 fallback 绕；彻底修复 = 两层 + control + palette（步骤见 TODO「两层材质 B」）。
+
 > 按职责分类。所有脚本从项目根目录运行：`uv run python tools/<脚本>.py`
 > 脚本之间用 `sys.path.insert(0, tools)` + `import 模块名` 互相引用，**不要移动文件**。
 

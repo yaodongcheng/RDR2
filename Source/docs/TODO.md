@@ -5,7 +5,66 @@
 
 ---
 
+## ★ 2026-11-01 · 两层材质 B（当前最高优先级）
+
+### 0. 一句话
+
+RDR2 的 `standard_2lyr*` 材质有 **两层 albedo + control 混合图**，我们现在只导了第 0 层；
+第 0 层经常是"腐烂/污渍遮罩"，所以码头、墙体在 Blender 里整块发黑。**B = 完整支持两层 + control + palette。**
+
+### 1. 证据（不要重查，照这个做）
+
+- 源文件：`raw/sdn/models/new_pie_03_dockmed3.ydr`，shader = `standard_2lyr_pxm`
+- 槽位：
+  - `lyr0diffusetex` → `nbx_wall_woodplank_11long_rotted_ab`（**遮罩**：alpha 均值 0.083、RGB 0.034）
+  - `lyr1diffusetex` → `nbx_wall_woodplank_11long_ab`（**基底**：不透明、RGB 0.312）
+  - `controltexturetex` → `nbx_wall_woodplank_14long_ct`（控制图，**未抽取**）
+  - `tintpalettetex` → `new_pie_03_dockmed3_pal`（256×4 调色表，未抽取）
+  - `dirtdiffusetex` → 泥土层（`standard_dirt` 用，未抽取）
+- 当前导出器：`tools/export_sdn_props2.pick_albedo()` **只取第 0 层 albedo**（`ROLE_ALBEDO` 命中即返回），
+  `rdr2_ydr.extract_at()` 的 `texs_detail` 里其实两层都在（role=`albedo` / `albedo2` / `control` / `albedo_dirt`）。
+- 影响面：`raw/sdn/models` 3,309 个 ydr 里 **852 个用 2lyr**（`standard_2lyr` 735 / `standard_2lyr_pxm` 236）；
+  `standard_dirt` 692 个的 dirt 层也被忽略。全包（all_packs）还没统计。
+
+### 2. 验收（做成什么样算完）
+
+1. `new_pie_03_dockmed3` 在 Material Preview 里能看到木板纹理（不再黑），并与基底图对比不偏色；
+2. 区域 #20 重建后，抽查码头/城墙/室内墙面不黑；建筑类"低 alpha + 近黑"的贴图不再作为唯一 albedo；
+3. control 混合生效：选一个 control 明显的模型，两层分别关闭/开启能看到混合差异；
+4. 重建不崩、材质数量/内存可接受（每个两层材质多 1~2 张贴图 + 1 个控制图）。
+
+### 3. 实施步骤
+
+| # | 做什么 | 文件/数据 | 备注 |
+|---|---|---|---|
+| 1 | **扫描器**（已跑过一次，2026-11-01）：列出所有 2lyr / dirt 模型（hash、源文件、各层 role/name、control/palette）→ CSV | 一次性探针放 `D:\BrainMaker\_probe\two_layer\audit_two_layer.py`；重跑命令：`python "D:\BrainMaker\_probe\two_layer\audit_two_layer.py"` | **SDN 城市结果**：3,309 个 ydr → 1,073 个 2lyr/dirt 模型；全部有 lyr1；852 有 control；978 有 palette；95 无 palette |
+| 2 | **抽 control/palette/dirt 贴图**：让贴图池包含这几类角色 | `tools/extract_slot_textures.py` / `tex_slots.py` / `work/tex_name_index.json` | 需要按 role 建索引，不能只认 albedo/normal/material |
+| 3 | **导出器带上层信息** | `tools/export_sdn_props2.load_drawable`：把 `albedo2 / normal2 / materialA2/B2 / control / dirt` 一并带出；`dump_model_lib.write_model` 写入 | `.mdl` 格式扩展或 `index.json` 加 `lyrs` 字段；老模型按单层兼容 |
+| 4 | **材质节点**：两层混合 + palette | `tools/mat_rdr2.py` | BaseColor = mix(lyr0, lyr1, control 通道)；法线/ORM 同步；palette 调色（需实测通道语义） |
+| 5 | **重导**：先 SDN 城市 852 个 2lyr 模型 | `raw/sdn/models` + ingest 工具 | 逐模型验证：重导后 index/mdl 有 `lyrs` |
+| 6 | **重建 + 验收** | 区域 #20 先重建，再全量 | `_check_region` PASS；肉眼抽查 |
+
+### 4. 已知风险
+
+- `controltexturetex` 的**通道语义**（R/G/B/A 各管哪层、是否多 dirt 层）没有公开文档 → 必须用 2~3 个模型做"关层对比"实测；
+- `tintpalettetex` 是 256×4 调色表，可能依赖顶点色/调色索引 → 不还原会让颜色偏；
+- 材质翻倍会显著增加显存/构建时间（尤其大陆 7.3 GB）→ 先只对 2lyr 模型启用，单层模型不动；
+- `.mdl` 是自有二进制格式，扩展必须带版本号/兼容旧文件，否则整个库要重导。
+
+### 5. 本轮（2026-11-01）其他已完成事项
+
+- 22 个区域裁剪全部 PASS；`unknown` 在 #19/#20 已清零（#20：254 个缩略图目视 → 250 条纠错 #91~340）。
+- 分类规则：`struct` 只留桥/栈桥；码头→建筑；信号灯→部件；tower/build/kitchen/coop/tabacco/boathouse/props/水面/道岔等词缀。
+- 修掉构建 bug：材质名截断（贴图纠错漏匹配）、隐藏集合 `matrix_world` 未求值（包围盒/埋深错误）。
+- 资产目录重构复核通过；探针"专用目录 + 用完即删"规矩已落到
+  `docs/格式与资产/分类体系与判定规则.md` §6.1。
+
+---
+
 ## ★ 下一步（新 session 从这一节开始）：批量生成 22 个「有网格」的区域裁剪
+
+> ✅ **2026-11-01 已完成**：22/22 块 `status=done`，`_check_region` 全部 PASS；
+> 本节保留作流程/命令参考，**下一件事是上面的「两层材质 B」**。
 
 ### 0. 一句话
 

@@ -17,6 +17,29 @@
 
 ---
 
+## ★ 本轮进度（2026-11-01）
+
+### 已完成
+
+- **22 个区域裁剪全部建成**，`_check_region` 全部 PASS；**区域 #19 / #20 的 `unknown` 已清零**（#20：254 个 unknown 用缩略图目视判定 → 250 条纠错 #91~340）。
+- **分类规则升级**：`struct` 只留桥/栈桥（码头→建筑、挡墙→部件）；信号灯→部件；新增 tower / build / kitchen / coop / tabacco / boathouse / props / 水面 / 铁路道岔等词缀；`ground/terrain`→地面贴花。
+- **构建 bug 修复**：① 材质名 >60 字符被截断 → 贴图纠错漏匹配；② 隐藏集合不进 depsgraph → `matrix_world` 未求值、包围盒/埋深判定错误（已在 `classify_entities`/`write_manifest` 强制求值，修复前建的块已全部重建）。
+- **资产目录重构已复核**：`assets/lib_native/index.json`（72,248 模型 / 32,878 贴图）、`lib_native\tex` 联接、`work→raw` 联接、`names.txt`/`H4.npy`/`export/*` 全部可达；300 实体烟雾构建通过。
+- **一次性探针规矩**：脚本 + 截图统一放 `D:\BrainMaker\_probe\<主题>\`，**用完确认删除**（见 `docs/格式与资产/分类体系与判定规则.md` §6.1）。
+
+### 新知识：RDR2 两层材质（2026-11-01 实测）
+
+| 事实 | 证据 |
+|---|---|
+| SDN 城市 3,309 个 `.ydr` 里 **852 个用 2lyr 着色器**（`standard_2lyr` 735 / `_pxm` 236） | 扫描 `raw/sdn/models` |
+| 两层结构 = `lyr0diffusetex` + `lyr1diffusetex` + `controltexturetex`（另有 `tintpalettetex` 256×4、`dirtdiffusetex`） | `new_pie_03_dockmed3.ydr` 原始槽位 |
+| **陷阱**：`tools/export_sdn_props2.pick_albedo` 只取第 0 层；当 lyr0 是遮罩时材质整块黑 | `nbx_wall_woodplank_11long_rotted_ab` alpha 8%、RGB 0.034；真正基底 `nbx_wall_woodplank_11long_ab` 不透明、RGB 0.31 |
+| `standard_dirt`（692 个）的 dirt 层同样被忽略；control / palette 目前**没有抽取** | 同上 |
+
+> **彻底修复（B）的完整步骤、数据模型、验收标准** → [`docs/TODO.md`](docs/TODO.md)「2026-11-01 · 两层材质 B」。
+
+---
+
 ## ★ 本轮进度（2026-10-30 ~ 10-31）
 
 ### 一眼看完：进展与待办（2026-10-31 核对）
