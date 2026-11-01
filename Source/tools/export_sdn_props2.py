@@ -64,6 +64,10 @@ def load_drawable(res, base):
             except Exception:
                 g['ntex'] = None
                 g['mtex'] = None
+            try:
+                g['lyrs'] = S.pick_layers(texs)
+            except Exception:
+                g['lyrs'] = None
             out.append(g)
     return out
 

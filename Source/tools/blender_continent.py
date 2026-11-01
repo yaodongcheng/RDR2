@@ -31,6 +31,7 @@ X0, Y0, RES = -7684.0, -8196.0, 4.0
 BUILD_STATS = {}   # build_entities 的统计（遍历/缺模型/落地），给末尾一行校验用
 USE_PAD = False    # 城区地台压平：只有显式 --pad 才开（地形与 ground_z 共用这个开关）
 VEG_MODE = 'hide'  # 植被处理：hide 隐藏 / delete 真删 / keep 原样
+TWO_LAYER = True   # 两层材质（`standard_2lyr` / `standard_dirt`）：`--lyr off` 关掉
 
 
 def argv():
@@ -76,6 +77,10 @@ def parse():
   ap.add_argument('--veg', default='hide', choices=['hide', 'delete', 'keep'],
                   help='植被处理方式：hide（默认，移入 HIDDEN_VEG 隐藏不删，最高原则 6.1）/ '
                        'delete（真删，省 1~2 GB 内存）/ keep（原样显示）')
+  # 两层材质（standard_2lyr / standard_dirt）：读 index.json 的 `models[h].lyr`。
+  # `--lyr off` 完全回到 2026-11-01 之前的单层行为（A/B 验收用）。
+  ap.add_argument('--lyr', default='on', choices=['on', 'off'],
+                  help='两层材质开关（默认 on）：on = mix(lyr0, lyr1, control)；off = 只挂第 0 层')
   return ap.parse_args(argv())
 
 
@@ -516,15 +521,18 @@ def _bsdf(mat):
   return nt.nodes.new('ShaderNodeBsdfPrincipled')
 
 
-def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir):
-  """一个槽位一张材质：漫反射 + 法线 + 材质(高光→ORM)。
+def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None):
+  """一个槽位一张材质：漫反射 + 法线 + 材质(高光→ORM) [+ 第 1 层 + 控制图]。
 
   2026-10-30：法线/高光补全。三张图的节点图统一在 `tools/mat_rdr2.py`，
   与 `relink_materials.py` 共用同一份，避免"重建"和"重挂"出两种材质。
   没有 nm/ma 的槽位行为与以前完全一致（`nonalbedo_warmgray` / `alb_<名字>`）。
+  2026-11-01：`lyr` = `index.json` 的 `models[h].lyr[i]`（l1/ctrl/dirt/nrm2/ma2），
+  没有两层信息或 `--lyr off` 时行为与旧版完全一致。
   """
   import mat_rdr2
-  return mat_rdr2.get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, matcache)
+  return mat_rdr2.get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, matcache,
+                              lyr=lyr, two_layer=TWO_LAYER)
 
 
 def load_model_mesh(libdir, entry, texmeta, matcache, cache):
@@ -594,13 +602,16 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   # 外部脚本（relink_materials）没法把「第 i 个子网格」映射到材质槽，
   # 59,385 个网格被跳过。现在槽 i 恒等于 valid_subs[i]，可按索引重挂。
   # 2026-10-30：每个槽再带法线/高光（index 里 `st`，与 `s` 等长同序）。
+  # 2026-11-01：每个槽再带两层信息（`lyr` = [l1, ctrl, dirt, nrm2, ma2]，与 `s` 等长同序）。
   st = entry.get('st') or []
+  ly = entry.get('lyr') or []
   mats = []
   for (tid, vc, ic, si) in valid_subs:
     pair = st[si] if 0 <= si < len(st) else None
     ntid = pair[0] if pair else -1
     mtid = pair[1] if pair else -1
-    mats.append(_mat_for(tid, ntid, mtid, texmeta, matcache, libdir))
+    lyr = ly[si] if 0 <= si < len(ly) else None
+    mats.append(_mat_for(tid, ntid, mtid, texmeta, matcache, libdir, lyr))
   for m in mats:
     me.materials.append(m)
 
@@ -906,9 +917,10 @@ def render_shots(outdir, res, views):
 
 def main():
   a = parse()
-  global USE_PAD, VEG_MODE
+  global USE_PAD, VEG_MODE, TWO_LAYER
   USE_PAD = bool(a.pad)
   VEG_MODE = a.veg
+  TWO_LAYER = (a.lyr == 'on')
   clear()
   setup_world()
   terrain(a.step, use_pad=USE_PAD)

@@ -117,6 +117,34 @@ def load(path):
     return d[16:], d[16 + ss:16 + ss + gfx]
 
 
+def resize_max(im, maxs, resample=None):
+    """等比缩到最长边 ≤ `maxs`，**颜色与 alpha 分开缩放**。
+
+    🔴🔴 为什么不能直接 `im.resize()`（2026-11-01 实锤，这一条值一次实机排查）：
+    **PIL 12 的 RGBA `resize` 是「按 alpha 预乘」的重采样** —— alpha 稀疏的贴图被缩小后
+    RGB 会被乘暗。实测 `nbx_wall_woodplank_11long_rotted_ab`（1024×512，alpha 均值 0.083）：
+
+        raw               RGB 均值 76 / 64 / 53   （= 0.30 / 0.25 / 0.21）
+        LANCZOS 直接缩     RGB 均值 17.6 / 16.1 / 14.2
+        RGB 先转 + 缩      RGB 均值 76 / 64 / 53   ← 正确
+
+    区域 #20 的码头/墙体「整块发黑」就是这么来的（不是材质节点、也不是贴图缺失）。
+    alpha 通道对混合遮罩有用，所以 alpha 单独按同一比例缩，不做预乘。
+    """
+    if maxs and max(im.size) > maxs:
+        s = maxs / float(max(im.size))
+        size = (max(1, int(round(im.size[0] * s))), max(1, int(round(im.size[1] * s))))
+        rs = resample if resample is not None else Image.LANCZOS
+        if im.mode in ('RGBA', 'LA'):
+            rgb = im.convert('RGB').resize(size, rs)
+            a = im.getchannel('A').resize(size, rs)
+            out = rgb.convert('RGBA')
+            out.putalpha(a)
+            return out
+        return im.convert('RGB').resize(size, rs)
+    return im
+
+
 _POW2 = set(1 << k for k in range(1, 14))
 
 

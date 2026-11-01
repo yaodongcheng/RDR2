@@ -7,7 +7,7 @@
     世界 = location + R(四元数共轭) * local
 
     blender -b -P tools/_probe_ann_mini.py -- --x 2884 --y 1348 --w 900 --tag ann
-产物：D:/BrainMaker/_test/ann/<tag>_on.png（地形+铁路）/ <tag>_off.png（只有铁路）
+产物：D:/BrainMaker/大镖客2解包分析/_scratch/_test/ann/<tag>_on.png（地形+铁路）/ <tag>_off.png（只有铁路）
 """
 import bpy
 import os
@@ -123,7 +123,7 @@ def main():
     ap.add_argument('--y', type=float, default=1348.0)
     ap.add_argument('--w', type=float, default=900.0)
     ap.add_argument('--tag', default='ann')
-    ap.add_argument('--out', default=r'D:/BrainMaker/_test/ann')
+    ap.add_argument('--out', default=r'D:/BrainMaker/大镖客2解包分析/_scratch/_test/ann')
     ap.add_argument('--res', type=int, default=1400)
     a = ap.parse_args(args)
     os.makedirs(a.out, exist_ok=True)

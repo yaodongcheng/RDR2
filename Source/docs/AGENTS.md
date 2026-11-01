@@ -87,11 +87,11 @@
 
 | 规则 | 内容 |
 |---|---|
-| **只放一处** | 所有 `.py` 只放 `Source\tools\`（`D:\BrainMaker\大镖客2解包分析\tools\` 是 junction，等价）。**禁止**在 `D:\BrainMaker\` 根、`大镖客2解包分析\` 根、`work\`、`docs\`、`plans\` 下新建脚本 |
+| **只放一处** | **管线/正式脚本**只放 `Source\tools\`（`D:\BrainMaker\大镖客2解包分析\tools\` 是 junction，等价）。**禁止**在 `D:\BrainMaker\` 根、`大镖客2解包分析\` 根、`work\`、`docs\`、`plans\` 下新建脚本。⚠️ **例外 = 本轮一次性探针脚本**：它与同轮产物一起放 `_scratch\<主题>\`（见下面「输出目录」），不进 `tools\` |
 | **前缀 = 类别** | 无前缀 = 管线正式步骤（进 `tools/README.md` 主表）· `_check_*` = 只读体检/断言（任意 blend 可跑，打印判定）· `_probe_*` = 一次性探针/渲图（出证据用，不进管线） |
 | **必须登记** | 新脚本必须往 `tools/README.md` 加一行：用途 / 输入 / 输出 / 类别。**没登记 = 下轮清理时删** |
 | **一轮内收口** | `_probe_*` 在本轮结束前二选一：**删**，或**转正**（保留 + 登记 + docstring 写明对应交接章节）。D 盘根不留任何 `.py` |
-| **输出目录** | 新建主题的探针产物统一 `D:\BrainMaker\_probe\<主题>\`。历史目录 `_railcheck/` / `_test/` / `_logs/` 只读保留；**已登记的 7 个证据脚本沿用 `_railcheck/`**（交接 §16.6 引用了那批图），不再新建同级目录 |
+| **输出目录** | 🔴 **探针产物一律放项目自己的 `D:\BrainMaker\大镖客2解包分析\_scratch\<主题>\`**（2026-11-01 用户裁定：`D:\BrainMaker\` 是**多项目共用根**，RDR2 的东西放它自己的目录里；「跑完就删」不等于「可以乱放」）。历史目录 `_railcheck/` / `_test/` 只读保留；**已登记的 7 个证据脚本沿用 `_railcheck/`**（交接 §16.6 引用了那批图），不再新建同级目录。~~旧写法 `D:\BrainMaker\_probe\<主题>\`~~ 已**废止并搬迁**（2026-11-01 收归）：历史内容在 `大镖客2解包分析\_scratch\_probe_legacy\`，根上已无 `_probe\` |
 | **路径写法** | `sys.path` 用 `os.path.dirname(os.path.abspath(__file__))`；数据根用常量 `ROOT = r'D:/BrainMaker/大镖客2解包分析'`（既有约定），不写散落绝对路径 |
 | **交付前** | `python -m py_compile <文件>` 过；`_check_*` 至少能在一个指定 blend（或 `--factory-startup`）上跑通并打印判定 |
 
@@ -119,16 +119,27 @@
 
 ### 1.8 分类规则唯一入口：`docs/格式与资产/分类体系与判定规则.md`
 
-**改任何分类前先读它**（19 类 / 默认隐藏表 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单语义 / 已验证的坑 / 标准改法）。**规则值唯一真身 = `tools/class_rules.py`**；`classify_entities.py` 只是 Blender 驱动、`class_registry.py` 只是转出口，`veg_rules.py` 放植被词表。改完跑 `python tools/_check_rules.py`（合法性 + 冗余 + `tools/rules_cases.csv` 用例回归）。
+**改任何分类前先读它**（21 类 / 默认隐藏表 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单语义 / 已验证的坑 / 标准改法）。**规则值唯一真身 = `tools/class_rules.py`**；`classify_entities.py` 只是 Blender 驱动、`class_registry.py` 只是转出口，`veg_rules.py` 放植被词表。改完跑 `python tools/_check_rules.py`（合法性 + 冗余 + `tools/rules_cases.csv` 用例回归）。
 
 ### 1.9 D:\BrainMaker 目录纪律（2026-10-31 立；起因：区域裁剪产物散到根目录被用户抓包）
 
 | 规则 | 内容 |
 |---|---|
 | **根目录零文件** | `D:\BrainMaker\` **根下只允许既有的一级目录**，禁止放任何文件（脚本 / JSON / 图 / 日志 / bat）；违者一律算未归口 |
+| 🔴 **RDR2 的东西只进 RDR2 的目录** | `D:\BrainMaker\` 是**多项目共用根**（还有仁王 / 势力 / video_gen …）。本项目的一切新产物（探针脚本、截图、临时 blend、manifest）放 **`D:\BrainMaker\大镖客2解包分析\_scratch\<主题>\`**，**不许**在共用根新建 `_probe\` 之类的目录（2026-11-01 用户裁定） |
 | **区域裁剪固定一处** | `D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\` **只放区域 blend**（`<编号>_<tile>.blend`，与 `sdn_full2/`、`guarma/`、`willard/` 同规矩，本质就是大陆各区域的裁剪）；验证内容（manifest / 俯视图 / 图例 / `region_corrections.csv`）放同级 **`regions_support/`**（对应 `sdn_support/` 的先例） |
 | **新建目录先问** | 任何新目录（包括 `%PROJ%` 下的子目录）先问用户；工具默认输出路径必须指向**已批准目录**，不许用 `%PROJ%\..` 之类的上跳路径 |
 | **一次性文件即用即删** | 临时 bat / dump / 探针 JSON 用完删除，不留在 `_logs` 或数据根 |
+
+**2026-11-01 收归后的现状**（`D:\BrainMaker\` 根已无任何 RDR2 目录/文件）：
+
+| 旧位置（根） | 现在 |
+|---|---|
+| `D:\BrainMaker\_logs\`（4,742 个日志 + 根上的 `build_v1*.log` / `reclass_v17.log`） | `大镖客2解包分析\_logs\` |
+| `_tmp\`（`nested_*.rpf` 解包临时区，15 GB） | `大镖客2解包分析\_tmp\`（`set TEMP` 的写法已同步） |
+| `_probe\` / `_test\` / `_railcheck\` / `_tmp_itemtex\` / `tmp_rdr_probe\` | `大镖客2解包分析\_scratch\` 下的同名目录（`_probe` → `_probe_legacy`） |
+
+> 根上剩下的 `.claude` / `.codex` / `tools`（Ghidra + JDK + SW2 逆向工具）/ `仁王…` / `势力` 等 = **其他项目或跨项目工具**，不属 RDR2，别动。
 
 ---
 
@@ -303,7 +314,7 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | **把 LOD 合并块当缺口** | 「未命名 5 万」其实是 46,532 个 LOD 合并块（`*_lod_combine_metadata*`），磁盘上无独立资源 | 先跑 `tools/audit_missing_models.py` 分桶；`lod_block` 不计缺口、不装、不删（最高原则 §6.6） |
 | **`uv run python` 没有第三方库** | 里跑 `numpy`/`PIL` 直接 `ModuleNotFoundError`（uv 起的是空环境；项目没有 pyproject） | 需要 numpy/PIL 的脚本用系统 `python`（3.12 已装）；小脚本才用 `uv run python` |
 | 模型库没有 ydr 源 | 4.8 万个模型只知道 hash 和 id，无法重绑 → 44.9% 对象无 albedo | 先拿 `原型 hash → asset 名`（ymap 原型表）再抽 ydr；`export/world/continent/models.json` 是有源的那 10,893 条 |
-| **`%TEMP%` 里泄漏的 `nested_*.rpf`** | 解包工具把嵌套 `.rpf` 写在系统临时目录、异常时不删 → 实测堆了 **12,004 个 / 306.8 GB**，把 **C 盘占满**；磁盘满后 `update_4.rpf` 的嵌套包**静默解包失败**（少 4,969 个 ytd，没人报错） | 跑批量解包前：`set TEMP=D:\BrainMaker\_tmp & set TMP=...`（别用 C 盘）；定期 `del %TEMP%\nested_*.rpf`；**解包日志里每个包都要看 `[done] wrote N files` 的 N 是否为 0** |
+| **`%TEMP%` 里泄漏的 `nested_*.rpf`** | 解包工具把嵌套 `.rpf` 写在系统临时目录、异常时不删 → 实测堆了 **12,004 个 / 306.8 GB**，把 **C 盘占满**；磁盘满后 `update_4.rpf` 的嵌套包**静默解包失败**（少 4,969 个 ytd，没人报错） | 跑批量解包前：`set TEMP=D:\BrainMaker\大镖客2解包分析\_tmp & set TMP=...`（别用 C 盘）；定期 `del %TEMP%\nested_*.rpf`；**解包日志里每个包都要看 `[done] wrote N files` 的 N 是否为 0** |
 | **两个解包进程同时读一个包** | 后起的报 `The process cannot access the file ... because it is being used by another process`（`levels_7.rpf` 实测），该包静默少抽 | 解包任务**串行**：一个包抽完再抽下一个；`hashindex`（只读 TOC）可以和别的并存，`extract` 不行 |
 | **`extract_textures_from_game --only txd`** | 只下钻名字带 `txd` 的嵌套包 → **世界贴图大量在 `props/p_xxx.rpf` 里**，导致贴图名覆盖率只有 54%（36.2% 引用查不到图） | 要全量就用 `tools/extract_ytd_all.py`（`extract --recurse`，不看包名）；按包名过滤只适合"只要 gtxd"的场合 |
 | **`.ydd` 里的子 drawable 用自己的 hash** | `real_ytyp` 3,061 个"按 hash 找不到 .ydr"其实是压在字典里；字典文件 hash ≠ 子 drawable hash | 先用 `tools/ydd_index.py` 建"子 hash → (文件, 偏移)"，再 `tools/ingest_ydd_models.py` 取；别再用"按 hash 找 ydr"判"模型不存在" |

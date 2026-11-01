@@ -9,7 +9,7 @@ import sys
 import bpy
 import mathutils
 
-OUT = r'D:/BrainMaker/_railcheck'
+OUT = r'D:/BrainMaker/大镖客2解包分析/_scratch/railcheck'
 os.makedirs(OUT, exist_ok=True)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import blender_tour as tour   # noqa: E402

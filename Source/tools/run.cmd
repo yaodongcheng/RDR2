@@ -12,13 +12,22 @@ rem  Usage:
 rem      tools\run.cmd <log-file> <program> [args...]
 rem
 rem  Example (PowerShell):
-rem      cmd /c 'tools\run.cmd D:\BrainMaker\build.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P tools\blender_continent.py -- --out x.blend'
+rem      cmd /c 'tools\run.cmd <PROJ>\_logs\build.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P tools\blender_continent.py -- --out x.blend'
+rem      (<PROJ> = D:\BrainMaker\<the RDR2 project folder>, whose name is Chinese -- keep this file ASCII-only)
 rem
 rem  Notes:
 rem    - forces PYTHONIOENCODING/PYTHONUTF8=utf-8 so logs are readable UTF-8
 rem    - forces PYTHONUNBUFFERED=1 so heartbeats/tails are not stuck in a buffer
 rem    - writes the real exit code as the last line: [rc] exit=N
 rem    - every argument is re-quoted, so paths with spaces are safe
+rem
+rem  NOTE: this is NOT a double-click launcher -- it is always invoked as
+rem        `cmd /c 'tools\run.cmd <log> <program> ...'`. So:
+rem          * NO `pause` (it would hang every build),
+rem          * keep this file **ASCII-only** (a Chinese path in a rem line
+rem            shifts cmd's GBK line parsing and fuses the next line -- 2026-11-01).
+rem        `_check_bat.py`'s "pause before exit / must be GBK" rules apply to
+rem        the double-click launchers, not here.
 rem ============================================================================
 setlocal EnableExtensions EnableDelayedExpansion
 set "LOG=%~1"

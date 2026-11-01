@@ -7,7 +7,7 @@
     terrain / _r_c_ / hd_        → 地表分块（H4 已替代）
     其余                          → **真缺口**，必须逐条看
 
-    python tools/bucket_missing_models.py --json D:/BrainMaker/_logs/missing_bucket.json
+    python tools/bucket_missing_models.py --json D:/BrainMaker/大镖客2解包分析/_logs/missing_bucket.json
 """
 import os
 import sys

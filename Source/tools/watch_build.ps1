@@ -7,14 +7,14 @@ tools\watch_build.ps1 —— 长任务看门狗（不阻塞、每次几秒出结
 
 用法：
     .\tools\watch_build.ps1                       # 默认看 build_v6.log
-    .\tools\watch_build.ps1 -Log D:\BrainMaker\build_tile.log -ProcessName blender
+    .\tools\watch_build.ps1 -Log D:\BrainMaker\大镖客2解包分析\_logs\build_tile.log -ProcessName blender
     .\tools\watch_build.ps1 -Mark                 # 只记基线，不判定
 
 判定：RUNNING（近 180 s 有写入）/ STALLED（>180 s 无写入但进程还在）/ EXITED（进程没了）
 退出码：0 RUNNING，1 STALLED，2 EXITED
 #>
 param(
-  [string]$Log = 'D:\BrainMaker\build_v6.log',
+  [string]$Log = 'D:\BrainMaker\大镖客2解包分析\_logs\build_v6.log',
   [string]$ProcessName = 'blender',
   [int]$StallSec = 180,
   [switch]$Mark

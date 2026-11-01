@@ -24,13 +24,14 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 
 # 类表（顺序只影响报告打印；判定优先级看 RULES）
 CLASSES = (
-    'lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
-    'rail', 'struct', 'road', 'ruin', 'decal', 'veg', 'stone', 'rock',
+    'lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
+    'rail', 'rail_decal', 'struct', 'road', 'ruin', 'decal', 'veg', 'stone', 'rock',
     'veh', 'bldg', 'part', 'junk', 'prop', 'unknown',
 )
 
 # 默认隐藏（构建时 collection + 眼睛都关）；decal 由启动器额外关
-DEFAULT_HIDDEN = ('lod', 'terrain_cell', 'underground', 'watertile', 'placeholder', 'veg', 'stone', 'road')
+DEFAULT_HIDDEN = ('lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile',
+                  'placeholder', 'veg', 'stone', 'road')
 
 # 技术类：内容纠错不覆盖（junc 硬规则除外）
 TECHNICAL = ('lod', 'underground')
@@ -46,6 +47,10 @@ PLANT = re.compile(r'plantpot|p_pot_|flowerarng|planter', re.I)
 
 # ── 主规则表（书写顺序 = 优先级）─────────────────────────────────────
 RULES = [
+    # 2026-11-01 用户裁定：**地形远景块**要从「远景碎片」里分出来（原来是混在一类的）。
+    # 命名 = `<网格前缀>_<行>_<列>_slod<N>`（如 `nopq_92_95_slod4`），每块约 4×4 km，
+    # 是地形自己的超低级替身，跟建筑/铁路的 lod 碎片不是一类东西。必须排在 lod 之前。
+    ('terrain_lod', '地形远景块', re.compile(r'^[a-z]{2,6}_\d+_\d+_slod\d*$', re.I)),
     ('lod', '远景碎片', re.compile(
         r'_area_slod|_em_slod|_dslod|_slod|_lod(?=\d|_|$)|_l\d(?=_|$)', re.I)),
     ('terrain_cell', '地形块', re.compile(r'__hd_0_|^outg?_[a-z]_\d+_hd_\d+', re.I)),
@@ -55,13 +60,21 @@ RULES = [
     ('placeholder', '占位代理', re.compile(
         r'donotdelete|dontdelete|emitterdummy|placeholder|_occ_|occ_test_box|'
         r'proxy|amb_pun|cubedelete|fakeintdummy|cover_coll|helper', re.I)),
+    # 2026-11-01 用户裁定：铁轨**本体**与铁轨**贴花**分成两类（同 road / decal 的先例），
+    # 且**不跟 decal 走** —— 贴花是轨面/枕木/栈桥的油渍·炭化层，归 decal 会被启动器一起关掉、画面掉一层。
+    # 判定 = 名字里**同时**有「铁路上下文」和「贴花上下文」（纯 `track_decal` **不算**：
+    # 实测 58 个里 5 个 `bla_road_track_decal_*` 是土路车辙、39 个 `l_XX_YY_track_decal` 是地形瓦片上的杂草贴花）。
+    # 必须排在 rail 之前。
+    ('rail_decal', '铁路贴花', re.compile(
+        r'(?=.*(?:rail[_-]?decal|railroad[_-]?decal|railr|rrcross|crossing|_r_[abc]_|b_r_|'
+        r'sle\d|sleeper|tres(?:tle|sle)|railroad|track_?switch|point_switch|_rhd_|_rails))'
+        r'.*(?:decal|_dec(?![a-z])|_dcl(?=\d|_|$))', re.I)),
     ('rail', '铁路', re.compile(
         r'railr|rrcross|crossing|crossb|_r_c_|_r_b_|_rc_\d|sleeper|sle\d|railroadtie|trestle|tressle|\btun(nel)?\b|'
         r'\._r_|_rails|railroad|tie0?\d|track_?switch|'
         r'maintrack|northtrack|southtrack|minetrack|rail_?buffer|coatrack|_rhd_\d|'
         r'point_switch|'
-        r'rail[_-]?decal|track[_-]?decal|'
-        r'b_r_|_r_[abc]_dec', re.I)),
+        r'b_r_', re.I)),
     ('struct', '桥梁结构', re.compile(
         # 🔴 2026-10-31 用户裁定：struct **只放桥/栈桥相关**；码头/船坞/挡墙/筒仓已挪到
         #    bldg / part（见下面两条规则）。别再往这里加通用构筑物。

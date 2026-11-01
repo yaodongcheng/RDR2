@@ -78,7 +78,7 @@ def main():
     # ⚠️ 不要写成 `--at 2560,-1450`：cmd 会把逗号当分隔符，argparse 只会收到 2560（已知坑）
     ap.add_argument('--x', type=float, default=2560.0)
     ap.add_argument('--y', type=float, default=-1450.0)
-    ap.add_argument('--out', default=r'D:/BrainMaker/_test/ab')
+    ap.add_argument('--out', default=r'D:/BrainMaker/大镖客2解包分析/_scratch/_test/ab')
     ap.add_argument('--res', default='1280x720')
     a = ap.parse_args(argv())
     cx, cy = a.x, a.y

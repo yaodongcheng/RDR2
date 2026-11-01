@@ -510,8 +510,8 @@ python tools\extract_slot_textures.py --stage bind   # 只重算绑定（不改�
 A/B 出图（Eevee，同机位）：
 
 ```powershell
-cmd /c 'tools\run.cmd D:\BrainMaker\_logs\ab.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\...\continent_v12.blend" --python tools\_unbuffer.py -P tools\render_material_ab.py -- --tag v12 --x 2560 --y=-1450'
-# 产物 D:\BrainMaker\_test\ab\v12_on.png / v12_off.png
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\ab.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\...\continent_v12.blend" --python tools\_unbuffer.py -P tools\render_material_ab.py -- --tag v12 --x 2560 --y=-1450'
+# 产物 D:\BrainMaker\大镖客2解包分析\_scratch\_test\ab\v12_on.png / v12_off.png
 ```
 
 ### 13.8 待提交文件（15 个）
@@ -686,7 +686,7 @@ python tools\list_unparsed_models.py         # 未入库逐条清单
 | v19 | 回滚 `_wall` 排除（它误伤 38 个真植被） | **PASS**；veg 10,942 / stone 718 / 隐藏合计 44,633 = 2,290+30,683+10,942+718 |
 | v20 | 补 `out_*` / `outg_*` 两套 1024 m 外围地形块 → `terrain_cell`（用户 2026-10-30 报 `out_c_05_hd_13`） | **PASS**；这 **156 个**（85 + 71）全部归地形块且 `hid=1`；terrain_cell 30,683 → **30,839**，unknown 7,828 → **7,672**；对象总数仍 184,032 |
 | v21 | 用户逐个点名后的清理：① 新增 **`underground` 地下**（tempbox / `q_11_damn` / z<−80）② 新增 **`watertile` 水面块**（`a_water_*`）③ 新增 **`placeholder` 占位代理**（proxy/occ/placeholder/donotdelete/amb_pun/cubedelete）④ **rail 规则补窄词**（`sle\d`/`tressle`/`*track`/`rail_buffer`/`coatrack`/`_rhd_\d`，修 Annesburg 断轨）⑤ `decal` 几何兜底排除站台/地板/走道（26 个救回可见）⑥ `classify()` 先剥 `.001` | **PASS**，**17 类**；`rail` 2,288 → **2,592**（Annesburg 的 `maintrack_03/04` 现在可见）、`watertile` **321**、`placeholder` **64**、`underground` **17**（全部 `hid=1`）；decal 4,159 → 4,005；`p_litternbx02x` 的 33 个地表实例仍是 prop，只有 3 个掉在 −104.9 m 的进地下 |
-| v22 | **二修铁路**（v21 只修好了路基，轨面/枕木仍藏在 decal）：Annesburg 以北真正的轨面是 `jklm_1518b_r_*` / `j_1518b_r_dec_*`、枕木是 `j_1518_r_a_dec_*`（贴图 `railroad_sleeper*`）—— 全落在 **decal**，而启动器默认关 decal。rail 规则补 `b_r_` 与 `_r_[abc]_dec`（**不加** `_r_[abc]_`，否则木栈桥/铁路桥 170 个会被抢走） | **PASS**；rail 2,592 → **2,641**，decal 3,966。**用渲图验收**（启动器同款可见性）：主线连续、枕木在、站场股道在 —— `D:\BrainMaker\_railcheck\close_top.png` / `close_along.png` / `close_yard.png` / `top.png` / `oblique.png` / `wide.png` |
+| v22 | **二修铁路**（v21 只修好了路基，轨面/枕木仍藏在 decal）：Annesburg 以北真正的轨面是 `jklm_1518b_r_*` / `j_1518b_r_dec_*`、枕木是 `j_1518_r_a_dec_*`（贴图 `railroad_sleeper*`）—— 全落在 **decal**，而启动器默认关 decal。rail 规则补 `b_r_` 与 `_r_[abc]_dec`（**不加** `_r_[abc]_`，否则木栈桥/铁路桥 170 个会被抢走） | **PASS**；rail 2,592 → **2,641**，decal 3,966。**用渲图验收**（启动器同款可见性）：主线连续、枕木在、站场股道在 —— `D:\BrainMaker\大镖客2解包分析\_scratch\railcheck\close_top.png` / `close_along.png` / `close_yard.png` / `top.png` / `oblique.png` / `wide.png` |
 | v23 | 用户点名两件事：① **枕木/道砟是独立地面片**（`*_rail_decal_*` / `*_track_decal_*`，贴图 `railroad_sleeper*`），340 个全在 decal → 被启动器藏 ⇒ "铁轨上没有枕木"。rail 规则补 `rail[_-]?decal|track[_-]?decal`；② **停在原点的实体**（`cumb_rock_hero_01` / `bgv_rock_04.020` / `dis_pun_00` 等，源数据 x=y=0）不是坐标兜底，是关卡"停放"件：源 tiles 实测 **1,141 条** x=y=0。加规则 `|x|<1 且 |y|<1` → `underground`（中文名改「地下停放」） | **PASS**；rail 2,641 → **2,980**（+339 枕木/道砟）、underground 17 → **1,158**、decal 3,966 → 3,625、veg −558 / rock −426（都是原点停放件） |
 
 > ⚠️ **2026-10-31 更正（v23 那一行）**：v23 实际是 `underground` **8,335**，不是上面写的 1,158 —— 建库前 2 分钟（`classify_entities.py` 23:25，blend 23:28）把"原点停放"规则换成了 **"9 点取最低地形，比对象最高点高 10 m 即判地下"**，原点那批与 tempbox 都仍被覆盖。其中 **5,891 个 z>50**（高山），抽样含冷杉/岩石 ⇒ **需抽查是否在陡坡误伤**（4 m/px 地形在崖边取样误差可能 >10 m）。v23 清单实测的 17 类数字见 `docs/TODO.md` §4.1。

@@ -12,7 +12,7 @@ import sys
 import bpy
 import mathutils
 
-OUT = r'D:/BrainMaker/_railcheck'
+OUT = r'D:/BrainMaker/大镖客2解包分析/_scratch/railcheck'
 _argv = sys.argv
 _ARGS = _argv[_argv.index('--') + 1:] if '--' in _argv else []
 _ap = argparse.ArgumentParser()

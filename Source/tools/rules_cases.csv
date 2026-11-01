@@ -15,3 +15,11 @@ reg_scm_tracking02,,decal,马蹄印贴花
 p_11_cle_swaps_pre,,decal,地表替换片
 crp_cornstalks_ca_sim,,veg,农作物
 m_12__13_de10,road_muddyroad_03_ab|hea_track_decal_02_abte,road,按贴图判道路
+s_95_03_rail_decal_02,,rail_decal,铁轨贴花：单独一类，不跟 decal 走
+j_1518_r_a_dec_01,,rail_decal,_r_X_dec 也归铁轨贴花
+j_1518_r_a_rails_07,,rail,铁轨本体不能被贴花规则吃掉
+rstu_96_99_rails_142,,rail,铁轨本体
+nopq_92_95_slod4,,terrain_lod,地形远景块从远景碎片里分出来
+rstu_96_99_slod4,,terrain_lod,同上（四象限网格前缀）
+rstu_96_99_rails_lod_202,,lod,铁路的 lod 仍是远景碎片
+new_aus_bridge2_slod,,lod,建筑 lod 仍是远景碎片

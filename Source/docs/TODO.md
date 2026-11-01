@@ -1,55 +1,78 @@
 # TODO —— 交接版（2026-10-31 晚）
 
-> 交接阅读顺序：1) 本文（最上面就是下一步）2) `docs/格式与资产/分类体系与判定规则.md`（19 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（§1.7 bat 纪律 · §1.8 分类入口 · §1.9 目录纪律）4) `docs/交接与状态/README_交接.md`（历史）。
+> 交接阅读顺序：1) 本文（最上面就是下一步）2) `docs/格式与资产/分类体系与判定规则.md`（21 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（§1.7 bat 纪律 · §1.8 分类入口 · §1.9 目录纪律）4) `docs/交接与状态/README_交接.md`（历史）。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
 
 ---
 
-## ★ 2026-11-01 · 两层材质 B（当前最高优先级）
+## ★ 2026-11-01 · 两层材质 B —— ✅ 已实施（规则见 `docs/格式与资产/RDR2_贴图分层与两层材质.md`）
 
-### 0. 一句话
+### 0. 一句话（修正自原判断）
 
-RDR2 的 `standard_2lyr*` 材质有 **两层 albedo + control 混合图**，我们现在只导了第 0 层；
-第 0 层经常是"腐烂/污渍遮罩"，所以码头、墙体在 Blender 里整块发黑。**B = 完整支持两层 + control + palette。**
+码头/墙体"整块发黑"有**两个原因**，原 TODO 只抓到了一个半：
 
-### 1. 证据（不要重查，照这个做）
+1. 🔴 **主因：贴图池的 PNG 被缩图缩黑了。** PIL 12 对 RGBA 做 `resize` 是**按 alpha 预乘**的重采样，
+   alpha 稀疏的贴图 RGB 会被乘暗。实测 `nbx_wall_woodplank_11long_rotted_ab`：
+   **源 0.30 → 池子里 0.034**（原 TODO 记的"RGB 0.034、是遮罩"其实是这个 bug 的产物）。
+   同时旧代码 `resize((512,512))` 还把 1024×512 的墙板纵向拉长一倍。
+   修法 = `ytd_to_png.resize_max()`：**RGB 与 alpha 分开缩** + 等比。
+2. **次因：两层材质只导了第 0 层。** `standard_2lyr*` 是 `lyr0 + lyr1 + control`，
+   `standard_dirt` 是 `diffusetex + diffusetex2`。现已全部接上。
 
-- 源文件：`raw/sdn/models/new_pie_03_dockmed3.ydr`，shader = `standard_2lyr_pxm`
-- 槽位：
-  - `lyr0diffusetex` → `nbx_wall_woodplank_11long_rotted_ab`（**遮罩**：alpha 均值 0.083、RGB 0.034）
-  - `lyr1diffusetex` → `nbx_wall_woodplank_11long_ab`（**基底**：不透明、RGB 0.312）
-  - `controltexturetex` → `nbx_wall_woodplank_14long_ct`（控制图，**未抽取**）
-  - `tintpalettetex` → `new_pie_03_dockmed3_pal`（256×4 调色表，未抽取）
-  - `dirtdiffusetex` → 泥土层（`standard_dirt` 用，未抽取）
-- 当前导出器：`tools/export_sdn_props2.pick_albedo()` **只取第 0 层 albedo**（`ROLE_ALBEDO` 命中即返回），
-  `rdr2_ydr.extract_at()` 的 `texs_detail` 里其实两层都在（role=`albedo` / `albedo2` / `control` / `albedo_dirt`）。
-- 影响面：`raw/sdn/models` 3,309 个 ydr 里 **852 个用 2lyr**（`standard_2lyr` 735 / `standard_2lyr_pxm` 236）；
-  `standard_dirt` 692 个的 dirt 层也被忽略。全包（all_packs）还没统计。
+### 1. 做完了什么
 
-### 2. 验收（做成什么样算完）
+| # | 内容 | 落在哪 |
+|---|---|---|
+| 1 | 贴图池刷新（修缩图缩黑 + 长宽比） | `tools/refresh_tex_pool.py`（新）；全量 32,878 张，**3,348 张被改写** |
+| 2 | 两层取图规则 + 遮罩通道自动判定 | `tools/tex_slots.py` 的 `pick_layers()` / `mask_channel()` / `alpha_std()` |
+| 3 | 抽 `l1/ct/dt/nm2/ma2/pl` 并写索引 | `tools/extract_slot_textures.py`（四段式扩展，写 `models[h].lyr` 与 `tex[i].ch`） |
+| 4 | 材质节点 `mix(lyr0, lyr1, w)` | `tools/mat_rdr2.py`（颜色/法线/ORM 同一 Fac） |
+| 5 | 构建与重挂开关 | `blender_continent --lyr on|off`、`relink_materials --lyr on|off` |
+| 6 | 文档 | `docs/格式与资产/RDR2_贴图分层与两层材质.md`（新）· `tools/README.md` |
 
-1. `new_pie_03_dockmed3` 在 Material Preview 里能看到木板纹理（不再黑），并与基底图对比不偏色；
-2. 区域 #20 重建后，抽查码头/城墙/室内墙面不黑；建筑类"低 alpha + 近黑"的贴图不再作为唯一 albedo；
-3. control 混合生效：选一个 control 明显的模型，两层分别关闭/开启能看到混合差异；
-4. 重建不崩、材质数量/内存可接受（每个两层材质多 1~2 张贴图 + 1 个控制图）。
+**全库实测（2026-11-01，68,744 个源模型）**：
+* 绑上两层的模型 **7,984 个 / 21,870 个槽位**（第 1 层 21,662、control 9,035、dirt 9,740）；
+* 其中 **6,965 个模型真有混合权重**（`python tools/audit_two_layers.py`）：
+  `ctrl.R` 4,300 · `ctrl.G` 3,150 · `ctrl.B` 968 · `ctrl.A` 358 · `l1.alpha` 8,602 · 无权重（退回单层）4,073 槽；
+* 调色板内嵌在 `.ydr` 体内，已解出 **9,147 张**进池，**但材质暂不使用**（语义未验证，见下）。
 
-### 3. 实施步骤
+**验收（2026-11-01 已做）**：
+* 🔴 **区域 #20 已用两层材质重建到官方路径** `deliverable\blender\regions\20_wild2000_05_02.blend`（959 MB，旧版 955 MB 已挪到
+  `_scratch\two_layer\region20_prev.blend` 作回退）→ `VERIFY ENTITIES ... PASS` · `_check_region.py` **PASS**（18 类逐项一致）；
+  清单已归位 `regions_support\20_wild2000_05_02\`；
+* 场景内 **4,378 个材质里 1,356 个带两层混合（31%）**；
+* 圣丹尼斯码头（世界坐标 ≈ `2543, -1570, 46`）同机位 A/B 出图：
+  旧 blend 的木桩/栈桥是一片褐色糊，新 blend 能看到一根根木桩与板缝
+  （图在 `D:\BrainMaker\大镖客2解包分析\_scratch\two_layer\region\region_sdn_dock_{old,new}.png`）。
+  🔴 探针产物一律放**项目自己的** `大镖客2解包分析\_scratch\<主题>\`，不许放 `D:\BrainMaker\` 根（2026-11-01 用户裁定，见 AGENTS §1.9）。
 
-| # | 做什么 | 文件/数据 | 备注 |
-|---|---|---|---|
-| 1 | **扫描器**（已跑过一次，2026-11-01）：列出所有 2lyr / dirt 模型（hash、源文件、各层 role/name、control/palette）→ CSV | 一次性探针放 `D:\BrainMaker\_probe\two_layer\audit_two_layer.py`；重跑命令：`python "D:\BrainMaker\_probe\two_layer\audit_two_layer.py"` | **SDN 城市结果**：3,309 个 ydr → 1,073 个 2lyr/dirt 模型；全部有 lyr1；852 有 control；978 有 palette；95 无 palette |
-| 2 | **抽 control/palette/dirt 贴图**：让贴图池包含这几类角色 | `tools/extract_slot_textures.py` / `tex_slots.py` / `work/tex_name_index.json` | 需要按 role 建索引，不能只认 albedo/normal/material |
-| 3 | **导出器带上层信息** | `tools/export_sdn_props2.load_drawable`：把 `albedo2 / normal2 / materialA2/B2 / control / dirt` 一并带出；`dump_model_lib.write_model` 写入 | `.mdl` 格式扩展或 `index.json` 加 `lyrs` 字段；老模型按单层兼容 |
-| 4 | **材质节点**：两层混合 + palette | `tools/mat_rdr2.py` | BaseColor = mix(lyr0, lyr1, control 通道)；法线/ORM 同步；palette 调色（需实测通道语义） |
-| 5 | **重导**：先 SDN 城市 852 个 2lyr 模型 | `raw/sdn/models` + ingest 工具 | 逐模型验证：重导后 index/mdl 有 `lyrs` |
-| 6 | **重建 + 验收** | 区域 #20 先重建，再全量 | `_check_region` PASS；肉眼抽查 |
+### 2. 关键判定（留档，别再重查）
 
-### 4. 已知风险
+* **混合方向**：`w 大 → 第 1 层`。依据 = 控制图资产名直接叫第 1 层的素材
+  （`nbx_ground_grass_bay_lsuh_mb` ↔ lyr1 `nbx_ground_grass_bay_lsuh_ab`），
+  以及社区实现 Sollumz-RDR `RDR_create_2lyr_shader`（`diff_lyr_mix` 的 Color2 = `lyr1diffusetex`）。
+* **取哪个通道**：不写死 R —— 专用 `_ct` 是灰度、复用 `_mb` 时往往只有一个通道在变，
+  所以按**方差最大**挑，结果存在 `tex[i].ch`。
+* **`standard_dirt` 没有控制图** → 第 1 层 `_abal` 的 **alpha** 就是权重（实测 alpha 0~0.89 起伏）。
+* **调色板先不用**：码头那张 256×4 是「绿 / 青 / 白」渐变条，直接乘会把木头染绿；
+  它要配合逐顶点 `COLOR0` 选择子（`tintpaletteselector` CBuffer）才有意义 —— 未验证。
+* **逐顶点 `COLOR1`** 与 control 贴图**互不相关**（实测 |r| < 0.4），是两条独立通道；
+  要用它得给 `.mdl` 加逐顶点属性并重导几何 —— 本轮没做。
 
-- `controltexturetex` 的**通道语义**（R/G/B/A 各管哪层、是否多 dirt 层）没有公开文档 → 必须用 2~3 个模型做"关层对比"实测；
-- `tintpalettetex` 是 256×4 调色表，可能依赖顶点色/调色索引 → 不还原会让颜色偏；
-- 材质翻倍会显著增加显存/构建时间（尤其大陆 7.3 GB）→ 先只对 2lyr 模型启用，单层模型不动；
-- `.mdl` 是自有二进制格式，扩展必须带版本号/兼容旧文件，否则整个库要重导。
+### 3. 下一步（真要做的话）
+
+1. 区域重建后**肉眼抽查码头/城墙/室内墙面**（区域 #20 已重建，见下）；
+2. 若某个模型的两层看起来"反了"，先看材质的 `layer_mix` 自定义属性（记录权重来源），
+   再用 `--lyr off` 对照 —— 不要靠改公式猜；
+3. 想更进一步就是 §2 最后两条（调色板 / 逐顶点权重），都要先解 CBuffer 或改 `.mdl`。
+
+### 4. 已知风险（保留）
+
+- 材质每槽最多多 2~4 张图节点（第 1 层 albedo/法线/ORM + 控制图），大陆重建时间会变长；
+- `control` 有 25 个 SDN 模型取不到（`nbx_wall_woodplank_14long_ct` 不在已解包的任何 `.ytd` 里）
+  → 这些槽退回单层，不报错。
+
+---
 
 ### 5. 本轮（2026-11-01）其他已完成事项
 
@@ -64,11 +87,12 @@ RDR2 的 `standard_2lyr*` 材质有 **两层 albedo + control 混合图**，我�
 ## ★ 下一步（新 session 从这一节开始）：批量生成 22 个「有网格」的区域裁剪
 
 > ✅ **2026-11-01 已完成**：22/22 块 `status=done`，`_check_region` 全部 PASS；
-> 本节保留作流程/命令参考，**下一件事是上面的「两层材质 B」**。
+> 本节保留作流程/命令参考。**上一件事（两层材质 B）也已在同日落地**，见上面那一节；
+> 现在要重做区域/大陆时会自动带两层材质（`--lyr off` 可回退）。
 
 ### 0. 一句话
 
-大陆 v23 目前还是 **17 类旧规则**；分类规则已升级到 **19 类**（新增 `road`、`ruin`），区域 #19 已验证 PASS。接下来把**可见对象 > 0** 的 22 个区域各裁一个 blend，逐个对账；全部 PASS 后再对大陆跑一次，出 v24。
+大陆 v23 目前还是 **17 类旧规则**；分类规则已升级到 **21 类**（新增 `road`、`ruin`、`rail_decal`），区域 #19 已验证 PASS。接下来把**可见对象 > 0** 的 22 个区域各裁一个 blend，逐个对账；全部 PASS 后再对大陆跑一次，出 v24。
 
 ### 1. 目录约定（2026-10-31 用户裁定，照 `sdn_full2/`、`guarma/`、`willard/` 的先例）
 
@@ -85,7 +109,7 @@ D:\BrainMaker\大镖客2解包分析\deliverable\blender\
 ```
 
 - **`regions\` 里只允许 `.blend`**；manifest / 预览图 / CSV 一律进 `regions_support\`。
-- 日志：`D:\BrainMaker\_logs\region_<编号>.log`。
+- 日志：`D:\BrainMaker\大镖客2解包分析\_logs\region_<编号>.log`。
 - 编号 = 俯视图图例的 `#1~#47`（`regions_support\tile_legend.csv`）。
 
 ### 2. 要跑的区域（22 块）
@@ -123,14 +147,14 @@ D:\BrainMaker\大镖客2解包分析\deliverable\blender\
 
 ```powershell
 Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
-cmd /c 'tools\run.cmd D:\BrainMaker\_logs\region_20.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend" --lib "D:\BrainMaker\大镖客2解包分析\assets\lib_native" --only-tile wild2000_05_02 --step 8 --rails --full --no-water --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\region_20.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools\_unbuffer.py -P tools\blender_continent.py -- --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend" --lib "D:\BrainMaker\大镖客2解包分析\assets\lib_native" --only-tile wild2000_05_02 --step 8 --rails --full --no-water --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv"'
 ```
 
 **B. 已建好的区域只重跑分类/纠错**（约 3~5 分钟，不重建几何）
 
 ```powershell
 Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
-cmd /c 'tools\run.cmd D:\BrainMaker\_logs\region_20_fix.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\region_20_fix.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions\20_wild2000_05_02.blend"'
 ```
 
 **C. 对账（每块必跑）**
@@ -139,7 +163,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\_logs\region_20_fix.log "C:\Program Files\Bl
 python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\tools\_check_region.py" --tile wild2000_05_02 --audit "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\20_wild2000_05_02\manifest_20_wild2000_05_02.jsonl"
 ```
 
-> 说明：A 构建会把 manifest 写在 blend 旁边。**必须**把它移到 `regions_support\<编号>_<tile>\`（`_apply_corrections.py` 会自动挪；纯 A 构建要手动 `Move-Item`）。判据永远是 `_check_region.py` **PASS**（19 类计数逐项一致）。
+> 说明：A 构建会把 manifest 写在 blend 旁边。**必须**把它移到 `regions_support\<编号>_<tile>\`（`_apply_corrections.py` 会自动挪；纯 A 构建要手动 `Move-Item`）。判据永远是 `_check_region.py` **PASS**（21 类计数逐项一致）。
 
 ### 4. 批量驱动（已实现：`tools/build_regions.py`，2026-10-31）
 
@@ -152,7 +176,7 @@ python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR
 | 断点 | `status=done` 跳过；`--resume` 默认开启；`--force` 重跑；`--only 19,20` 指定 |
 | 归位 | 构建完把 `manifest_<编号>_<tile>.json/.jsonl` 移到 `regions_support\<编号>_<tile>\` |
 | 对账 | 立刻跑 `_check_region.py`；**FAIL 就停**，不继续下一块 |
-| 日志 | `D:\BrainMaker\_logs\region_<编号>.log`；驱动自身日志 `_logs\build_regions.log` |
+| 日志 | `D:\BrainMaker\大镖客2解包分析\_logs\region_<编号>.log`；驱动自身日志 `_logs\build_regions.log` |
 | 备份 | 构建前设 `save_version=0`，**不生成 `.blend1`**（`reclassify.py` 已有先例） |
 | 状态 | 每块结束更新 `region_list.csv` 的 `status`（todo/done/failed） |
 
@@ -185,11 +209,11 @@ python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR
 
 ```powershell
 Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
-cmd /c 'tools\run.cmd D:\BrainMaker\_logs\continent_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v24.blend"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\continent_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_apply_corrections.py -- --corrections "D:\BrainMaker\大镖客2解包分析\deliverable\blender\regions_support\region_corrections.csv" --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v24.blend"'
 ```
 
 2. 验收：manifest `verdict=PASS`（`unknown` 允许为 0，看 `classes_missing` 为空）、`_check_region.py` PASS；`_check_class_visibility.py` 确认 `road` 隐藏、`ruin` 显示。
-3. 之后所有区域重建都自动继承 19 类 + 纠错清单。
+3. 之后所有区域重建都自动继承 21 类 + 纠错清单。
 
 ---
 
@@ -215,7 +239,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\_logs\continent_v24.log "C:\Program Files\Bl
 - 隐藏 4,598（lod 512 / terrain_cell 999 / veg 2,502）
 - **unknown 已清零**（`com_plane001` 目视确认完全埋在地下 → underground）——430 → 0，2026-10-31 纠错行 16~41
 
-### 分类体系（现已 19 类，规则唯一真身 = `tools/class_rules.py`）
+### 分类体系（现已 21 类，规则唯一真身 = `tools/class_rules.py`）
 
 - 新增类：`road`（道路，**默认隐藏**）· `ruin`（废墟，**默认显示**）；
 - 硬规则：**名字含 `junc` 一律 road**（无例外）；名字含 `ruin` 一律 ruin（`lod/underground` 除外）；
@@ -227,7 +251,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\_logs\continent_v24.log "C:\Program Files\Bl
 
 | 脚本 | 用途 |
 |---|---|
-| `tools/class_rules.py` | **规则唯一真身**（19 类 / RULES / 硬规则 / 纠错解析） |
+| `tools/class_rules.py` | **规则唯一真身**（21 类 / RULES / 硬规则 / 纠错解析） |
 | `tools/classify_entities.py` | Blender 驱动（建集合树、几何兜底） |
 | `tools/_apply_corrections.py` | 已建区域重跑分类（含纠错、清单归位） |
 | `tools/_check_region.py` | 区域对账（v23 + 纠错 vs 区域 manifest） |
@@ -243,7 +267,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\_logs\continent_v24.log "C:\Program Files\Bl
 |---|---|
 | `deliverable\blender\regions\19_wild2000_04_02.blend1` | Blender 自动备份（860 MB）；新构建已要求 `save_version=0` |
 | `deliverable\blender\regions_support\_probe_cards_wide.json` / `_probe_crosscards.json` | 一次性探针输出 |
-| `D:\BrainMaker\_logs\test2.bat` / `test_launcher.bat` / `bat_dump.txt` | 调试 bat 的临时文件 |
+| `D:\BrainMaker\大镖客2解包分析\_logs\test2.bat` / `test_launcher.bat` / `bat_dump.txt` | 调试 bat 的临时文件 |
 
 ---
 

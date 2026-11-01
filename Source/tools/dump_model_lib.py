@@ -70,7 +70,11 @@ class Tex:
             self.by_name[k] = -1
             return -1
         if max(im.size) > self.maxs:
-            im = im.resize((self.maxs, self.maxs), Image.LANCZOS)
+            # ★ 等比 + 颜色/alpha 分开缩：旧代码 `resize((maxs, maxs))` 既把非方形贴图拉变形，
+            #   又因为 PIL 12 的 RGBA 预乘重采样把 alpha 稀疏的图 **RGB 乘黑**
+            #   （2026-11-01 实锤：码头/墙体整块发黑就是这个，见 ytd_to_png.resize_max）。
+            from ytd_to_png import resize_max
+            im = resize_max(im, self.maxs)
         if im.mode not in ('RGB', 'RGBA'):
             im = im.convert('RGB')
         tid = len(self.meta)

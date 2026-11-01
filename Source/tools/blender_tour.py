@@ -27,7 +27,7 @@ try:
     _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from class_registry import CLASSES, DEFAULT_HIDDEN
 except Exception:                    # 单独拷走脚本时的兜底（与注册表保持一致）
-    CLASSES = ('lod', 'terrain_cell', 'rail', 'struct', 'decal', 'veg', 'stone', 'rock',
+    CLASSES = ('lod', 'terrain_cell', 'rail', 'rail_decal', 'struct', 'decal', 'veg', 'stone', 'rock',
                'veh', 'bldg', 'part', 'junk', 'prop', 'unknown')
     DEFAULT_HIDDEN = ('lod', 'terrain_cell', 'veg', 'stone')
 

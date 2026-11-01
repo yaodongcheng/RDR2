@@ -3,7 +3,7 @@
 
     blender -b <blend> -P tools/_unbuffer.py -P tools/_probe_rail_wide.py
 
-产物：D:/BrainMaker/_railcheck/<tag>_top.png / _oblique.png / _wide.png
+产物：D:/BrainMaker/大镖客2解包分析/_scratch/railcheck/<tag>_top.png / _oblique.png / _wide.png
 """
 import os
 import sys
@@ -11,7 +11,7 @@ import sys
 import bpy
 import mathutils
 
-OUT = r'D:/BrainMaker/_railcheck'
+OUT = r'D:/BrainMaker/大镖客2解包分析/_scratch/railcheck'
 os.makedirs(OUT, exist_ok=True)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

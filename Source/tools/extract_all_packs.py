@@ -30,7 +30,7 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 GAME = r'H:/EPICGAMES/RedDeadRedemption2'
 RP = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/rdr2rpf.exe')
 OUT = os.path.join(ROOT, 'raw/all_packs')
-LOGS = r'D:/BrainMaker/_logs'
+LOGS = r'D:/BrainMaker/大镖客2解包分析/_logs'
 AUDIT = os.path.join(ROOT, 'work/pack_audit.json')
 
 

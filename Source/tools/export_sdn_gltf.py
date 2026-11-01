@@ -361,6 +361,13 @@ def load_model(path):
             a2 = (alb or {}).get('role') in ('albedo2', 'albedo_layer1', 'lyr1diffusetex')
             g['ntex'] = pick_tex(texs, ('normal2',) if a2 else ROLE_NORMAL)
             g['mtex'] = pick_tex(texs, ('materialB2', 'materialA2', 'material2') if a2 else ROLE_MATERIAL)
+            # 两层材质（standard_2lyr / standard_dirt）：第 1 层 + control + dirt。
+            # 不是分层 shader 时全 None，行为与以前完全一致。
+            try:
+                import tex_slots as _S
+                g['lyrs'] = _S.pick_layers(texs)
+            except Exception:
+                g['lyrs'] = None
             geoms.append(g)
     if not geoms:
         return None

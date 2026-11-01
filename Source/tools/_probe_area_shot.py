@@ -6,8 +6,8 @@
     blender -b <blend> -P tools/_unbuffer.py -P tools/_probe_area_shot.py -- \
         --x 2884 --y 1348 --w 1200 --tag ann
 
-产物：`D:/BrainMaker/_test/ann/<tag>_full.png`（含地形）
-      `D:/BrainMaker/_test/ann/<tag>_noterrain.png`（隐藏 Terrain，看几何本体）
+产物：`D:/BrainMaker/大镖客2解包分析/_scratch/_test/ann/<tag>_full.png`（含地形）
+      `D:/BrainMaker/大镖客2解包分析/_scratch/_test/ann/<tag>_noterrain.png`（隐藏 Terrain，看几何本体）
 """
 import bpy
 import os
@@ -21,7 +21,7 @@ ap.add_argument('--x', type=float, default=2884.0)
 ap.add_argument('--y', type=float, default=1348.0)
 ap.add_argument('--w', type=float, default=900.0)
 ap.add_argument('--tag', default='ann')
-ap.add_argument('--out', default=r'D:/BrainMaker/_test/ann')
+ap.add_argument('--out', default=r'D:/BrainMaker/大镖客2解包分析/_scratch/_test/ann')
 ap.add_argument('--res', type=int, default=1400)
 a = ap.parse_args(ARGS)
 os.makedirs(a.out, exist_ok=True)

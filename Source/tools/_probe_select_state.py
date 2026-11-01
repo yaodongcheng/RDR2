@@ -19,7 +19,7 @@ import bpy
 
 argv = sys.argv
 ARGS = argv[argv.index('--') + 1:] if '--' in argv else []
-OUT = r'D:/BrainMaker/_probe/select_state.json'
+OUT = r'D:/BrainMaker/大镖客2解包分析/_scratch/select_state.json'
 NAMES = []
 if '--out' in ARGS:
     OUT = ARGS[ARGS.index('--out') + 1]

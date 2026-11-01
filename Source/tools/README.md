@@ -1,19 +1,21 @@
 # tools 脚本索引
 
-> 🔴 **改分类前先读** [`docs/格式与资产/分类体系与判定规则.md`](../docs/格式与资产/分类体系与判定规则.md)（19 类 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单 / 已验证的坑）。
+> 🔴 **改分类前先读** [`docs/格式与资产/分类体系与判定规则.md`](../docs/格式与资产/分类体系与判定规则.md)（21 类 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单 / 已验证的坑）。
 
-## 🔴 RDR2 两层材质（2026-11-01 实测；B 工程进行中，见 `docs/TODO.md`）
+## 🔴 RDR2 两层材质（2026-11-01 落地；规则见 `docs/格式与资产/RDR2_贴图分层与两层材质.md`）
 
-- **现象**：区域 #20 的 `new_pie_03_dockmed3`（以及一批码头/墙体）在 Material Preview 里**整块黑**，但材质节点、贴图文件都正常。
-- **根因**：源 ydr 用 `standard_2lyr` / `standard_2lyr_pxm` 两层着色器，槽位是
-  `lyr0diffusetex` + `lyr1diffusetex` + `controltexturetex`（另有 `tintpalettetex` 256×4、`dirtdiffusetex`）。
-  `export_sdn_props2.pick_albedo()` **只取第 0 层**；当第 0 层是遮罩（实测 `nbx_wall_woodplank_11long_rotted_ab`：alpha 8%、RGB 0.034）时，就会整块黑。
-  真正的基底是第 1 层（`nbx_wall_woodplank_11long_ab`：不透明、RGB 0.31）。
-- **范围**：`raw/sdn/models` 3,309 个 `.ydr` 里 **852 个用 2lyr**；`standard_dirt` 692 个的 dirt 层也被忽略；
-  `control` / `palette` 目前**没有抽取**（贴图池只覆盖 albedo/normal/material）。
-- **已确认可用的解析入口**：`rdr2_ydr.extract_at(res, 0, 'high')` 的 `texs_detail` 已带 `slot/param/role/name`，
-  role 包含 `albedo` / `albedo2` / `normal` / `normal2` / `materialA/B` / `control` / `albedo_dirt`。
-- **不要**再用「按贴图平均色/名字猜」的 fallback 绕；彻底修复 = 两层 + control + palette（步骤见 TODO「两层材质 B」）。
+- **现象**：区域 #20 的 `new_pie_03_dockmed3`（以及一批码头/墙体）在 Material Preview 里**整块黑**。
+- **主因（不是"只导了第 0 层"）**：贴图池的 PNG 被**缩图缩黑** —— PIL 12 对 RGBA 做 `resize`
+  是按 alpha 预乘的重采样，alpha 稀疏的贴图 RGB 会被乘暗。
+  实测 `nbx_wall_woodplank_11long_rotted_ab`：源 0.30 → 池子里 0.034。
+  修法 = `ytd_to_png.resize_max()`（**RGB 与 alpha 分开缩**、等比、不再拉成正方形）。
+- **次因**：`standard_2lyr*` 是两层 + 控制图，旧管线只取 `lyr0diffusetex`。
+- **落地**：`tex_slots.pick_layers/mask_channel`（取图与遮罩通道）、`extract_slot_textures`
+  四段式扩出 `lyr`（`[l1, ctrl, dirt, nrm2, ma2]`，与 `s`/`st` 等长同序）、
+  `mat_rdr2` 按 `mix(lyr0, lyr1, w)` 建节点、`blender_continent --lyr on|off`、`relink_materials --lyr on|off`。
+- **配套**：`refresh_tex_pool.py`（新）—— 把池子里的 PNG 按当前源重解（同名覆盖，tex id 不变）。
+- **不要**再用「按贴图平均色/名字猜」的 fallback 绕；调色板（`*_pal`）只抽取、暂不参与材质
+  （语义要配逐顶点 COLOR0，未验证；直接乘会把木板染绿）。
 
 > 按职责分类。所有脚本从项目根目录运行：`uv run python tools/<脚本>.py`
 > 脚本之间用 `sys.path.insert(0, tools)` + `import 模块名` 互相引用，**不要移动文件**。
@@ -28,11 +30,21 @@
   → `--stage bind`（对 `s` 做 vc/ic + albedo 名字三重校验）
   → `--stage decode`（14 进程解 `_nm`/`_ma` 进 `tex/`，池 12,214→27,057）
   → `--stage apply`（回写 `index.json` 的 `st`；`.mdl` 不动；先自动备份）
+  **2026-11-01 扩展**：同一趟还收 `l1/ct/dt/nm2/ma2/pl`（两层 + 控制图 + 土 + 调色板），
+  回写 `models[h].lyr`，并给遮罩贴图打 `tex[i].ch`（方差最大的通道）。
 - `tex_slots.py`  源侧取图规则（**按 albedo 图层配对** `normal_layerN` / `material_layerN`）。
-  注意 `export_sdn_gltf.ROLE_MATERIAL` **不含** `material_layerN`，别照抄那份常量
+  注意 `export_sdn_gltf.ROLE_MATERIAL` **不含** `material_layerN`，别照抄那份常量。
+  `pick_layers()` 取两层那套、`mask_channel()/alpha_std()` 定遮罩通道
 - `mat_rdr2.py`  Blender 节点图（albedo→BaseColor、`_nm`→NormalMap、`_ma`→SeparateColor→
-  Metallic/Roughness）。`blender_continent._mat_for()` 与 `relink_materials.py` 共用这一份
+  Metallic/Roughness；两层时按 `mix(lyr0, lyr1, w)` 同步混颜色/法线/ORM）。
+  `blender_continent._mat_for()` 与 `relink_materials.py` 共用这一份
+- `refresh_tex_pool.py`  **贴图池刷新**（2026-11-01 新）：按当前源 ytd 重解池里的 PNG，
+  同名同路径覆盖（tex id 不变），顺带修「RGBA 缩放按 alpha 预乘 → 图被缩黑」与「非方形被拉变形」。
+  `--dry` 只统计；判据 = 32×32 平均绝对差 > 0.02 或尺寸不同才重写
 - `audit_three_maps.py`  **不开 Blender** 的三贴图覆盖审计（槽位级 + 实例加权 + 池子分 role）
+- `audit_two_layers.py`  **不开 Blender** 的两层体检：`models[h].lyr` 覆盖、权重来源分布
+  （`ctrl.R/G/B/A` / `l1.alpha` / 无权重）、引用到的 id 在池子里都有 PNG。
+  `--hash 0x…` 只看一个模型（会列出它的 5 个层 id 对应贴图名）
 - `render_material_ab.py`  同机位 Eevee A/B 出图（`_on.png` 带三贴图 / `_off.png` 断掉法线与 ORM），
   用于肉眼验收 —— Workbench 只有 `diffuse_color`，**看不到法线**
 
@@ -250,7 +262,7 @@
 ## 验收渲染 / 可见性检查（2026-10-31 归口，7 个）
 
 > **来源**：原先散落在 `D:\BrainMaker\` 根的 7 个一次性脚本（10-30 19:42 ~ 10-31 07:26 建），
-> 按 `docs/AGENTS.md` §1.6 归口到 `tools/`。**产物仍在 `D:\BrainMaker\_railcheck\`**（交接 §16.6 引用了那批图）。
+> 按 `docs/AGENTS.md` §1.6 归口到 `tools/`。**产物仍在 `D:\BrainMaker\大镖客2解包分析\_scratch\railcheck\`**（交接 §16.6 引用了那批图）。
 > 相关旧工具：`_check_class_visibility.py`（存盘态逐集合 dump）· `_probe_vis_state.py`（v11 时代的 saved vs `show_all` 对照，已被上面两个覆盖）。
 
 | 脚本 | 类别 | 用途 | 产物 |
@@ -271,7 +283,7 @@
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --factory-startup -P tools\_check_tour_vis_unit.py
 
 # 铁路渲图（Blender 要打开 7.8 GB blend，约 5~10 分钟）
-cmd /c 'tools\run.cmd D:\BrainMaker\_railcheck\wide.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_probe_rail_wide.py'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_scratch\railcheck\wide.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\_probe_rail_wide.py'
 ```
 
 **保留判定**：`_check_*` 长期保留（回归检查）；`_probe_*` 是**证据脚本**，重跑即覆盖同名图，

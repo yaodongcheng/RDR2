@@ -133,6 +133,35 @@ def pick_all(texs):
                 mat=pick_material(texs, layer, role))
 
 
+# --------------------------------------------------------------------- 分层（2lyr / dirt）
+def pick_layers(texs):
+    """`standard_2lyr*` / `standard_dirt` 的**第二层 + 混合图 + 土/调色板**。
+
+    返回 dict(l1, nrm2, mat2, ctrl, dirt, pal)，取不到的项是 None。
+    单层 shader 全部是 None（调用方据此保持原行为）。
+
+    🔴 配对纪律（同 `pick_all`）：第二层的法线/材质**只认同层角色**
+    （`normal2` / `materialA2`），取不到就留 None —— 不跨层回退，
+    否则会把第 0 层的法线贴到第 1 层的漫反射上。
+    """
+    def _big(roles):
+        cand = [t for t in texs if _ok(t) and (t.get('role') or '') in roles]
+        return max(cand, key=lambda t: t['w'] * t['h'])['name'] if cand else None
+
+    alb, role = pick_albedo(texs)
+    # albedo 本身就在第 1 层（role=albedo2）时没有"两层"可言
+    if role == 'albedo2':
+        return dict(l1=None, nrm2=None, mat2=None, ctrl=None, dirt=None, pal=None)
+    return dict(
+        l1=_big(('albedo2',)),
+        nrm2=_big(('normal2', 'normal_layer1')),
+        mat2=_big(('materialA2', 'materialB2', 'material2')),
+        ctrl=_big(('control',)),
+        dirt=_big(('albedo_dirt',)),
+        pal=_big(('palette',)),
+    )
+
+
 # --------------------------------------------------------------------- 源文件读取
 def geoms_of_ydr(res):
     """ydr → [(geom, texs), …]，顺序与 `export_sdn_gltf.load_model()` 完全一致。"""
@@ -151,3 +180,48 @@ def geoms_of_ydr(res):
             texs = shaders[sid] if 0 <= sid < len(shaders) else []
             out.append((g, texs))
     return out
+
+
+# --------------------------------------------------------------------- 内嵌调色板
+def embedded_texture(res, desc):
+    """把 shader 里**内嵌在 .ydr 体内**的贴图解出来（实测只有 `*_pal` 会内嵌）。
+
+    `.ydr` 的 `grcTextureRef` 有两种形态：
+      · 外部引用 —— `w/h/fmt` 全 0、`dptr=0`（真正像素在 `.ytd` 里，靠名字去贴图池找）；
+      · 内嵌     —— 带 `w/h/fmt` 且 `dptr` 指向资源体内。
+    返回 (PIL.Image|None, 格式名)。
+    """
+    from ytd_to_png import decode_one
+    if not (desc.get('dptr') and desc.get('w') and desc.get('h')):
+        return None, 'external'
+    o = res.off(desc['dptr'])
+    if o is None:
+        return None, 'bad-ptr'
+    n = max(4096, desc['w'] * desc['h'] * 4)
+    return decode_one(res.body[o:o + n], desc['w'], desc['h'], desc['fmt'])
+
+
+# --------------------------------------------------------------------- 混合遮罩用哪个通道
+def mask_channel(img):
+    """在 control / `_abal` 这类"遮罩图"里挑**方差最大**的通道 → (下标, 标准差)。
+
+    实测依据（`docs/格式与资产/RDR2_贴图分层与两层材质.md`）：
+      · 专用 `_ct` 是灰度的 —— RGB 三通道相同，取哪个都行；
+      · 复用 `_mb` 当 control 时，往往只有 **一个**通道在变（如 `nbx_ground_grass_bay_lsuh_mb`
+        的 R 恒 1.0、G 恒 0.525、只有 B 在 0.09~1.0 之间变）。
+    所以不写死 R，按实际方差挑；四通道全平（真·单色）返回 (None, 0.0)。
+    """
+    import numpy as np
+    a = np.asarray(img.convert('RGBA'), dtype=np.float32) / 255.0
+    std = [float(a[..., c].std()) for c in range(4)]
+    best = int(max(range(4), key=lambda c: std[c]))
+    if std[best] < 0.01:
+        return None, std[best]
+    return best, std[best]
+
+
+def alpha_std(img):
+    """alpha 通道的标准差 —— `_abal` 这类「alpha 当混合遮罩」的贴图用这个判。"""
+    import numpy as np
+    a = np.asarray(img.convert('RGBA'), dtype=np.float32) / 255.0
+    return float(a[..., 3].std())

@@ -58,7 +58,10 @@ def main():
   ap = argparse.ArgumentParser()
   ap.add_argument('--dry', action='store_true')
   ap.add_argument('--limit', type=int, default=0)
+  ap.add_argument('--lyr', default='on', choices=['on', 'off'],
+                  help='两层材质开关（默认 on）：on = mix(lyr0, lyr1, control)；off = 只挂第 0 层')
   a = ap.parse_args(argv())
+  two_layer = (a.lyr == 'on')
 
   models, tex = load_index()
   print('[relink] 库内模型 %d，贴图 %d' % (len(models), len(tex)))
@@ -83,6 +86,7 @@ def main():
       continue
     s = e.get('s') or []
     st = e.get('st') or []
+    ly = e.get('lyr') or []
     if st:
       st_models += 1
     me = ob.data
@@ -93,7 +97,9 @@ def main():
       pair = st[i] if 0 <= i < len(st) else None
       ntid = pair[0] if pair else -1
       mtid = pair[1] if pair else -1
-      targets.append(mat_rdr2.get_or_make(tid, ntid, mtid, tex, LIB, cache))
+      lyr = ly[i] if 0 <= i < len(ly) else None
+      targets.append(mat_rdr2.get_or_make(tid, ntid, mtid, tex, LIB, cache,
+                                          lyr=lyr, two_layer=two_layer))
     if a.dry:
       done += 1
       continue
