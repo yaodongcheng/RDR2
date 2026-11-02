@@ -224,10 +224,12 @@ def ensure_light():
 
 
 def clear_old():
-    for n in ('Terrain', 'Water'):
-        o = bpy.data.objects.get(n)
-        if o:
-            bpy.data.objects.remove(o, do_unlink=True)
+    o = bpy.data.objects.get('Terrain')
+    if o:
+        bpy.data.objects.remove(o, do_unlink=True)
+    for o in [o for o in bpy.data.objects
+              if o.name == 'Water' or o.name.startswith('Water_')]:   # 两级水面（Water_Main / Water_West）
+        bpy.data.objects.remove(o, do_unlink=True)
     for m in list(bpy.data.materials):
         if m.name.startswith('ground_tex') or m.name.startswith('water_'):
             bpy.data.materials.remove(m)

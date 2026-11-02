@@ -37,35 +37,46 @@ def main():
     ap.add_argument('--dry', action='store_true')
     a = ap.parse_args(argv())
 
-    water = bpy.data.objects['Water']
-    n = len(water.data.vertices)
-    co = np.empty(n * 3, dtype=np.float64)
-    water.data.vertices.foreach_get('co', co)
-    co = co.reshape(n, 3)
-    M = np.array(water.matrix_world)
-    w = co @ M[:3, :3].T + M[:3, 3]
+    waters = [o for o in bpy.data.objects
+              if o.type == 'MESH' and (o.name == 'Water' or o.name.startswith('Water_'))]
+    if not waters:
+        raise SystemExit('没有水面对象')
     cx, cy = a.center
+    total = 0
+    for water in waters:
+        n = len(water.data.vertices)
+        co = np.empty(n * 3, dtype=np.float64)
+        water.data.vertices.foreach_get('co', co)
+        co = co.reshape(n, 3)
+        M = np.array(water.matrix_world)
+        w = co @ M[:3, :3].T + M[:3, 3]
 
-    d = np.hypot(w[:, 0] - cx, w[:, 1] - cy)
-    inside = d <= a.radius
-    ramp = np.clip((a.radius + a.ramp - d) / max(1e-6, a.ramp), 0.0, 1.0)
-    # 只降不升
-    want = a.target + (w[:, 2] - a.target) * (1.0 - ramp)
-    mask = inside & (want < w[:, 2] - 0.02)
-    print('[water] 区域顶点 %d，需要下调的 %d' % (int(inside.sum()), int(mask.sum())))
-    if mask.any():
-        print('[water] 原水位 中位 %.2f → 目标 %.2f（最大降 %.2f）' % (
-            float(np.median(w[inside, 2])), a.target,
-            float((w[mask, 2] - want[mask]).max())))
-    if a.dry or not mask.any():
+        d = np.hypot(w[:, 0] - cx, w[:, 1] - cy)
+        inside = d <= a.radius
+        ramp = np.clip((a.radius + a.ramp - d) / max(1e-6, a.ramp), 0.0, 1.0)
+        # 只降不升
+        want = a.target + (w[:, 2] - a.target) * (1.0 - ramp)
+        mask = inside & (want < w[:, 2] - 0.02)
+        print('[water] %s 区域顶点 %d，需要下调的 %d'
+              % (water.name, int(inside.sum()), int(mask.sum())))
+        if mask.any():
+            print('[water] 原水位 中位 %.2f → 目标 %.2f（最大降 %.2f）' % (
+                float(np.median(w[inside, 2])), a.target,
+                float((w[mask, 2] - want[mask]).max())))
+        if a.dry or not mask.any():
+            continue
+
+        w[mask, 2] = want[mask]
+        Minv = np.linalg.inv(M)
+        co2 = w @ Minv[:3, :3].T + Minv[:3, 3]
+        water.data.vertices.foreach_set('co', co2.astype(np.float32).ravel())
+        water.data.update()
+        bpy.context.view_layer.update()
+        total += int(mask.sum())
+
+    if a.dry:
         return
-
-    w[mask, 2] = want[mask]
-    Minv = np.linalg.inv(M)
-    co2 = w @ Minv[:3, :3].T + Minv[:3, 3]
-    water.data.vertices.foreach_set('co', co2.astype(np.float32).ravel())
-    water.data.update()
-    bpy.context.view_layer.update()
+    print('[water] 合计下调 %d 个顶点' % total)
 
     out = a.out or bpy.data.filepath
     bpy.ops.wm.save_as_mainfile(filepath=out)

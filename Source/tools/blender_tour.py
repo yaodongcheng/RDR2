@@ -644,14 +644,26 @@ def water_color(rgb=(0.16, 0.32, 0.45)):
 
 
 # ---------------------------------------------------------------- 一键档位
+def _expand_targets(targets):
+    """'Water' 展开成所有水面对象（旧 Water / 新 Water_Main / Water_West）。"""
+    names = []
+    for nm in targets:
+        if nm == 'Water':
+            names += [o.name for o in bpy.data.objects
+                      if o.name == 'Water' or o.name.startswith('Water_')]
+        else:
+            names.append(nm)
+    return names
+
+
 def decimate(ratio=0.3, targets=('Terrain', 'Water')):
     """给地形/水面挂**视口用**的减面修改器（非破坏性，删掉 modifier 就恢复）。
 
-    Terrain 946 万顶点 + Water 419 万顶点，两者合计 ~27 M 三角面，是"转视角一顿一顿"的来源之一。
+    Terrain 946 万顶点 + 水面（Water_Main / Water_West），是"转视角一顿一顿"的来源之一。
     ratio=0.3 → 地形约 2.8 M 顶点。只影响视口显示，不改网格数据、不影响渲染出图（可 tour.undecimate()）。
     """
     n = 0
-    for nm in targets:
+    for nm in _expand_targets(targets):
         o = bpy.data.objects.get(nm)
         if o is None or o.type != 'MESH':
             continue
@@ -668,7 +680,7 @@ def decimate(ratio=0.3, targets=('Terrain', 'Water')):
 
 def undecimate(targets=('Terrain', 'Water')):
     n = 0
-    for nm in targets:
+    for nm in _expand_targets(targets):
         o = bpy.data.objects.get(nm)
         if o is None:
             continue
@@ -760,8 +772,9 @@ def perf():
         print('      视口 shading=%s  视距=%.0f m' % (sh, a.spaces.active.region_3d.view_distance))
         if sh == 'MATERIAL':
             print('      ⚠ 你正在 Material Preview —— 这是最卡的档位，想要流畅请 tour.textured() 或 tour.boost()')
-    dec = [nm for nm in ('Terrain', 'Water')
-           if bpy.data.objects.get(nm) and bpy.data.objects[nm].modifiers.get('preview_decimate')]
+    dec = [o.name for o in bpy.data.objects
+           if (o.name == 'Terrain' or o.name == 'Water' or o.name.startswith('Water_'))
+           and o.modifiers.get('preview_decimate')]
     print('      地形减面: %s' % ('已启用 ' + str(dec) if dec else '未启用（tour.decimate(0.3) 可提速）'))
 
 

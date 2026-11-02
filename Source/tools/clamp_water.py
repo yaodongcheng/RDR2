@@ -36,9 +36,10 @@ def main():
     a = ap.parse_args(argv())
 
     ter = bpy.data.objects.get('Terrain')
-    water = bpy.data.objects.get('Water')
-    if ter is None or water is None:
-        raise SystemExit('缺 Terrain / Water')
+    waters = [o for o in bpy.data.objects
+              if o.type == 'MESH' and (o.name == 'Water' or o.name.startswith('Water_'))]
+    if ter is None or not waters:
+        raise SystemExit('缺 Terrain / 水面对象')
 
     # 1) Terrain → 4 m 高度栅格
     tv = np.empty(len(ter.data.vertices) * 3, dtype=np.float64)
@@ -56,31 +57,38 @@ def main():
     tz = np.divide(acc, cnt, out=np.full_like(acc, np.nan), where=cnt > 0)
     print('[water] 地形栅格: 有值格 %d / %d' % (int((cnt > 0).sum()), W * H))
 
-    # 2) Water 顶点采样地形
-    wv = np.empty(len(water.data.vertices) * 3, dtype=np.float64)
-    water.data.vertices.foreach_get('co', wv)
-    wv = wv.reshape(-1, 3)
-    Mw = np.array(water.matrix_world)
-    ww = wv @ Mw[:3, :3].T + Mw[:3, 3]
-    wx = np.clip(((ww[:, 0] - X0) / RES).astype(np.int64), 0, W - 1)
-    wy = np.clip(((Y1 - ww[:, 1]) / RES).astype(np.int64), 0, H - 1)
-    g = tz[wy, wx]
-    bad = np.isfinite(g) & (ww[:, 2] > g - a.gap)
-    print('[water] 顶点 %d，高于地形的 %d (%.1f%%)' % (len(ww), int(bad.sum()), 100 * bad.mean()))
-    if bad.any():
-        print('[water] 超出量: 中位 %+.2f m  P95 %+.2f m  max %+.2f m' % (
-            np.median(ww[bad, 2] - g[bad]), np.percentile(ww[bad, 2] - g[bad], 95),
-            (ww[bad, 2] - g[bad]).max()))
+    # 2) 水面顶点采样地形（两级水面：Water_Main / Water_West 逐个处理）
+    total_bad = 0
+    for water in waters:
+        wv = np.empty(len(water.data.vertices) * 3, dtype=np.float64)
+        water.data.vertices.foreach_get('co', wv)
+        wv = wv.reshape(-1, 3)
+        Mw = np.array(water.matrix_world)
+        ww = wv @ Mw[:3, :3].T + Mw[:3, 3]
+        wx = np.clip(((ww[:, 0] - X0) / RES).astype(np.int64), 0, W - 1)
+        wy = np.clip(((Y1 - ww[:, 1]) / RES).astype(np.int64), 0, H - 1)
+        g = tz[wy, wx]
+        bad = np.isfinite(g) & (ww[:, 2] > g - a.gap)
+        print('[water] %s 顶点 %d，高于地形的 %d (%.1f%%)'
+              % (water.name, len(ww), int(bad.sum()), 100 * bad.mean()))
+        if bad.any():
+            print('[water] 超出量: 中位 %+.2f m  P95 %+.2f m  max %+.2f m' % (
+                np.median(ww[bad, 2] - g[bad]), np.percentile(ww[bad, 2] - g[bad], 95),
+                (ww[bad, 2] - g[bad]).max()))
+        if a.dry or not bad.any():
+            continue
+        ww[bad, 2] = g[bad] - a.sink
+        Minv = np.linalg.inv(Mw)
+        wv2 = ww @ Minv[:3, :3].T + Minv[:3, 3]
+        water.data.vertices.foreach_set('co', wv2.astype(np.float32).ravel())
+        water.data.update()
+        bpy.context.view_layer.update()
+        total_bad += int(bad.sum())
+        print('[water] %s 已压低 %d 个顶点' % (water.name, int(bad.sum())))
+
     if a.dry:
         return
-
-    ww[bad, 2] = g[bad] - a.sink
-    Minv = np.linalg.inv(Mw)
-    wv2 = ww @ Minv[:3, :3].T + Minv[:3, 3]
-    water.data.vertices.foreach_set('co', wv2.astype(np.float32).ravel())
-    water.data.update()
-    bpy.context.view_layer.update()
-    print('[water] 已压低 %d 个顶点' % int(bad.sum()))
+    print('[water] 合计压低 %d 个顶点' % total_bad)
 
     out = a.out or bpy.data.filepath
     bpy.ops.wm.save_as_mainfile(filepath=out)

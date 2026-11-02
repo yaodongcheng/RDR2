@@ -38,7 +38,8 @@ def main():
     a = ap.parse_args(argv())
 
     ter = bpy.data.objects['Terrain']
-    water = bpy.data.objects['Water']
+    waters = [o for o in bpy.data.objects
+              if o.type == 'MESH' and (o.name == 'Water' or o.name.startswith('Water_'))]
     ent = bpy.data.collections['ENTITIES']
 
     # 结构（桥）位置
@@ -66,7 +67,7 @@ def main():
         return v @ M[:3, :3].T + M[:3, 3], v, M
 
     tw, tv, Mt = grid_xyz(ter)
-    ww, wv, Mw = grid_xyz(water)
+    ww = np.concatenate([grid_xyz(w)[0] for w in waters]) if waters else np.zeros((0, 3))
 
     ix = np.clip(((tw[:, 0] - X0) / RES).astype(np.int64), 0, W - 1)
     iy = np.clip(((Y1 - tw[:, 1]) / RES).astype(np.int64), 0, H - 1)

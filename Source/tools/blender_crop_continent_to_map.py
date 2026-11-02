@@ -97,52 +97,13 @@ def main():
                 killed += 1
     print('[entities] 框外删除 %d 个对象，剩 %d' % (killed, len(bpy.data.objects)))
 
-    # 重建水面，只保留框内
-    lvl = np.load(LVP)
-    wet = ~np.isnan(lvl)
-    P = lvl.shape[0]
-    RES = WORLD / P
-    s = max(1, int(round(8.0 / RES)))
-    rows = np.arange(0, P - s, s)
-    cols = np.arange(0, P - s, s)
-    W4 = (wet[np.ix_(rows, cols)] & wet[np.ix_(rows, cols + s)] &
-          wet[np.ix_(rows + s, cols)] & wet[np.ix_(rows + s, cols + s)])
-    Lv = lvl[np.ix_(rows, cols)]
-    ny, nx = len(rows), len(cols)
-    X, Y = np.meshgrid(X0w + cols * RES, Y0w + rows * RES, indexing='xy')
-    co_all = np.stack([X.ravel(), Y.ravel(), Lv.ravel()], axis=1).astype(np.float32)
-    idx2 = np.arange(ny * nx, dtype=np.int32).reshape(ny, nx)
-    a_ = idx2[:-1, :-1].ravel(); b_ = idx2[:-1, 1:].ravel()
-    c_ = idx2[1:, :-1].ravel(); d_ = idx2[1:, 1:].ravel()
-    quads = np.stack([a_, b_, d_, c_], axis=1)[W4[:-1, :-1].ravel()]
-    # 只保留框内
-    cx = co_all[:, 0]; cy = co_all[:, 1]
-    inside = (cx >= x0) & (cx <= x1) & (cy >= y0) & (cy <= y1)
-    qin = inside[quads].all(axis=1)
-    quads = quads[qin]
-    used = np.unique(quads)
-    remap = np.full(len(co_all), -1, np.int64)
-    remap[used] = np.arange(len(used))
-    quads = remap[quads]
-    co = co_all[used]
-    print('[water] quads %d verts %d' % (len(quads), len(co)))
-
-    wold = bpy.data.objects.get('Water')
-    wmat = wold.data.materials[0] if wold and wold.data.materials else None
-    if wold:
-        wme = wold.data
-        bpy.data.objects.remove(wold, do_unlink=True)
-        if wme.users == 0:
-            bpy.data.meshes.remove(wme)
-    me = bpy.data.meshes.new('Water')
-    me.vertices.add(len(co)); me.vertices.foreach_set('co', co.ravel())
-    me.loops.add(quads.size); me.loops.foreach_set('vertex_index', quads.ravel())
-    me.polygons.add(len(quads)); me.polygons.foreach_set('loop_start', np.arange(0, quads.size, 4, dtype=np.int32))
-    me.update()
-    if wmat:
-        me.materials.append(wmat)
-    wob = bpy.data.objects.new('Water', me)
-    bpy.context.scene.collection.objects.link(wob)
+    # 重建水面（两级：Water_Main / Water_West），只保留框内
+    #   2026-11-02：瀑布以西的新奥斯汀盆地比主水系低约 62 m，不能再用一个平面。
+    if os.path.join(ROOT, 'tools') not in sys.path:
+        sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import water_two_levels as W
+    made = W.build(box=(x0, x1, y0, y1), mat=W.water_material())
+    print('[water] %s' % ', '.join('%s %d 面' % (k, len(v.data.polygons)) for k, v in made.items()))
 
     bpy.ops.wm.save_mainfile()
     print('SAVED')

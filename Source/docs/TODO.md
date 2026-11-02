@@ -34,6 +34,56 @@
 
 ---
 
+## ★ 2026-11-02 · 水面改成**两级**（瀑布两侧水位差 62 m）—— ✅ 数据与脚本已完成，⏳ **blend 尚未重建**
+
+**用户实机确认**：圣路易斯河（瀑布以西）水面比主水系（平铁湖 / 海岸）低，实机里就是那道瀑布
+（截图：峡谷大瀑布，骑马视角）。**地形不用改**——标高数据是对的，错的是「水面只有一个平面」。
+
+| 项 | 值 |
+|---|---|
+| 主水系（平铁湖 + 海岸 + 东侧河流） | **40.5 m**（`water.xml` 真值，沿用原单平面的高度） |
+| 西盆地（圣路易斯河 / 新奥斯汀，瀑布以西） | **−22 m**（西盆地岸线中位 −16.8，按主水系「岸线 45.5→水面 40.5」同样扣 5 m） |
+| 两级交界 | ≈ **(−2000, −3177)**，x −2400~−1600 / y −3450~−2900 |
+| 高山小湖（40 个零碎水体） | 各自岸线中位（58~243 m），**不参与两级**，否则会被压到 40.5 埋掉 |
+
+**产物**
+
+- `export\world\water_level_map_2lv.npy` —— 两级水位图（2048²，行 0=南，NaN=陆地）
+- `tools\water_two_levels.py` —— 建 **三个**对象（默认 **32 m** 网格，约 1 万四边形；
+  ⚠️ 2026-10-28 否掉的是 8 m / 28.5 万四边形 + 半透明版本，视口会卡，别退回去）：
+  · **`Water_Main`** —— 主水系，默认 40.5 m
+  · **`Water_West`** —— 西盆地，默认 −22 m
+  · **`Water_Alpine`** —— 高山小湖（58~243 m），各湖保留自己的水位
+
+🔴 **水位可调**（同旧版 `make_water_dynamic()`）：选中 `Water_Main` / `Water_West` →
+物体属性 → 自定义属性 **`water_level`**，改数值水面立刻升降（网格顶点 z=0，对象按 `water_level` 移动）。
+上面 40.5 / −22 只是**初值**，准不准以实机为准 —— 直接调旋钮，不用改脚本重跑。
+
+**已同步改过的脚本**（都按 `Water` / `Water_*` 前缀找水面，不再写死单对象）
+
+| 脚本 | 改了什么 |
+|---|---|
+| `blender_continent.py` `water()` | 单平面 → 调用 `water_two_levels.build()`；两级图缺失时退回旧图，再失败才退回单平面 |
+| `blender_crop_continent_to_map.py` | 裁框后重建水面 → 两级、只留框内四边形 |
+| `blender_sync_blend_to_heightmap.py` | 同上 |
+| `blender_tour.py` | `decimate` / `undecimate` / 性能提示 覆盖所有水面对象 |
+| `blender_probe_maparea.py` | 水面面数按所有水面对象求和 |
+| `blender_rebuild_ground.py` | `clear_old()` 清掉所有水面对象 |
+| `clamp_water.py` / `lower_water_local.py` / `carve_water_channel.py` | 逐个水面对象处理（原来是单对象） |
+| `replace_water_plane.py` | 改成委托 `water_two_levels.build()`（原「一张平面 40.5」的做法作废） |
+| `rebuild_water_from_map.py` | 同上，委托两级构建 |
+| `rebuild_water_levels.py` | 头部标注：**只负责算单级水位图**，建水面走 `water_two_levels.py` |
+
+**状态**：按用户 2026-11-02 指示，**没有重建 blend**（`continent_v23.blend` 是红线内的主产物，不许动）。
+下次建大陆 / 裁框 / 同步时新脚本自动生效。冒烟测试已在小 blend（`16_wild2000_01_02`）跑通：
+`Water_Main 8124 四边形` / `Water_West 1770 四边形`。
+
+**遗留**：两张水位图并存 —— `water_level_map.npy`（单级，旧）与 `water_level_map_2lv.npy`（两级，新）。
+旧图仍被 `build_final_map_heightmap.py` / `make_terrain_stages.py`（节点 2 的水深）引用；
+是否切到两级图、以及 `02_water_deepen` 要不要按西盆地重算，等用户裁定。
+
+---
+
 ## ★ 待办 · 瓜玛岛地形对齐（2026-11-02 用户裁定：**暂不处理**）
 
 **目标**（等用户说做的时候再动手）：出一版 `guarma_height.png` / `guarma_color.png`，

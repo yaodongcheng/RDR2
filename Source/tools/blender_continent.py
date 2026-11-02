@@ -808,22 +808,16 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
   return ent_col
 
 
-def water(step=8.0):
-  """水面：一张蓝色平面（2026-10-28 用户要求）。
+def water(step=32.0):
+  """水面：**两级**（主水系 40.5 m / 西盆地 −22 m），见 tools/water_two_levels.py。
 
-  原来的实现是 2048² 采样网格 → 285,550 个四边形（57 万三角面）+ 半透明，
-  全屏 overdraw 导致视口卡顿，而且水位是重建值（42.75，比真值高 2.25 m，淹桥墩）。
-  改为单 quad，高度用 RDR2 `water.xml` 的全局真值 40.5。
+  历史（别退回去）：
+    · 8 m 细网格 285,550 四边形 + 半透明 → 视口 overdraw 卡顿（2026-10-28 用户否掉）；
+    · 单平面 40.5 → 瀑布以西的新奥斯汀盆地（岸线 −17）整个被淹，
+      实机确认那里真有瀑布、西侧水面低约 62 m（2026-11-02 用户裁定）。
+  ⇒ 现在按 `water_level_map_2lv.npy` 建两个对象 `Water_Main` / `Water_West`，默认 32 m 网格；
+     两级图缺失时自动退回旧图（单级），再失败才退回单平面。
   """
-  ZW = 40.5
-  X0W, Y0W, WW = -7684.0, -8196.0, 12296.0
-  old = bpy.data.objects.get('Water')
-  if old is not None:
-    bpy.data.objects.remove(old, do_unlink=True)
-  me = bpy.data.meshes.new('Water')
-  me.from_pydata([(X0W, Y0W, ZW), (X0W + WW, Y0W, ZW),
-                  (X0W + WW, Y0W + WW, ZW), (X0W, Y0W + WW, ZW)], [], [(0, 1, 2, 3)])
-  me.update()
   mat = bpy.data.materials.new('water')
   mat.use_nodes = True
   bsdf = _bsdf(mat)   # 按类型找，中文界面也认
@@ -848,7 +842,25 @@ def water(step=8.0):
   # 不设这个的话水面在默认视图里是一块**灰板**（TODO #3 的现象就是这么来的）。
   mat.diffuse_color = (0.10, 0.25, 0.42, 0.85)
   mat.roughness = 0.12
-  mat['note'] = '非真值：单平面 + 中性水色（最高原则 §6.5）；水位 z=40.5 来自 water.xml'
+  mat['note'] = '两级水面：主水系 40.5 m（water.xml）/ 西盆地 −22 m（瀑布以西）'
+
+  try:
+    import water_two_levels as W
+    made = W.build(step=step, mat=mat)
+    print('WATER OK 两级（主水系 %.1f / 西盆地 %.1f，step %.0f m）'
+          % (W.MAIN_M, W.WEST_M, step))
+    return made.get('Water_Main') or made.get('Water_West')
+  except Exception as e:
+    print('WATER 两级失败（%s），回落单平面 40.5' % e)
+
+  ZW = 40.5
+  X0W, Y0W, WW = -7684.0, -8196.0, 12296.0
+  for o in [o for o in bpy.data.objects if o.name == 'Water' or o.name.startswith('Water_')]:
+    bpy.data.objects.remove(o, do_unlink=True)
+  me = bpy.data.meshes.new('Water')
+  me.from_pydata([(X0W, Y0W, ZW), (X0W + WW, Y0W, ZW),
+                  (X0W + WW, Y0W + WW, ZW), (X0W, Y0W + WW, ZW)], [], [(0, 1, 2, 3)])
+  me.update()
   me.materials.append(mat)
   ob = bpy.data.objects.new('Water', me)
   bpy.context.scene.collection.objects.link(ob)

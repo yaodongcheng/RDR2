@@ -11,6 +11,7 @@
 """
 import bpy
 import os
+import sys
 import json
 import importlib.util
 
@@ -90,57 +91,16 @@ def main():
     bm.to_mesh(ob.data); bm.free(); ob.data.update()
     print('[terrain] 删孤立顶点 %d → %d 顶点' % (len(loose), len(ob.data.vertices)))
 
-    # ---- 水面：按 water_mask + 水位图重建，只保留地图框内 ----
+    # ---- 水面：两级（Water_Main / Water_West），只保留地图框内 ----
+    #   2026-11-02：瀑布以西的新奥斯汀盆地比主水系低约 62 m，不能再用一个平面。
     meta = json.load(open(META, encoding='utf-8'))
     xa, ya, yb = meta['x0'], meta['y0'], meta['y1']
     Wm, Hm = meta['size_px']
-    wm = np.asarray(Image.open(WMASK).convert('L')) > 128      # 行 0 = 北
-    lvl = np.load(WL)                                          # 2048², 行 0 = 南
-    P = lvl.shape[0]
-    step = int(round(8.0 / RES))                               # 8 m 一格
-    rows = np.arange(0, Hm - step, step)
-    cols = np.arange(0, Wm - step, step)
-    water = wm[np.ix_(rows, cols)] & wm[np.ix_(rows, cols + step)] & \
-        wm[np.ix_(rows + step, cols)] & wm[np.ix_(rows + step, cols + step)]
-    # 采样水位（世界 → 2048 栅格，南起）
-    wxs = xa + cols * RES
-    wys = yb - rows * RES
-    li = np.clip(((wys - Y0w) / WORLD * P).astype(np.int32), 0, P - 1)
-    lj = np.clip(((wxs - X0w) / WORLD * P).astype(np.int32), 0, P - 1)
-    zl = lvl[np.ix_(li, lj)]
-    zl = np.where(np.isnan(zl), 42.0, zl)
-
-    ny, nx = water.shape
-    X, Y = np.meshgrid(wxs, wys, indexing='xy')
-    co_all = np.stack([X.ravel(), Y.ravel(), zl.ravel()], axis=1).astype(np.float32)
-    idx = np.arange(ny * nx, dtype=np.int32).reshape(ny, nx)
-    a_ = idx[:-1, :-1].ravel(); b_ = idx[:-1, 1:].ravel()
-    c_ = idx[1:, :-1].ravel(); d_ = idx[1:, 1:].ravel()
-    quads = np.stack([a_, b_, d_, c_], axis=1)[water[:-1, :-1].ravel()]
-    if len(quads):
-        used = np.unique(quads)
-        remap = np.full(len(co_all), -1, np.int64); remap[used] = np.arange(len(used))
-        quads = remap[quads]; co = co_all[used]
-    else:
-        co = np.zeros((0, 3), np.float32)
-
-    wold = bpy.data.objects.get('Water')
-    wmat = wold.data.materials[0] if wold and wold.data.materials else None
-    if wold:
-        wme = wold.data
-        bpy.data.objects.remove(wold, do_unlink=True)
-        if wme.users == 0:
-            bpy.data.meshes.remove(wme)
-    me = bpy.data.meshes.new('Water')
-    me.vertices.add(len(co)); me.vertices.foreach_set('co', co.ravel())
-    me.loops.add(quads.size); me.loops.foreach_set('vertex_index', quads.ravel())
-    me.polygons.add(len(quads)); me.polygons.foreach_set('loop_start', np.arange(0, quads.size, 4, dtype=np.int32))
-    me.update()
-    if wmat:
-        me.materials.append(wmat)
-    wob = bpy.data.objects.new('Water', me)
-    bpy.context.scene.collection.objects.link(wob)
-    print('[water] quads %d verts %d' % (len(quads), len(co)))
+    if os.path.join(ROOT, 'tools') not in sys.path:
+        sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import water_two_levels as W
+    made = W.build(box=(xa, xa + Wm * RES, yb - Hm * RES, yb), mat=W.water_material())
+    print('[water] %s' % ', '.join('%s %d 面' % (k, len(v.data.polygons)) for k, v in made.items()))
 
     bpy.ops.wm.save_mainfile()
     print('SAVED')

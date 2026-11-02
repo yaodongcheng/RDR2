@@ -36,4 +36,6 @@ for cells in comps[:6]:
     if area<0.2: continue
     js=[c[0] for c in cells]; ii=[c[1] for c in cells]
     print('  空洞 %.2f km²  x[%.0f,%.0f] y[%.0f,%.0f]'%(area,A['x0']+min(ii)*dx,A['x0']+max(ii)*dx,A['y0']+min(js)*dy,A['y0']+max(js)*dy))
-print('Water faces', len(bpy.data.objects['Water'].data.polygons), 'objects', len(bpy.data.objects))
+_wobjs = [o for o in bpy.data.objects if o.type == 'MESH' and (o.name == 'Water' or o.name.startswith('Water_'))]
+print('Water faces', sum(len(o.data.polygons) for o in _wobjs),
+      '(%s)' % ','.join(o.name for o in _wobjs), 'objects', len(bpy.data.objects))
