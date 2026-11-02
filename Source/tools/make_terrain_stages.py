@@ -1,20 +1,24 @@
 # -*- coding: utf-8 -*-
-"""地形四级管线：把「原始 → 高原/平原 → 水域加深 → 统一水位陆地修正」逐级出图。
+"""地形分级管线：只做「原始 → 高原/平原」两级。
 
     python tools/make_terrain_stages.py
 
 产物 `deliverable/terrain/stages/<级>/`：
 
     height_16bit_4m.png   2692×2006 @4 m，16bit（米制：z = zmin + v/65535*(zmax-zmin)）
-    color_1m.png          10768×8024 @1 m（RGB；**被该级改动过的地方按高度重新上色**）
+    color_1m.png          10768×8024 @1 m（RGB；**= 原始地形材质，各级相同，不重上色**）
     meta.json             本级做了什么 / 参数 / 与上一级的差量
 
-四级：
+两级（2026-11-02 起）：
 
     00_raw             外延包补过的原始地形（H4_full 裁到地图框），未做任何塑形
     01_plateau_plain   西北高原（基准 720 m + fBm + 150 m 高斯隆起）/ 东南平原（42 m 合成）
-    02_water_deepen    水域加深（按官方地图判水面 + 分级水深）
-    03_unified_water   统一水位陆地修正（只服务大地图：陆地保底 −24.5 m，≤−15 m 抬 +10 m）
+
+为什么同一天砍掉「水域加深」和「统一水位陆地修正」两级（用户裁定）：
+    RDR2 的水面是**两级**（主水系 40.5 m / 瀑布以西的新奥斯汀盆地 −22 m）。
+    · 「水域加深」按单级水位挖/填 → 把圣路易斯河河床从 −28 m 抬到 +7 m（错的）；
+    · 「统一水位陆地修正」按「骑砍2 只有一个水面」去垫高干地 → 前提不成立。
+    **地形高度本身是对的**（等高线贴着游戏航拍贴图、标高与实体位置对得上），不按水位再动地形。
 
 前两级的函数/参数/噪声种子全部取自 `build_final_map_heightmap.py`（import 复用，不抄第二份）。
 """
@@ -37,11 +41,8 @@ AREA = os.path.join(ROOT, 'export/world/map_area.json')
 X0w, Y0w, WORLD, RES = -7684.0, -8196.0, 12296.0, 4.0
 ZMIN, ZMAX = -34.93079376220703, 690.3469848632812
 
-WATER_LEVEL_M = -25.0      # 骑砍2 单水位
-LAND_FLOOR_M = -24.5
-LIFT_M = 10.0
-LIFT_Z_FULL = -15.0
-LIFT_Z_ZERO = 15.0
+# 2026-11-02 删掉了「骑砍2 单水位」相关的常量（WATER_LEVEL_M / LAND_FLOOR_M / LIFT_*）：
+# 水面已确认是两级（主水系 40.5 / 西盆地 −22），不再做按水位的陆地垫高。
 
 
 # ------------------------------------------------------------------ 地形
@@ -123,21 +124,14 @@ def save_stage(name, z_north, base_color, meta_extra, changed):
     Image.fromarray(q).save(os.path.join(d, 'height_16bit_4m.png'))
     open(os.path.join(d, 'height_r16.raw'), 'wb').write(q.tobytes(order='C'))
 
-    # 彩图：未改动处保持原样；被本级改过的地方按「同高程带的真实像素均值」重新上色
+    # 彩图：**直接保留原始地形材质**（2026-11-02 用户裁定）。
+    # 为什么不重上色：改动区按「同高程带均值」刷出来是平坦色块 + 硬边界，完全不自然；
+    #   试过三种重上色（高程重映射 / 局部色差场 / 按同高程找真实地形重采样 + 平滑偏移场），
+    #   都会把真实纹理拉花或留下硬边界。原始彩图本身就是游戏真实地表（雪是雪、沼泽是沼泽），
+    #   而这片改动区（西北高原 / 东南平原）原本的色相与新高程并不冲突 —— 保留原色最自然。
+    #   如将来要"让颜色随高程变"，只有两条正路：大块真实纹理拼贴（有接缝风险）或手工修图。
     col = base_color.copy()
-    zc = np.repeat(np.repeat(z_north, 4, axis=0), 4, axis=1)[:col.shape[0], :col.shape[1]]
-    ch = np.repeat(np.repeat(changed, 4, axis=0), 4, axis=1)[:col.shape[0], :col.shape[1]]
-    zb = np.clip(((zc - ZMIN) / (ZMAX - ZMIN) * 64).astype(np.int16), 0, 63)
-    flat_z = zb.ravel(); flat_c = col.reshape(-1, 3).astype(np.float32)
-    lut = np.zeros((64, 3), np.float32)
-    for b in range(64):
-        m = (flat_z == b)
-        lut[b] = flat_c[m].mean(0) if m.sum() > 200 else np.array([150, 140, 120], np.float32)
-    # 平滑 LUT，避免高程带之间出现色阶
-    lut = ndimage.uniform_filter1d(lut, 5, axis=0)
-    rec = lut[zb]
-    col2 = np.where(ch[..., None], rec, col).astype(np.uint8)
-    Image.fromarray(col2).save(os.path.join(d, 'color_1m.png'), 'PNG', compress_level=6)
+    Image.fromarray(col).save(os.path.join(d, 'color_1m.png'), 'PNG', compress_level=6)
 
     meta = dict(stage=name, world=dict(x0=B_area['x0'], y0=B_area['y0'],
                                        x1=B_area['x1'], y1=B_area['y1'],
@@ -146,13 +140,13 @@ def save_stage(name, z_north, base_color, meta_extra, changed):
                 height=dict(file='height_16bit_4m.png', px=list(B_area['size_px']),
                             m_per_px=RES, zmin=zmin, zmax=zmax),
                 color=dict(file='color_1m.png', px=[col.shape[1], col.shape[0]], m_per_px=1.0,
-                           note='未改动处=world_ground_final_out 原色；改动处按同高程带真实像素均值重上色'),
+                           note='原始地形材质（world_ground_final_out 原色，各级相同；不按高程重上色）'),
                 changed_px=dict(count=int(changed.sum()), area_km2=round(float(changed.sum()) * 16 / 1e6, 2)),
                 **meta_extra)
     json.dump(meta, open(os.path.join(d, 'meta.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('[stage] %-18s z %.1f~%.1f m  改动 %.2f km2' %
           (name, zmin, zmax, changed.sum() * 16 / 1e6))
-    return col2
+    return col
 
 
 def main():
@@ -169,8 +163,7 @@ def main():
     print('[stage] 彩图 %s ← %s' % (base_color.shape[1::-1], 'world_ground_final_out.png'))
 
     z_s = np.flipud(z_n)                               # 行 0 = 南（与 B.main 内部一致）
-    water, depth, wlevel = water_and_depth(H, W, B_area)
-    protect = protect_mask(H, W, B_area)
+    water, _depth, _wlevel = water_and_depth(H, W, B_area)   # 只要水面掩膜（高原/平原避开水面）
 
     # ---- 节点 0
     save_stage('00_raw', z_n, base_color,
@@ -222,44 +215,10 @@ def main():
                                 plain_h=B.PLAIN_H, plain_fade=B.PLAIN_FADE)),
                np.abs(z1 - z_s) > 1.0)
 
-    # ---- 节点 2：水域加深（同一份水源判定 + 分级水深）
-    z2 = z1.copy()
-    z_water = wlevel - depth
-    z_land = np.where(z2 > wlevel + 1.2, z2, wlevel + 2.0 + 2.0 * B.fbm((H, W), 5, 205))
-    soft = np.clip(ndimage.gaussian_filter(water.astype(np.float32), 1.8) * 1.3, 0, 1)
-    z_apply = np.where(water, z_water, z_land)
-    z2 = np.where(soft > 0.02, z2 * (1 - soft) + z_apply * soft, z2)
-    z2 = np.where(protect & (~water) & (z2 < z1), z1, z2)
-    save_stage('02_water_deepen', np.flipud(z2), base_color,
-               dict(note='按官方地图判水面 + 分级水深（河/塘/湖/海），据点 220 m 保护区只抬不压',
-                    water_km2=round(float(water.sum()) * 16 / 1e6, 2)),
-               np.abs(z2 - z1) > 1.0)
-
-    # ---- 节点 3：统一水位陆地修正（只服务大地图）
-    z3 = z2.copy()
-    land = ~water
-    z3[land] = np.maximum(z3[land], LAND_FLOOR_M)
-    t = np.clip((z3 - LIFT_Z_FULL) / (LIFT_Z_ZERO - LIFT_Z_FULL), 0.0, 1.0)
-    w_lift = 1.0 - t * t * (3.0 - 2.0 * t)
-    z3[land] = z3[land] + (LIFT_M * w_lift)[land]
-    save_stage('03_unified_water', np.flipud(z3), base_color,
-               dict(note='骑砍2 单水位适配：陆地保底 −24.5 m；≤−15 m 抬满 +10 m，≥+15 m 不抬（按高度）',
-                    water_level_m=WATER_LEVEL_M, land_floor_m=LAND_FLOOR_M, lift_m=LIFT_M),
-               np.abs(z3 - z2) > 1.0)
-
-    # ---- 与出厂版本对比（出厂 = deliverable/heightmap/continent_height_4m.png）
-    try:
-        meta = json.load(open(os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json'),
-                              encoding='utf-8'))
-        q = np.asarray(Image.open(os.path.join(ROOT, 'deliverable/heightmap/continent_height_4m.png')),
-                       np.uint16).astype(np.float32)
-        hz = meta['heightmap']
-        zs = hz['zmin'] + q / 65535.0 * (hz['zmax'] - hz['zmin'])
-        d = np.abs(zs - np.flipud(z2))
-        print('[stage] 节点2 与出厂 continent_height_4m.png 差异：平均 %.2f m / P99 %.2f m / 最大 %.2f m'
-              % (d.mean(), np.percentile(d, 99), d.max()))
-    except Exception as e:
-        print('[stage] 与出厂版本对比跳过：', e)
+    # 🔴 2026-11-02：**「统一水位陆地修正」整级取消**（用户裁定）。
+    #    理由：这里已经明确是**两块不同高度的水位**（主水系 40.5 m / 瀑布以西 −22 m），
+    #    按「骑砍2 只有一个水面」去垫高陆地的前提不成立；而且「水域加深」也在同一天去掉了
+    #    —— 地形高度本身是对的，管线只保留 00_raw / 01_plateau_plain 两级，不再按水位挖/填。
 
 
 if __name__ == '__main__':

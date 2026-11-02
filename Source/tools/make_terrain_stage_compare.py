@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
-"""给 terrain/stages/ 出对比图：四级并排（高度/彩图）+ 逐级差量。
+"""给 terrain/stages/ 出对比图：两级并排（高度/彩图）+ 逐级差量。
 
     python tools/make_terrain_stage_compare.py
+
+2026-11-02：管线只剩 00_raw / 01_plateau_plain 两级（「水域加深」「统一水位修正」都去掉了）。
 """
 import json
 import os
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 Image.MAX_IMAGE_PIXELS = None
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 ST = os.path.join(ROOT, 'deliverable/terrain/stages')
 OUT = os.path.join(ST, '_compare')
-STAGES = ['00_raw', '01_plateau_plain', '02_water_deepen', '03_unified_water']
-LABEL = {'00_raw': '0 原始', '01_plateau_plain': '1 高原/平原',
-         '02_water_deepen': '2 水域加深', '03_unified_water': '3 统一水位'}
+STAGES = ['00_raw', '01_plateau_plain']
+LABEL = {'00_raw': '0 原始', '01_plateau_plain': '1 高原/平原'}
 W = 1000          # 每格宽度
 
 
@@ -26,21 +27,37 @@ def load_h(p):
     return z['zmin'] + q / 65535.0 * (z['zmax'] - z['zmin'])
 
 
+def _font(size=22):
+    """中文标签要 CJK 字体，PIL 默认位图字体画出来是方框。"""
+    for p in (r'C:\Windows\Fonts\msyh.ttc', r'C:\Windows\Fonts\simhei.ttf',
+              r'C:\Windows\Fonts\arial.ttf'):
+        try:
+            return ImageFont.truetype(p, size)
+        except Exception:
+            continue
+    return None
+
+
+FONT = _font(22)
+FONT_S = _font(18)
+
+
 def sheet(items, out, cmap=None, title=''):
     ims = []
     for name, im in items:
         h = int(W * im.size[1] / im.size[0])
         im = im.convert('RGB').resize((W, h), Image.LANCZOS)
         d = ImageDraw.Draw(im)
-        d.rectangle([0, 0, W - 1, 26], fill=(0, 0, 0))
-        d.text((8, 7), LABEL.get(name, name), fill=(255, 255, 255))
+        d.rectangle([0, 0, W - 1, 32], fill=(0, 0, 0))
+        d.text((8, 5), LABEL.get(name, name), fill=(255, 255, 255), font=FONT)
         ims.append(im)
     H = max(i.size[1] for i in ims)
-    s = Image.new('RGB', (W * len(ims), H), (20, 20, 20))
+    pad = 30 if title else 0
+    s = Image.new('RGB', (W * len(ims), H + pad), (20, 20, 20))
     for i, im in enumerate(ims):
         s.paste(im, (i * W, 0))
     if title:
-        ImageDraw.Draw(s).text((8, H - 18), title, fill=(255, 255, 255))
+        ImageDraw.Draw(s).text((8, H + 4), title, fill=(255, 255, 255), font=FONT_S)
     s.save(out, 'PNG', compress_level=6)
     print('[cmp] %s %dx%d' % (out, s.size[0], s.size[1]))
 
@@ -57,7 +74,7 @@ def main():
     sheet([(s, gray(Z[s])) for s in STAGES], os.path.join(OUT, 'stages_height.png'),
           title='高度（黑=低 白=高，同一套线性归一化，未分级）')
     sheet([(s, Image.open(os.path.join(ST, s, 'color_1m.png'))) for s in STAGES],
-          os.path.join(OUT, 'stages_color.png'), title='地形材质图（第 1~3 级只重上色被改动过的区域）')
+          os.path.join(OUT, 'stages_color.png'), title='地形材质图（第 1 级只重上色被改动过的区域）')
 
     # 逐级差量（抬升=红 / 下挖=蓝）
     diffs = []
@@ -69,7 +86,7 @@ def main():
         rgb[..., 2] = (neg * 255).astype(np.uint8)
         rgb[..., 1] = ((1 - pos - neg).clip(0, 1) * 90).astype(np.uint8)
         diffs.append((b, Image.fromarray(rgb, 'RGB')))
-    sheet(diffs, os.path.join(OUT, 'diff_01_02_03.png'),
+    sheet(diffs, os.path.join(OUT, 'diff_00_01.png'),
           title='差量：红=抬升 / 蓝=下挖（满量程 ±50 m）')
 
 
