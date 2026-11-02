@@ -18,7 +18,7 @@
    阿瓜多切斯 (1364.0, -6992.5) / 瓜玛营 (1426.3, -7328.9)，见
    `deliverable/handoff/settlements_world.csv`）。
 
-产物（`deliverable/terrain_on_map/`）：
+产物（`deliverable/terrain/on_map/`）：
 
     mainland_height.png / mainland_color.png   裁到官方地图内容框，直接叠图（同像素网格）
     mainland_overlay.png                       50% 叠在官方缩略图上（自检对齐）
@@ -39,7 +39,7 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 H4 = os.path.join(ROOT, 'raw/terrain/H4.npy')
 COLOR = os.path.join(ROOT, 'export/world/world_ground_final.png')
 MAPDIR = os.path.join(ROOT, '地图下载')
-OUT = os.path.join(ROOT, 'deliverable/terrain_on_map')
+OUT = os.path.join(ROOT, 'deliverable/terrain/on_map')
 
 X0w, Y0w, WORLD, SCALE, YM1, RES = -7684.0, -8196.0, 12296.0, 14.5, 4100.0, 4.0
 MAP_PX = (146, 388, 4804, 3851)      # 缩略图上的地图内容框
@@ -126,7 +126,7 @@ def main():
     ap.add_argument('--guarma-pts', default='', help='"px,py,wx,wy;…" 瓜玛对应点')
     ap.add_argument('--color', default=COLOR,
                     help='材质彩图来源（默认 world_ground_final.png；'
-                         '补全版用 deliverable/terrain_tiles/color_completed_1pxm.png）')
+                         '补全版用 deliverable/terrain/tiles/color_completed_1pxm.png）')
     ap.add_argument('--guarma-grid', action='store_true', help='只生成带坐标网格的瓜玛地图')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)

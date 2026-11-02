@@ -5,10 +5,39 @@
 
 ---
 
+## ★ 2026-11-02 · 地形四级管线 —— 已出图，⏳ **等用户逐条验收**
+
+**一句话**：把地形做成「原始 → 高原/平原 → 水域加深 → 统一水位」四级，每级一套完整的高度图 + 彩图，可单看可单独用。
+
+**产物**：`deliverable\terrain\stages\`（**明细与验证方法见 `deliverable\terrain\README.md`**，本目录只有那一份 README）
+
+| 级 | 做了什么 | 改动面积 | z 区间 |
+|---|---|---|---|
+| `00_raw` | 外延包补过的原始地形，未塑形 | — | −56.9 ~ 690.3 m |
+| `01_plateau_plain` | 西北高原（720 m + fBm + 150 m 高斯隆起，只抬外延区）/ 东南平原（42 m 合成） | 20.6 km² | −56.9 ~ 690.3 m |
+| `02_water_deepen` | 按官方地图判水面 + 分级水深（35/16/7/4 m），据点 220 m 保护 | 8.7 km² | −34.9 ~ 690.3 m |
+| `03_unified_water` | 骑砍2 单水位适配：陆地保底 −24.5 m，≤−15 m 抬 +10 m（**只服务大地图**） | 8.4 km² | −15.5 ~ 690.3 m |
+
+**脚本**：`tools/make_terrain_stages.py`（四级）+ `tools/make_terrain_stage_compare.py`（对比图）；
+参数与噪声种子 `import` 自 `tools/build_final_map_heightmap.py`，不另抄。
+
+**已知问题（既有问题，待用户裁定处理）**
+
+| # | 问题 | 实测 |
+|---|---|---|
+| 1 | 节点 2 与出厂 `deliverable/heightmap/continent_height_4m.png` 不完全一致 | 平均 0.76 m / P99 5.2 m / **最大 45.2 m**（出厂是「先水后高原」，本管线按「先高原后水」） |
+| 2 | **矩形接缝台阶**（外延包 ↔ 主瓦片） | 竖直在 **x≈−732**、水平在 **y≈−2048**，两侧高差 >20 m；**出厂文件同样存在** |
+| 3 | 节点 3 幅度 ≤10 m | ±50 m 色标下几乎看不见，需单独 ±12 m 版 |
+| 4 | 彩图按高程 LUT 重上色 | 只在改动区生效，未改区域与原色可能仍有一档色差 |
+
+**下一步**：用户逐条指出「哪里不符合预期」→ 按条改；候选处理见 `deliverable\terrain\README.md` §三「已知问题」。
+
+---
+
 ## ★ 待办 · 瓜玛岛地形对齐（2026-11-02 用户裁定：**暂不处理**）
 
 **目标**（等用户说做的时候再动手）：出一版 `guarma_height.png` / `guarma_color.png`，
-和 `地图下载\瓜玛岛.jpg` 精确贴合，跟大陆那套（`deliverable\terrain_on_map\`）同口径。
+和 `地图下载\瓜玛岛.jpg` 精确贴合，跟大陆那套（`deliverable\terrain/on_map\`）同口径。
 
 **卡在哪**：官方瓜玛地图**没有配准数据**（`地图下载\配准结果.json` 里只有大陆的 5 个控制点），
 而且那张图是**手绘风美术地图**（纸边 + 示意海岸线），轮廓对不上真实地形，自动匹配不可靠。
@@ -21,7 +50,7 @@
 | 瓜玛营 Guarma Camp | `1426.3, -7328.9` |
 
 **取点工具**：`python tools\make_map_aligned_terrain.py`（不带参数）会生成
-`deliverable\terrain_on_map\guarma_grid.png`（200 px 红网格 + 坐标标注）。
+`deliverable\terrain/on_map\guarma_grid.png`（200 px 红网格 + 坐标标注）。
 拿到点后：
 
 ```powershell

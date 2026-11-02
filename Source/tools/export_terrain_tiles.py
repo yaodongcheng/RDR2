@@ -10,8 +10,8 @@ RDR2 的地形色图本来就是**一块 512 m 一个 `<tile>_t`（2048²）**�
 
 ## 产物
 
-    deliverable/terrain_tiles/<tile>.png     每块 2048×2048（0.25 m/px），无损 PNG
-    deliverable/terrain_tiles/tiles_manifest.csv
+    deliverable/terrain/tiles/<tile>.png     每块 2048×2048（0.25 m/px），无损 PNG
+    deliverable/terrain/tiles/tiles_manifest.csv
          tile, x0, y0, x1, y1, px, m_per_px
 
 世界坐标约定与全图管线一致：X 东 / Y 北 / Z 上，单位米（origin -7684, -8196，world 12296 m）。
@@ -33,7 +33,7 @@ import time
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 TOOLS = os.path.join(ROOT, 'tools')
-OUT = os.path.join(ROOT, 'deliverable/terrain_tiles')
+OUT = os.path.join(ROOT, 'deliverable/terrain/tiles')
 sys.path.insert(0, TOOLS)
 
 import numpy as np                      # noqa: E402

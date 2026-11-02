@@ -931,7 +931,12 @@ A/B 像素差只有 **2%（强差 0%）**——3D 铁路的价值在近景的枕
 ├── docs/                        文档（五类，见 §7）
 ├── deliverable/                 交付物
 │   ├── heightmap/               权威高度图（PNG + r16 + 水掩码/水深 + meta）
-│   ├── terrain_weights/         7 层材质权重 + 打包 RGB + 自检图
+│   ├── terrain/                 🔴 地形唯一入口（明细见 `deliverable/terrain/README.md`）
+│   │   ├── final/               最终交付：高度 4 m 16bit + 材质彩图 1 m + 对位 meta
+│   │   ├── stages/              四级管线：原始 → 高原/平原 → 水域加深 → 统一水位（见内部 README）
+│   │   ├── weights/             7 层材质权重 + 自检图（**进游戏用的 mask**）
+│   │   ├── tiles/               480 块原生地形彩图瓦片（0.25 m/px，最高精度源）
+│   │   └── on_map/              对齐官方地图内容框的裁剪版 + 叠图证明 + 瓜玛取点网格
 │   ├── handoff/                 机读清单（model_manifest / settlements / npc）★ sdn_flat_table.csv / sdn_landmark_church.json
 │   ├── blender/                 continent / guarma / sdn 三个成品
 │   ├── miniatures/              46 据点微缩模型（models/ tex/ map/ audit）+ 地图 demo

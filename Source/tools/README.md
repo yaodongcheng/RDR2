@@ -84,18 +84,18 @@
   （照抄 `build_terrain_heightmap` 的 48 m 粗层中位色 + 8 邻域扩散 + 双线性上采样）。
   `nearest` / `terrain` / `map` 是 2026-11-02 试过的三种自造补法，效果不自然，**不要再用**。
 - `make_terrain_final.py`  **地形最终交付**（2026-11-02 新）：把「高度 + 材质彩图」收进
-  `deliverable/terrain_final/`：`height_4m_16bit.png`（2692×2006，4 m/px，= 喂骑砍2 的那张）
+  `deliverable/terrain/final/`：`height_4m_16bit.png`（2692×2006，4 m/px，= 喂骑砍2 的那张）
   · `height_meta.json` · `color_1m.png`（10768×8024，1 m/px，源 = `world_ground_final_out.png` 含外延补全）
   · `meta.json`（两张图同一世界框、行 0 = 北、像素 4:1 对齐）。**要交付地形就用这个目录。**
 - `make_map_aligned_terrain.py`  **地形对齐到官方地图**（2026-11-02 新）：按
   `地图下载/配准结果.json` 把高度/彩图裁进官方地图内容框（4658×3463 @2.311 m/px），
-  产物 `deliverable/terrain_on_map/`；`--guarma-pts` 接受人工控制点（瓜玛暂无配准，见 TODO）。
+  产物 `deliverable/terrain/on_map/`；`--guarma-pts` 接受人工控制点（瓜玛暂无配准，见 TODO）。
 - `make_terrain_overview.py`  **地形整体预览图**（2026-11-02 新）：高程晕渲 + 材质色图 + 叠加，
   整张正方形一份、裁可玩区一份，落 `deliverable/terrain_overview/`（默认 4096 边长，`--size` 可调）。
   `full` 系列含瓜玛与框外（会看到大片"补洞"方块，属正常）；`map` 系列已按 `map_area.json` 裁剪。
 - `export_terrain_tiles.py`  **地形性质色图 · 原生精度导出**（2026-11-01 新）：
   按 512 m 瓦片导出 `<tile>_t`，**保持源分辨率 2048²（0.25 m/px）**，落
-  `deliverable/terrain_tiles/<tile>.png` + `tiles_manifest.csv`（tile,x0,y0,x1,y1,w,h,m_per_px）。
+  `deliverable/terrain/tiles/<tile>.png` + `tiles_manifest.csv`（tile,x0,y0,x1,y1,w,h,m_per_px）。
   实测 480 块 / 0 缺 / 2.4 GB。**这是原版最高精度**（没有 `_t_hd` 变体）。
   `--stitch 2` 可顺带拼一张 2 px/m（0.5 m/px）整图；4 px/m 整图 = 49184² ≈ 7.3 GB，不建议做。
   注意：城市块在源数据里是**挖空黑的**，回填是 `combine_ground.py` 干的事，本工具不做回填。

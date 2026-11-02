@@ -21,7 +21,7 @@ SCENE_MODELS = os.path.join(ROOT, 'export/world/continent/models.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 SETTLE = os.path.join(ROOT, 'export/levels/world/settlements_bannerlord.csv')
 HM_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
-W_META = os.path.join(ROOT, 'deliverable/terrain_weights/weights_meta.json')
+W_META = os.path.join(ROOT, 'deliverable/terrain/weights/weights_meta.json')
 OUT = os.path.join(ROOT, 'deliverable/handoff')
 
 # settlements_bannerlord.csv 的 u/v 是 5000 宽缩略图坐标，配准变换：
@@ -98,7 +98,7 @@ def main():
                        raw='deliverable/heightmap/continent_height_r16.raw',
                        zmin=hm['heightmap']['zmin'], zmax=hm['heightmap']['zmax'],
                        formula=hm['heightmap']['z_formula'], row0='north'),
-        weights=dict(dir='deliverable/terrain_weights', layers=[l['key'] for l in wm['layers']],
+        weights=dict(dir='deliverable/terrain/weights', layers=[l['key'] for l in wm['layers']],
                      res_m=wm['res_m'], row0='north'),
         world_to_pixel='col = (x - x0)/4 ; row = (y1 - y)/4',
         pixel_to_world='x = x0 + col*4 ; y = y1 - row*4',

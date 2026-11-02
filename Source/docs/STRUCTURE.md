@@ -23,7 +23,12 @@
 │   └── 角色与物品/                  3 篇
 ├── deliverable/handoff/            机读交接清单（model_manifest.csv / settlements_world.csv / meta）
 ├── deliverable/heightmap/          权威高度图（16bit + r16 + 水掩码/水深 + meta）
-├── deliverable/terrain_weights/    7 层材质权重 + 打包 RGB + 自检图
+├── deliverable/terrain/            🔴 地形唯一入口（明细见 `deliverable/terrain/README.md`）
+│   ├── final/                      最终交付：高度 4 m 16bit + 彩图 1 m + 对位 meta
+│   ├── stages/                     四级管线（原始→高原/平原→水域加深→统一水位），见内部 README
+│   ├── weights/                    7 层材质权重 + 打包 RGB + 自检图（**进游戏用的 mask**）
+│   ├── tiles/                      480 块原生地形彩图瓦片（0.25 m/px）
+│   └── on_map/                     对齐官方地图内容框的裁剪版 + 叠图证明
 ├── deliverable/blender/            Blender 成品
 │   ├── continent/continent.blend   整块大陆（7.7 GB，已剔除瓜玛岛）
 │   ├── guarma/guarma.blend         瓜玛岛（0.9 GB，2026-10-21 拆出）

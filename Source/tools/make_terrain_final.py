@@ -3,7 +3,7 @@
 
     python tools/make_terrain_final.py
 
-产物 `deliverable/terrain_final/`：
+产物 `deliverable/terrain/final/`：
 
     height_4m_16bit.png     高度图：16bit 灰度，4 m/px，2692×2006
                             = `deliverable/heightmap/continent_height_4m.png`（原样拷贝）
@@ -29,7 +29,7 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 H_PNG = os.path.join(ROOT, 'deliverable/heightmap/continent_height_4m.png')
 H_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
 COLOR = os.path.join(ROOT, 'export/world/world_ground_final_out.png')
-OUT = os.path.join(ROOT, 'deliverable/terrain_final')
+OUT = os.path.join(ROOT, 'deliverable/terrain/final')
 
 X0w, Y0w, WORLD, YM1 = -7684.0, -8196.0, 12296.0, 4100.0
 

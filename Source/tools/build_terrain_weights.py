@@ -17,7 +17,7 @@ v2 改了什么（2026-10-22 晚）：
 
 七层：草地 grass / 针叶林 conifer / 山岩 rock / 泥土 dirt / 阔叶林 broadleaf / 河湖 water / 雪地 snow
 
-产物（deliverable/terrain_weights/）
+产物（deliverable/terrain/weights/）
     w_<layer>.png          8 bit，1 px = 4 m，**行 0 = 北**（与高度图同网格同朝向）
     weights_preview.png    图例配色合成图
     weights_rgb_1/2/3.png  压成 RGB 便于塞进引擎（R草G针叶B岩 / R泥G阔叶B水 / 雪单通道）
@@ -42,7 +42,7 @@ HM_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
 WMASK = os.path.join(ROOT, 'deliverable/heightmap/water_mask.png')
 WDEPTH = os.path.join(ROOT, 'deliverable/heightmap/water_depth.png')
 COLOR = os.path.join(ROOT, 'export/world/world_ground_final_out.png')
-OUTDIR = os.path.join(ROOT, 'deliverable/terrain_weights')
+OUTDIR = os.path.join(ROOT, 'deliverable/terrain/weights')
 
 X0w, Y0w, WORLD = -7684.0, -8196.0, 12296.0
 RES = 4.0
@@ -314,7 +314,7 @@ def main():
     print('自检：水面 IoU %.4f  权重和 %.6f~%.6f  单层最大 %.3f  负值格 %d  陆地坡度均值 %.2f°' % (
         iou, checks['weight_sum_min'], checks['weight_sum_max'], checks['layer_max'],
         checks['negative_cells'], checks['slope_mean_deg']))
-    print('→ deliverable/terrain_weights/')
+    print('→ deliverable/terrain/weights/')
 
 
 if __name__ == '__main__':

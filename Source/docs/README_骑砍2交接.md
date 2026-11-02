@@ -26,9 +26,9 @@
 | 高度图（引擎直读） | `deliverable/heightmap/continent_height_r16.raw` | 同尺寸，uint16 **小端**，逐行 | 与 PNG **逐值一致**，行 0 = 北 |
 | 高度图元数据 | `deliverable/heightmap/continent_height_meta.json` | zmin/zmax/公式/原点 | 换算公式见 §3.1 |
 | 水面 / 水深 | `deliverable/heightmap/water_mask.png`、`water_depth.png` | 2692×2006，8 bit | 水面 8.10 km²；水深 0=陆，255=300 m（人为夸张） |
-| **地形材质权重（7 层）** | `deliverable/terrain_weights/w_{grass,conifer,rock,dirt,broadleaf,water,snow}.png` | 2692×2006，4 m/px，8 bit，行 0 = 北 | 逐像素归一化，**和高度图逐像素对齐** |
-| 权重（打包成 RGB） | `deliverable/terrain_weights/weights_rgb_{1,2,3_snow}.png` | 同上 | R草G针叶B岩 / R泥G阔叶B水 / 雪 |
-| 权重元数据 + 自检 | `deliverable/terrain_weights/weights_meta.json` | 阈值/统计 | 水面与地形水体 **IoU = 1.000** |
+| **地形材质权重（7 层）** | `deliverable/terrain/weights/w_{grass,conifer,rock,dirt,broadleaf,water,snow}.png` | 2692×2006，4 m/px，8 bit，行 0 = 北 | 逐像素归一化，**和高度图逐像素对齐** |
+| 权重（打包成 RGB） | `deliverable/terrain/weights/weights_rgb_{1,2,3_snow}.png` | 同上 | R草G针叶B岩 / R泥G阔叶B水 / 雪 |
+| 权重元数据 + 自检 | `deliverable/terrain/weights/weights_meta.json` | 阈值/统计 | 水面与地形水体 **IoU = 1.000** |
 | **地面彩图（完整）** | `export/world/world_ground_final_out.png` | 12296×12296，**1 m/px**，RGB | 覆盖率 98.79%，含外延包补边；**默认用这张** |
 | 地面彩图（高清） | `export/world/world_ground_2p0.png` | 24592×24592，**0.5 m/px**，RGB | 细节最好，但**外延区 16.8% 是空的**（见 §4.3） |
 | 合成色（低分辨率备用） | `export/world/world_color_4096.png` | 4096²，3 m/px | 顶点色/远景混合用 |

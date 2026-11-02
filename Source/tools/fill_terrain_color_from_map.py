@@ -10,10 +10,10 @@
 
 ## 做法
 
-1. 原生瓦片重拼 → `deliverable/terrain_tiles/stitched_1pxm.png`（1 px/m，12296²）；
+1. 原生瓦片重拼 → `deliverable/terrain/tiles/stitched_1pxm.png`（1 px/m，12296²）；
 2. 用 `配准结果.json` 把官方地图重采样到**同一世界网格**（框外填羊皮纸色）；
 3. 合成：**原生优先**；空洞处用官方图，并在边界做羽化过渡（默认 40 px）；
-4. 输出 `deliverable/terrain_tiles/color_completed_1pxm.png`。
+4. 输出 `deliverable/terrain/tiles/color_completed_1pxm.png`。
 
     python tools/fill_terrain_color_from_map.py
     python tools/fill_terrain_color_from_map.py --feather 60 --out <路径>
@@ -29,11 +29,11 @@ from scipy import ndimage
 Image.MAX_IMAGE_PIXELS = None
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-NATIVE = os.path.join(ROOT, 'deliverable/terrain_tiles/stitched_1pxm.png')
+NATIVE = os.path.join(ROOT, 'deliverable/terrain/tiles/stitched_1pxm.png')
 MAPDIR = os.path.join(ROOT, '地图下载')
 THUMB = os.path.join(MAPDIR, '大陆地图_缩略.jpg')
 FIT = os.path.join(MAPDIR, '配准结果.json')
-OUT = os.path.join(ROOT, 'deliverable/terrain_tiles/color_completed_1pxm.png')
+OUT = os.path.join(ROOT, 'deliverable/terrain/tiles/color_completed_1pxm.png')
 
 X0w, Y0w, WORLD, SCALE, YM1 = -7684.0, -8196.0, 12296.0, 14.5, 4100.0
 MAP_PX = (146, 388, 4804, 3851)          # 缩略图上的地图内容框
@@ -175,10 +175,10 @@ def main():
         off = np.clip(up, 0, 255)
 
     # ---- method=weights：**用骑砍2那套 7 层材质权重合成颜色**（与游戏里看到的同源）
-    # 游戏端根本不吃彩色大图：它吃 heightmap + 7 张 layer mask（`deliverable/terrain_weights/`）。
+    # 游戏端根本不吃彩色大图：它吃 heightmap + 7 张 layer mask（`deliverable/terrain/weights/`）。
     # 所以空洞处最"对"的补法 = 按同一份权重把 7 层调色板混出来，而不是编一个填充。
     if a.method == 'weights':
-        WDIR = os.path.join(ROOT, 'deliverable/terrain_weights')
+        WDIR = os.path.join(ROOT, 'deliverable/terrain/weights')
         meta = json.load(open(os.path.join(WDIR, 'weights_meta.json'), encoding='utf-8'))
         area = meta['area']
         rw, rh = meta['size']
