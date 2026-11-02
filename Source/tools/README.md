@@ -76,6 +76,29 @@
 - `build_water_level.py`
 - `build_world_ground.py`
 - `combine_ground.py`
+- `fill_terrain_color_from_map.py`  地形彩图空洞补全（2026-11-02）。⚠️ **先看这条**：
+  **框外两角（NW/SE）的真实数据早就有了** —— `export/world/world_ground_final_out.png`
+  （`build_outskirts_ground.py` 读游戏 `terrain/outskirts/out_*.rpf` 的外延地形 + 4 m/px 色图，
+  再由 `build_final_map_heightmap.py` 塑形）。**彩图补全优先用它，别自造**。
+  本工具只在"外延包也没覆盖"的残余小洞上兜底，默认 `--method coarse`
+  （照抄 `build_terrain_heightmap` 的 48 m 粗层中位色 + 8 邻域扩散 + 双线性上采样）。
+  `nearest` / `terrain` / `map` 是 2026-11-02 试过的三种自造补法，效果不自然，**不要再用**。
+- `make_terrain_final.py`  **地形最终交付**（2026-11-02 新）：把「高度 + 材质彩图」收进
+  `deliverable/terrain_final/`：`height_4m_16bit.png`（2692×2006，4 m/px，= 喂骑砍2 的那张）
+  · `height_meta.json` · `color_1m.png`（10768×8024，1 m/px，源 = `world_ground_final_out.png` 含外延补全）
+  · `meta.json`（两张图同一世界框、行 0 = 北、像素 4:1 对齐）。**要交付地形就用这个目录。**
+- `make_map_aligned_terrain.py`  **地形对齐到官方地图**（2026-11-02 新）：按
+  `地图下载/配准结果.json` 把高度/彩图裁进官方地图内容框（4658×3463 @2.311 m/px），
+  产物 `deliverable/terrain_on_map/`；`--guarma-pts` 接受人工控制点（瓜玛暂无配准，见 TODO）。
+- `make_terrain_overview.py`  **地形整体预览图**（2026-11-02 新）：高程晕渲 + 材质色图 + 叠加，
+  整张正方形一份、裁可玩区一份，落 `deliverable/terrain_overview/`（默认 4096 边长，`--size` 可调）。
+  `full` 系列含瓜玛与框外（会看到大片"补洞"方块，属正常）；`map` 系列已按 `map_area.json` 裁剪。
+- `export_terrain_tiles.py`  **地形性质色图 · 原生精度导出**（2026-11-01 新）：
+  按 512 m 瓦片导出 `<tile>_t`，**保持源分辨率 2048²（0.25 m/px）**，落
+  `deliverable/terrain_tiles/<tile>.png` + `tiles_manifest.csv`（tile,x0,y0,x1,y1,w,h,m_per_px）。
+  实测 480 块 / 0 缺 / 2.4 GB。**这是原版最高精度**（没有 `_t_hd` 变体）。
+  `--stitch 2` 可顺带拼一张 2 px/m（0.5 m/px）整图；4 px/m 整图 = 49184² ≈ 7.3 GB，不建议做。
+  注意：城市块在源数据里是**挖空黑的**，回填是 `combine_ground.py` 干的事，本工具不做回填。
 - `dump_model_lib.py`
 - `fill_model_lib.py`
 - `make_ground_mask.py`
@@ -134,7 +157,7 @@
 - `blender_crop_continent_to_map.py`  按地图框重建 Terrain + 删框外实体 + 重建框内水面
 - `blender_probe_maparea.py`       裁剪后按地图框射线测覆盖率/空洞
 
-## 世界 / 地形 / 城镇（19 个）
+## 世界 / 地形 / 城镇（20 个）
 
 - `bake_campaign_map.py`
 - `bake_scene_tile.py`
@@ -161,6 +184,27 @@
 - `build_world_water.py`
 - `export_sdn_gltf.py`
 - `export_sdn_props2.py`
+- `perschar_lists.py`             **NPC 三套清单**（2026-11-01 新增，11-02 补中文列）：
+  输入 `init_all_sp.c`（950 条 `func_34` 注册）+ `ambientpedmodelsets.meta`（971 个模型集）
+  + 5 个 `metapeds*.rpf` 的 TOC（缺了自动用 `rdr2rpf list` 现生成）；
+  输出 `deliverable/handoff/` 的 7 个 CSV：`perschar_roster` / `perschar_by_zone` / `character_names` /
+  `ped_model_catalog` / `ambient_modelsets`(长表) / `ambient_modelsets_summary` / `ambient_by_group`。
+  **中文列**：`name_zh`（区域·角色·序号，词素表 `TOKEN_ZH`/`PHRASE_ZH`，残英 22/950 = 人名+5个未定站点前缀+LH）、
+  `zone_name_zh`（49 区里 **32 个已定名**：靠据点脚本写死的 `Global_1888801[<id>].f_4` 反查，
+  不是猜的；其余 17 个标 `未定（前缀 XXX）`）；
+  `real_name_*`/`full_name_*`（来自 `_SET_PLAYER_HAS_DISCOVERED_CHARACTER_NAME_SP` 的 98 个人物名键
+  `DISCOVERABLE_NAME_*`/`ALLY_*`/`COMP_*` + `global.yldb` 官方中文；例：`VAL_SHERIFF` = **柯蒂斯·马洛伊**，
+  `RHD_SHERIFF` = **利·格雷** Leigh Gray）。
+  验收 = 950 / 949 / 5 空槽、2,462、1,272 三个数。
+  说明见 `docs/世界与地编/RDR2_NPC名单与环境人群表.md`，机制见 `.../RDR2_NPC生成与行为机制.md`
+- `perschar_mem_pairs.py`        **从运行中的 RDR2 内存里读「身份→模型」绑定表**（2026-11-02 新增）
+  输入：游戏进程（**必须单人模式且在跑**）+ `perschar_roster.csv` + `ped_model_catalog.csv` + `names.txt`
+  输出：`deliverable/handoff/perschar_model_pairs.csv`（本机实测 **92 条** = 71 high + 21 medium）
+  **实测结构**：perschar 记录**步长 176 字节**，`[+0]`=身份哈希、**`[+4]`=模型哈希**；
+  `PERSCHAR::_GET_PERSCHAR_MODEL_NAME` 读的就是 `[+4]`。
+  **只读**（`PROCESS_VM_READ`），不写进程内存。
+  用法：`python tools/perschar_mem_pairs.py`（`--dry` 只统计，`--window 256` 调采样窗口）
+  覆盖率与当前加载的区有关 —— 换区后再跑一次数字会变
 - `plan_town.py`
 
 ### 微缩模型 / 沙盒大地图（2026-10-26 新增，经验见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）

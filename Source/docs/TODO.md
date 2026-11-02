@@ -5,6 +5,31 @@
 
 ---
 
+## ★ 待办 · 瓜玛岛地形对齐（2026-11-02 用户裁定：**暂不处理**）
+
+**目标**（等用户说做的时候再动手）：出一版 `guarma_height.png` / `guarma_color.png`，
+和 `地图下载\瓜玛岛.jpg` 精确贴合，跟大陆那套（`deliverable\terrain_on_map\`）同口径。
+
+**卡在哪**：官方瓜玛地图**没有配准数据**（`地图下载\配准结果.json` 里只有大陆的 5 个控制点），
+而且那张图是**手绘风美术地图**（纸边 + 示意海岸线），轮廓对不上真实地形，自动匹配不可靠。
+
+**需要用户提供**：2 个以上「像素坐标 ↔ 世界坐标」对应点。已知世界坐标：
+
+| 地点 | 世界坐标 |
+|---|---|
+| 阿瓜多切斯 Aguasdulces | `1364.0, -6992.5` |
+| 瓜玛营 Guarma Camp | `1426.3, -7328.9` |
+
+**取点工具**：`python tools\make_map_aligned_terrain.py`（不带参数）会生成
+`deliverable\terrain_on_map\guarma_grid.png`（200 px 红网格 + 坐标标注）。
+拿到点后：
+
+```powershell
+python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\tools\make_map_aligned_terrain.py" --guarma-pts "<px>,<py>,1364.0,-6992.5;<px>,<py>,1426.3,-7328.9"
+```
+
+---
+
 ## ★ 2026-11-01 · 两层材质 B —— ✅ 已实施（规则见 `docs/格式与资产/RDR2_贴图分层与两层材质.md`）
 
 ### 0. 一句话（修正自原判断）

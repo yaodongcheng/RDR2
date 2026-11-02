@@ -694,3 +694,135 @@ python tools/build_service_npcs.py
 > **NPC 模型 408 个全在、85 个有名字、142 个进了名册**；
 > 店主/医生/警长另外找到 **53 个城镇专属语音库**，但都**没有个人姓名**；
 > "平时在哪个城"不是解包字段——`metapeds.ymt` 和 `script_rel.rpf` 解了才算彻底。
+
+> 🔴 **上面最后三行已被 §10（2026-11-02）部分推翻**：
+> `metapeds*.rpf` 的 TOC 解出了 **1,272 个 ped 模型名**；`init_all_sp.c` 的 950 条 `func_34`
+> 给出了**每个据点驻军多少常驻角色**；还有 **7 位治安长官有了真名**（马洛伊/格雷/麦格雷戈/兰伯特/邓巴/法利/弗里曼）。
+> 最后一块仍未解的是 **perschar → 模型**（见 §10.6）。
+
+---
+
+## 10. v3 补充（2026-11-02）：引擎枚举 / 兵源模型 / 驻军基数 / 治安长官真名
+
+> 本节只写**能从解包数据里点名的**东西；§3 的 8 势力是"叙事分层"，本节是"引擎事实"，两者叠着用。
+> 数据来源：`deliverable/handoff/` 的 `perschar_roster.csv`、`perschar_by_zone.csv`、
+> `ped_model_catalog.csv`、`ambient_modelsets.csv`、`character_names.csv`
+> + `raw/script_full/1491.50/ambush_*.c`（帮派枚举）。
+
+### 10.1 六个帮派：引擎枚举 + GXT 官方名（这是"势力"的硬底子）
+
+`ambush_*.c` 里每个伏击脚本都有同一段 `switch`，返回 6 个帮派哈希，**并且带 GXT 官方名**：
+
+| 枚举 A（任务用） | 枚举 B（战斗用） | GXT 官方名 | 中文 | 兵源模型（metapeds 真名） | 主要活动区 |
+|---|---|---|---|---|---|
+| `GANG_ODRISCOLL` | `GANG_ODRISCOLLS` | O'Driscoll Boys | 奥德里斯科帮 | **无专属模型**：借 `g_m_m_unicriminals_01/02` + `u_m_m_odriscollbrawler_01`、`u_m_m_bht_odriscoll*`、`cs_colmodriscoll` | 北：垂犬牧场、瓦伦丁后山 |
+| `GANG_EXCONFED` | `GANG_LEMOYNE_RAIDERS` | Lemoyne Raiders | 莱莫恩游击队 | `g_m_o_uniexconfeds_01`、`g_m_y_uniexconfeds_01/02`、`u_m_m_uniexconfedsbounty_01`、`cs_exconfedsleader_01` | 南：罗兹、卡利加外围 |
+| `GANG_INBRED` | `GANG_MURFREE_BROOD` | The Murfree Brood | 默弗里家族 | `g_m_m_uniinbred_01` + `a_c_horse_murfreebrood_mange_01..03`（连马都是疥癣的） | 东北：罗诺克山区、布彻河村上游 |
+| `GANG_SAVAGES` | `GANG_SKINNER_BROS` | The Skinner Brothers | 剥皮兄弟帮 | **无 `g_` 模型**：`u_m_m_bht_skinnerbrother`、`mbh_skinnersearch_males_01`、`gc_skinnertorture_males_01` | 西：大平原、黑水以南 |
+| `GANG_BANDITOS` | `GANG_DEL_LOBOS` | Del Lobo Gang | 德尔·洛博帮 | `g_m_m_unibanditos_01` | 西南：豁牙裂口、犰狳外围 |
+| `GANG_RANCHERS` | `GANG_LARAMIE` | The Laramie Gang | 拉勒米帮 | `g_m_m_uniranchers_01` | 西：唐斯牧场、脊木农场一带 |
+
+**两条容易看错的**：
+
+1. **`GANG_RANCHERS` 的 GXT 就是 The Laramie Gang** —— 所以 `g_m_m_uniranchers_01` 不是"牧场主路人"，
+   而是**伪装成牧场帮工的拉勒米帮**。沙盘里他们可以当"平民"混在牧场里，被激怒才翻脸。
+2. **奥德里斯科 / 剥皮兄弟没有专属 `g_` 模型**（catalog 里查不到 `uniodriscoll` / `uniskinner`），
+   只有 `u_m_m_*` 剧情个体 + `rcsp_*` 部件组；能对上的通用兵是 `g_m_m_unicriminals_01/02`
+   （**这一句是推断**：靠 outfit 变体区分，catalog 里没有直接证据）。
+   而 `g_m_m_unicriminals_01` 恰好是**全表被环境人群引用最多的模型（9 个模型集）**，
+   `_02` 排第三（6 个）—— "没有专属模型"不等于"没有专属兵"。
+
+### 10.2 兵源模型清单（35 个模型，按归属分 20 组）
+
+| 模型 | 归属 | 被 ambient 集引用 |
+|---|---|---:|
+| `g_m_m_unicriminals_01` | 通用匪帮（奥德里斯科/剥皮借用） | **9** |
+| `g_m_m_uniduster_01..05` + `g_f_m_uniduster_01` | **范德林德帮**（6 个变体，全游戏最多） | 2 / 1 / 1 / 0 / 0 / 0 |
+| `g_m_m_unicriminals_02` | 通用匪帮（莱莫恩借用） | 6 |
+| `s_m_y_army_01` / `s_m_m_army_01` / `u_m_m_armytrn4_01` | **联邦军** | 8 / 3 / 0 |
+| `g_m_m_unigrays_01/02` | **格雷家族** | 3 / 0 |
+| `g_m_m_unibraithwaites_01` | **布雷斯韦特家族** | 1 |
+| `g_m_m_unibrontegoons_01` | **勃朗特黑帮**（圣丹尼斯地下） | 1 |
+| `g_m_m_unicornwallgoons_01` | **康沃尔公司武装** | 1 |
+| `g_m_m_uniinbred_01` | 默弗里家族 | 1 |
+| `g_m_m_unibanditos_01` | 德尔·洛博帮 | 1 |
+| `g_m_o_uniexconfeds_01` / `g_m_y_uniexconfeds_01` | 莱莫恩游击队 | 1 / 1 |
+| `g_m_m_unimountainmen_01` | 山地猎人（中立野怪） | 1 |
+| `g_m_m_uniswamp_01` | **夜行族 Night Folk**（沼泽野怪） | 0（由剧情脚本刷） |
+| `g_m_m_uniranchers_01` | 拉勒米帮 | 0（由剧情脚本刷） |
+| `g_m_m_unimicahgoons_01` | 迈卡的手下 | 0 |
+| `g_m_m_unibountyhunters_01` / `u_m_m_unibountyhunter_01/02` | 赏金猎人（通缉触发） | 0 |
+| `g_m_m_unilangstonboys_01` | Langston 的人（帮派小弟） | 0 |
+| `g_m_m_uniafricanamericangang_01` | 黑人帮派（未在主线出现） | 0 |
+| `cs_pinkertongoon` | **平克顿侦探**（过场模型） | 0 |
+| `u_m_m_unidusterleader_01` / `unidusterhenchman_01..03` | 范德林德帮头目/打手 | 0 |
+
+### 10.3 据点驻军基数：perschar 槽位（这是沙盘里"能放多少兵"的天然上限）
+
+一个区有多少常驻角色槽位，就意味着这个据点**在游戏里最多同时存在多少"有名有姓的 NPC"**；
+ambient 记忆组则决定**街上有多少可刷的兵**：
+
+| 据点 | 区 id | perschar 槽位 | 其中店主 | 其中执法 | ambient 记忆组 | 模型条目 |
+|---|---:|---:|---:|---:|---|---:|
+| **圣丹尼斯** | 5 | **188** | 10 | 0 | SAINTDENIS_RESIDENTS | 135 |
+| **瓦伦丁** | 76 | 69 | 7 | 2 | VALENTINE_RESIDENTS | 80 |
+| **罗兹** | 105 | 68 | 3 | 2 | RHODES_RESIDENTS | 76 |
+| **安尼斯堡** | 78 | 50 | 1 | 2 | ANNESBURG_RESIDENTS | 38 |
+| **黑水镇** | 38 | 46 | 5 | 0 | BLACKWATER_RESIDENTS | 95 |
+| 布彻河村 | 82 | 32 | 0 | 0 | BUTCHERCREEK_RESIDENTS | 22 |
+| 草莓镇 | 26 | 31 | 1 | 2 | STRAWBERRY_RESIDENTS | 41 |
+| 风滚草镇 | 115 | 31 | 0 | 1 | TUMBLEWEED_RESIDENTS | 26 |
+| 范霍恩贸易站 | 92 | 29 | 1 | 0 | VANHORNPOST_RESIDENTS | 32 |
+| 伐木营（EA_LCMP） | 11 | 27 | 0 | 0 | （无） | — |
+| 牧场营地（EA_RCAMP） | 128 | 24 | 0 | 0 | （无） | — |
+| 翡翠牧场 | 69 | 24 | 0 | 0 | EMERALDRANCH_RESIDENTS | 14 |
+| 康沃尔煤焦油厂 | 65 | 23 | 0 | 0 | （无） | — |
+| **西西卡监狱** | 32 | 20 | 0 | 0 | — | — |
+| 卡利加种植园 | 95 | 16 | 0 | 0 | — | — |
+| 拉格拉斯 / 布雷斯韦特庄园 | 3 / 93 | 13 / 13 | 0 | 0 | LAGRAS_RESIDENTS · — | 15 |
+| 犰狳镇 / 唐斯牧场 | 120 / 68 | 12 / 12 | 0 | 0 | ARMADILLO_RESIDENTS · DOWNSRANCH_RESIDENTS | 19 / 4 |
+| **华莱士堡** | 35 | 10 | 0 | 0 | OLDFORTWALLACE_RESIDENTS | 10 |
+| 叉角羚牧场 / 瓦匹缇 | 22 / 56 | 9 / 8 | 0 | 1 | — · WAPITI_RESIDENTS | 18 |
+| 石兰 / 麦克法兰 / 切兹波特 / 脊木 | 110/126/42/124 | 7 / 7 / 5 / 3 | 0 | 0 | 各 2~5 集 | 2~5 |
+| **散落（无区域校验）** | −1 | **99** | 1 | 0 | — | — |
+
+> 用法：**驻军上限** ≈ perschar 槽位 × 0.3（游戏里它们不会同时全在场）；
+> **巡逻兵**用 ambient 记忆组的模型条目数当权重。
+> 例：圣丹尼斯 188 槽 / 135 条 → 全图唯一值得做"三层城防"的据点；风滚草镇 31 槽 / 26 条 → 单城门。
+
+### 10.4 七位治安长官真名（可直接填 v2 表的 owner 列）
+
+| 据点 | perschar 槽位 | 真名 | 官方中文 | 证据 |
+|---|---|---|---|---|
+| 瓦伦丁 | `VAL_SHERIFF` | Curtis Malloy | **柯蒂斯·马洛伊** | `bounty_poster.c:1140` GXT「Sheriff Malloy」+ `main.c` 信件「Letter to Curtis from M」+ `global.yldb`「C·马洛伊警长。瓦伦丁警长办公室」 |
+| 罗兹 | `RHD_SHERIFF` | Leigh Gray | **利·格雷** | `ALLY_LEIGHGRAY` GXT「Sheriff Gray」+ 官方中文「格雷警长」「追上利」 |
+| 罗兹（副） | `RHD_DEPUTY` | Archibald MacGregor | **阿奇伯德·麦格雷戈** | `fud1aud.yldb`「这是我的副手，阿奇伯德·麦格雷戈」 |
+| 圣丹尼斯 | `SDN_POLICE_CHIEF` | Benjamin Lambert | **本杰明·兰伯特** | `global.yldb`「发自圣丹尼斯警长办公室…B·兰伯特」 |
+| 黑水镇 | `BLW_POLICE_CHIEF` | Oswald Dunbar | **奥斯瓦尔德·邓巴** | `global.yldb`「O·邓巴警长，黑水镇警局」 |
+| 草莓镇 | `STR_SHERIFF` | Vernon Farley | **弗农·法利** | `global.yldb`「V·法利…草莓镇警局警长」 |
+| 风滚草镇 | `TBL_SHERRIF` | Samuel Freeman | **萨缪尔·弗里曼** ⚠️ | 姓有数据（城镇介绍/悬赏信，`spd_sheriffoftumbleweed.c`）；**名是外部资料** |
+| 安尼斯堡 | `ASB_SHERIFF` | — | — | 数据里只叫「安尼斯堡警长」，无名 |
+
+### 10.5 建议怎么和 §3 的 8 势力叠起来
+
+| §3 的势力 | 引擎里对应什么 | 建议 |
+|---|---|---|
+| **边陲匪帮联盟 OUT**（5 据点） | **6 个互不统属的 `GANG_*`** | **拆成 6 个**，否则南方（莱莫恩）与西部（Del Lobo/剥皮）的混战层次会塌掉 |
+| 联邦秩序 US | 军警（`s_m_*_army`）+ 平克顿 + 各镇警力 | 保持；但把"镇警"与"联邦军"拆成两级（驻军 vs 巡警） |
+| 莱莫恩庄园联盟 LEM | 格雷（`unigrays`）+ 布雷斯韦特（`unibraithwaites`）+ 勃朗特（`unibrontegoons`） | 保持三家族，但**勃朗特应算"城市黑帮"而非庄园主** |
+| 康沃尔工业帝国 COR | `unicornwallgoons` | 保持；兵源少而精 |
+| 范德林德帮 VDL | `uniduster_01..05` + `DUTCH_GANG` 记忆组 **61 个模型集** | 记忆组数量全图第二多，说明"营地周围的自家人"是重点，可做成"移动营地"机制 |
+| 瓜玛军政府 GUA | 西语兵模型 | 保持（独立战区） |
+| 瓦匹缇部落 WAP | 印第安模型 + 12 个模型集 | 保持 |
+| 自由市镇 FREE | 范霍恩（无警长/无银行） | 保持 |
+| **（原表没有）** | `g_m_m_uniswamp_01` **夜行族** | 建议加第 9 个"无据点野怪势力"，只在沼泽夜间出没 |
+
+### 10.6 对本文 §7 缺口的更新
+
+| 原缺口 | 现状 |
+|---|---|
+| #1 `metapeds.ymt` 无法得到 ped 配方 | ✅ **已解**：5 个 `metapeds*.rpf` 的 TOC 拿到 **1,272 个模型名**（`ped_model_catalog.csv`） |
+| #2 `script_rel.rpf` 无法得到常驻点 | 🟡 **部分解**：1,639 个反编译脚本 + 950 条 `func_34` 给出**驻军营区与槽位**（§10.3） |
+| —— | 🔴 **新缺口**：**perschar 名字 → ped 模型** —— 2026-11-02 **已部分打通**：从运行中进程内存里恢复出绑定表（步长 176 字节，`[+4]`=模型哈希），导出 **92 条**到 `deliverable/handoff/perschar_model_pairs.csv`（工具 `tools/perschar_mem_pairs.py`）；仍未覆盖的 858 条是因为该字段只有部分记录有值 |
+| —— | 🟡 **部分可解**：模型名自带「城镇代码 + 职务」（`u_m_m_valbarber_01` = val+barber），用**双条件**能把 **69 / 950** 个槽位对上模型（如 `VAL_SHERIFF` → `u_m_m_valsheriff_01`、`SDN_DOCK_WORKER_1..4` → `a_m_m_sddockworkers_02`）；**单条件 153 个但噪声大，728 个对不上**。这是**推断级**，不是官方绑定表 |
+| #3~#7 | 不变 |
