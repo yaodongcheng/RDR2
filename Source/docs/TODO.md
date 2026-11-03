@@ -5,7 +5,7 @@
 
 ---
 
-## ★ 2026-11-03 · 世界场景划分 —— ✅ **定稿（58 张）· 下一步开工建场景**
+## ★ 2026-11-03 · 世界场景划分 —— ✅ 定稿（58 张，RDR2 侧口径）
 
 **一句话**：**58 张地图 = 44 张据点地图 + 12 张野地地图 + 2 张瓜玛**。数据、页面、编辑器、自检全部就绪；下一件事是**在骑砍2里建场景**（先 P0 验证，再批量）。
 
@@ -59,37 +59,32 @@
 - **保存**：改动自动存浏览器 localStorage（带 BUILD_ID，页面重新生成后旧缓存自动失效）；点「导出改动」→ `scene_overrides.json`（**只含改过的项，是增量**）→ 由 Claude 合并进 `_scratch\settlement_plan\scene_overrides.json` 再重跑。
 - 导出里的 `wilds_final` 一旦存在就是**权威**：构建完全按它来（编号、矩形、T/W 都以它为准），`deleted_wilds` 对它无效。
 
-### 🔴 建场景时吃什么（下一步开工直接照这个）
+### 🔴 下一步（RDR2 侧）：按新的 58 张划分**重跑 blend** —— 骑砍2 必须等这一步验收通过
 
-**唯一输入 = `docs/世界与地编/scene_list.csv`（58 行，每行一张图）**
+**现状**
+- `D:/BrainMaker/大镖客2解包分析/deliverable/blender/continent/continent_v23.blend` = 全集（7.3 GB，**红线，不许改**）。
+- `deliverable/blender/regions/<编号>_<tile>.blend` = 22 块，按 **`wild2000_XX_YY` 的 2,000 m 瓦片网格**切。**这 22 块已全部 `_check_region.py` PASS**（网格/分类/贴图齐全），但那是**旧的切法**。
 
-| 列 | 用途 |
-|---|---|
-| `kind` | `settlement` / `wild` / `guarma` —— 决定走哪套逻辑 |
-| `id` / `code` | 场景键（据点用 code，野地用 `wild_NN`） |
-| `x,y` | **场景中心（世界坐标）**。场景局部坐标 = 世界 − 中心；1 单位 = 1 m，Y+ 朝北 |
-| `T` | **场景地面边长**（地形裁多大；引擎硬边界在 T 边缘） |
-| `W` / `O` | 远景环宽 / 外框边长（O = T + 2W，只做背景） |
-| `P_area_km2` | 核心区面积（对账用） |
-| `scene_name` | 建议场景 id：`rdr2_<code>` / `rdr2_wild_NN` |
+**为什么必须重跑（跟现在的 58 张对不上）**
+1. 野地现在是 **12 块横平竖直的矩形**（`scene_list.csv` 的 `wild_01..12`，边长 2,000–4,000 m）；旧 region 是 2,000 m 方格 ⇒ 一张新野地跨 2–4 个旧瓦片，边界也不齐。
+2. 据点是 **44 个 T 方框**（384–1,536 m），旧 region 里没有“按据点切”的图。
+3. 场景还需要 **T 外的远景环 O**（O = T + 2,000），旧瓦片没有这个概念。
 
-**要多边形时**（navmesh 范围 / 出生点裁边 / 小地图）读 `scene_specs.json`：
-- `settlements[i].P`、`wilds[i].P` = 能走范围（环列表；野地矩形就是 4 个角）；
-- `frame` = 地图框；`outside` = 地图外（只做远景）；
-- `gaps` / `overlaps` / `issues` = 自检几何（**只给页面看，建场景不用**）。
+**要做（按顺序）**
+1. 写「**按场景切 blend**」脚本：输入 = `scene_list.csv`（x, y, T, W, O）+ `continent_v23.blend` → 每张场景一个 `.blend`：
+   - 以场景中心为原点裁剪；
+   - **P 内**保留高清（bldg / props / 碰撞）；
+   - **P 外 T 内**换 `C_lod_远景碎片`（低模缓冲带）；
+   - **O 环**只放远景碎片：不碰撞、不寻路、不投影。
+2. 先出 **试点 2 张**（圣丹尼斯 + 一个野地），按 `_check_region.py` 同款对账（对象数 / 包围盒 / 贴图）跑到 PASS。
+3. 试点过 → 批量 **58 张**；每张出 manifest + 状态，目录沿用 `regions_support/` 的约定。
+4. **58 张场景 blend 全部验收通过，才进入「骑砍2 建场景」那一步**（用户 2026-11-03 明确）。
 
-**地形与资产**：高度图 `deliverable/heightmap/continent_height_4m.png`（4 m/格）+ 彩图 `export/world/world_ground_final_out.png`；远景用 `deliverable/blender/regions/*.blend` 里的 `C_lod_远景碎片`。
+> 骑砍2 侧的**对外接口 / 58 张场景清单 / 素材总表**不写在本文 —— 见 [README_骑砍2交接.md](README_骑砍2交接.md) §0.5。
 
-**58 张构成**：44 据点（CSV 里 `kind=settlement`）+ 12 野地（`wild_01..12`）+ 2 瓜玛（`agu`/`gua`，不在大地图，T 待 P0 定）。
-
-### 下一步：开始建场景（按顺序）
-
-1. **P0 六项实机验证**（方案文档 §9）：据点 1,536 / 野地 3,072·4,096·4,352 / 512 小据点 / navmesh / 远景外框 5,072–6,352 / 场景切换与「进入据点」提示。**P0 不过先调尺寸，P 互补原则不变。**
-2. 通用地形生成器（按 T 切图，据点/野地都能用）。
-3. 远景环生成器（读 region blend 的 `C_lod_远景碎片` + 高度图）。
-4. 试点：**圣丹尼斯**（最大城）+ **一个野地**（含据点范围的那块）。
-5. 批量 44 + 12 + 2。
-6. 接线（`settlements.xml` 的 `scene_name` + 扎营判定）。
+**不要做**
+- 不要动 `continent_v23.blend`（红线）；要升级出新版本号。
+- 不要直接拿旧的 2,000 m region 拼场景（尺寸/边界都对不上）。
 
 ### 交接注意（别再踩）
 
@@ -461,7 +456,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\continent_v24.l
 
 ### 区域 #19（已完成，可作模板）
 
-- `deliverable\blender\regions\19_wild2000_04_02.blend`（860 MB，`--no-water`）
+- `deliverable/blender/regions/<编号>_<tile>.blend` = 22 块，按 **`wild2000_XX_YY` 的 2,000 m 瓦片网格**切。**这 22 块已全部 `_check_region.py` PASS**（网格/分类/贴图齐全），但那是**旧的切法**。
 - 29,843 对象 / **19 类 19/19** / 对账 **PASS**
 - 隐藏 4,598（lod 512 / terrain_cell 999 / veg 2,502）
 - **unknown 已清零**（`com_plane001` 目视确认完全埋在地下 → underground）——430 → 0，2026-10-31 纠错行 16~41
