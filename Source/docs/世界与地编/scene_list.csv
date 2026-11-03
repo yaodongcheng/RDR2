@@ -1,0 +1,59 @@
+﻿kind,id,code,name,x,y,T,W,O,P_area_km2,scene_name
+settlement,ann,ann,安尼斯堡,2883.6,1347.9,768,1200,3168,0.425,rdr2_ann
+settlement,van,van,范霍恩贸易站,2917.0,457.6,768,1200,3168,0.33,rdr2_van
+settlement,sdn,sdn,圣丹尼斯,2554.5,-1150.5,1536,1200,3936,0.52,rdr2_sdn
+settlement,rho,rho,罗兹,1217.5,-1256.3,896,1200,3296,0.378,rdr2_rho
+settlement,arm,arm,犰狳镇,-3663.1,-2594.6,768,1200,3168,0.265,rdr2_arm
+settlement,val,val,瓦伦丁,-300.6,778.1,896,1200,3296,0.403,rdr2_val
+settlement,str,str,草莓镇,-1788.3,-360.2,768,1200,3168,0.236,rdr2_str
+settlement,tum,tum,风滚草镇,-5464.1,-2964.4,768,1200,3168,0.419,rdr2_tum
+settlement,bla,bla,黑水镇,-882.0,-1439.0,896,1200,3296,0.505,rdr2_bla
+settlement,cor,cor,康沃尔煤焦油厂,515.8,601.1,1024,800,2624,0.637,rdr2_cor
+settlement,cal,cal,卡利加种植园,1807.7,-1354.9,1024,800,2624,0.425,rdr2_cal
+settlement,bra,bra,布雷斯韦特庄园,1095.8,-1730.5,896,800,2496,0.446,rdr2_bra
+settlement,han,han,垂犬牧场,-2213.1,798.4,640,800,2240,0.255,rdr2_han
+settlement,fom,fom,布商堡,-4214.1,-3454.5,640,800,2240,0.126,rdr2_fom
+settlement,old,old,华莱士堡,338.8,1487.1,640,800,2240,0.13,rdr2_old
+settlement,eme,eme,翡翠牧场,1420.5,360.5,640,800,2240,0.277,rdr2_eme
+settlement,sis,sis,西西卡监狱,3254.8,-606.7,640,800,2240,0.292,rdr2_sis
+settlement,adl,adl,阿德勒牧场,-558.7,2681.9,640,800,2240,0.109,rdr2_adl
+settlement,mfr,mfr,麦克法兰牧场,-2406.0,-2404.7,640,800,2240,0.18,rdr2_mfr
+settlement,wap,wap,瓦匹缇,456.0,2226.0,640,800,2240,0.187,rdr2_wap
+settlement,but,but,布彻河村,2493.5,953.5,512,600,1712,0.105,rdr2_but
+settlement,ora,ora,奥兰治种植园,2028.1,-835.8,512,600,1712,0.06,rdr2_ora
+settlement,lag,lag,拉格拉斯,2065.8,-699.5,512,600,1712,0.067,rdr2_lag
+settlement,dewclm,dewclm,露莓溪,673.8,-1254.9,512,600,1712,0.087,rdr2_dewclm
+settlement,wal,wal,华莱士车站,-1272.1,454.7,512,600,1712,0.077,rdr2_wal
+settlement,pro,pro,叉角羚牧场,-2555.4,411.2,512,600,1712,0.142,rdr2_pro
+settlement,dow,dow,唐斯牧场,-837.1,343.0,512,600,1712,0.059,rdr2_dow
+settlement,man,man,石兰贸易站,-1978.2,-1642.0,512,600,1712,0.116,rdr2_man
+settlement,bee,bee,比彻之愿,-1601.2,-1360.7,512,600,1712,0.089,rdr2_bee
+settlement,che,che,切兹波特,-405.0,1729.2,512,600,1712,0.044,rdr2_che
+settlement,rid,rid,脊木农场,-4801.4,-2703.4,512,600,1712,0.08,rdr2_rid
+settlement,cle,cle,克莱蒙斯岬,715.8,-1038.8,512,600,1712,0.13,rdr2_cle
+settlement,lak,lak,拉凯,2274.6,-760.4,512,600,1712,0.107,rdr2_lak
+settlement,col,col,犁刀村,-1301.1,2435.4,512,600,1712,0.079,rdr2_col
+settlement,sha,sha,谢迪贝莱,1896.2,-1818.9,512,600,1712,0.148,rdr2_sha
+settlement,sod,sod,草皮屋,1868.6,585.2,512,600,1712,0.018,rdr2_sod
+settlement,rat,rat,岔路酒馆,-5192.9,-2130.6,512,600,1712,0.039,rdr2_rat
+settlement,lon,lon,朗尼棚屋,-852.0,-747.0,512,600,1712,0.032,rdr2_lon
+settlement,twi,twi,双子岩,-3956.0,-2136.5,512,600,1712,0.031,rdr2_twi
+settlement,gap,gap,豁牙裂口,-5986.0,-3211.0,384,500,1384,0.076,rdr2_gap
+settlement,mic,mic,迈卡藏身处,-1570.8,1229.0,384,500,1384,0.05,rdr2_mic
+settlement,roc,roc,威拉德之息,2989.0,2189.0,512,600,1712,0.032,rdr2_roc
+settlement,hso,hso,马掌望台,-126.0,-34.0,512,600,1712,0.13,rdr2_hso
+settlement,abe,abe,阿伯丁猪场,1803.0,-77.0,512,600,1712,0.04,rdr2_abe
+wild,wild_01,,野地 wild_01,-1835.5,2139.2,3072,1000,5072,5.759,rdr2_wild_01
+wild,wild_02,,野地 wild_02,630.1,2139.2,3072,1000,5072,4.945,rdr2_wild_02
+wild,wild_03,,野地 wild_03,2846.6,2139.2,3072,1000,5072,4.677,rdr2_wild_03
+wild,wild_04,,野地 wild_04,-1001.8,221.2,4352,1000,6352,7.195,rdr2_wild_04
+wild,wild_05,,野地 wild_05,2541.2,221.2,3072,1000,5072,4.606,rdr2_wild_05
+wild,wild_06,,野地 wild_06,-1887.0,-1258.4,3072,1000,5072,3.247,rdr2_wild_06
+wild,wild_07,,野地 wild_07,452.9,-1806.8,3072,1000,5072,5.188,rdr2_wild_07
+wild,wild_08,,野地 wild_08,2730.9,-1806.8,3072,1000,5072,5.704,rdr2_wild_08
+wild,wild_09,,野地 wild_09,-4114.1,-2404.8,3072,1000,5072,3.543,rdr2_wild_09
+wild,wild_10,,野地 wild_10,-5977.8,-3351.2,3072,1000,5072,5.102,rdr2_wild_10
+wild,wild_11,,野地 wild_11,-1882.5,-2606.2,3072,1000,5072,3.506,rdr2_wild_11
+wild,wild_12,,野地 wild_12,-3063.0,-4017.1,4096,1000,6096,5.772,rdr2_wild_12
+guarma,agu,agu,阿瓜多切斯,1364.0,-6992.5,,,,,rdr2_agu
+guarma,gua,gua,瓜玛营,1426.3,-7328.9,,,,,rdr2_gua
