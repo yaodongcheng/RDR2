@@ -1,6 +1,6 @@
 # TODO —— 交接版（2026-11-04）
 
-> 交接阅读顺序：1) 本文（最上面就是下一步）2) `docs/格式与资产/分类体系与判定规则.md`（21 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**）4) `docs/交接与状态/README_交接.md`（历史）。
+> 交接阅读顺序：1) 本文（最上面是**当前状态**：56 张已建完，只剩 TODO-6 用户预览）2) `docs/格式与资产/分类体系与判定规则.md`（21 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**）4) `docs/交接与状态/README_交接.md`（历史）。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
 
 ---
@@ -17,11 +17,54 @@
 | 6 | 地图页 **「含室内场景的房间」层** + 滚轮缩放 | 171 间；点据点才显示、**无按钮**、滚轮放大自动出名字 |
 | 7 | 闸门补强 | 地形 UV 检查、分类碰撞用例、`rooms` 列、批量开跑前双闸门 |
 
-> 下一步 = 铺全量 53 张，见下面「★★」。
+> 表内第 3 / 5 条是**旧 T 口径**的历史记录（黑水镇 12 套、233.9 MB）；P 口径重建后为 **10 套 / 1,618 件、206.8 MB**，见下节 A 表。
+>
+> 下一步 = **TODO-6 用户逐张预览**（`sdn` / `val` / `wild_04`）；全量 **56 张已建完**，见下节。
 
 ---
 
-## ★★ 下一步：铺全量 **53 张**（2026-11-04 收口后）
+## ✅ 2026-11-04 · 圣丹尼斯（sdn）已建 —— 全量开工前先看这条
+
+> 🔴 **口径变更（2026-11-04 用户裁定）**：**能走范围 P 就是活动区边界，P 外一律按远景处理**
+> （只留远景碎片；远景零室内）。旧的"正方形档位 T + 四边各留 64 m"作废，`T` 只保留用来算远景框。
+> 数据 = `scene_list.csv` 末尾四列 `能走_x0/y0/x1/y1`（生成器写）；构建侧全部改读 P。
+> 详见 `docs/AGENTS.md` **§6.10**。
+
+| 项 | 结果 |
+|---|---|
+| 产物 | `deliverable/blender/scenes/sdn.blend` **825.4 MB** |
+| 对象 | 20,522（活动区 19,763 / 远景 759），删除 958 |
+| 室内 | **21 包 / 3,760 件**（全部落在 P 内；整体包围盒相对 P 四面外溢 **0**） |
+| 越界 | **0 个**（远景框 4096×4096，**未改**） |
+| 耗时 | 426 s（含室内 + 远景库 append） |
+| 远景来源 | 🔴 **改为从打散分组远景库按需 append**：20 组 / 1,154 件；tile 里的 lod 跳过 896 |
+| 预览 | 城区顶视 / 西边界特写已出图核对；西西卡拆件 `new_area_slod4__split_sis`（549 顶点）已可见 |
+
+**⚠️ 另修了远景框裁剪的 4 个叠加 bug**（矩阵口径 / clear 侧 / 法线方向 / 包围盒高估），
+详见 `docs/AGENTS.md` **§6.9**；闸门 `tools/_check_scene_trim_clip.py`（A~I 九条 + 负面测试），
+已接进 `build_scenes.py`（不过就 `return 4`）。
+`bla` / `sod` / `wild_10` 也已按 **P 口径**重建（见下面全量表）。
+
+---
+
+## ✅ 2026-11-04 · 全量 **56 张已建完**（原「下一步」）
+
+| 项 | 结果 |
+|---|---|
+| 场景 | **56 / 56 `done`**（57 张子场景里瓜玛没有尺寸，不跑） |
+| 对象 | 合计 **186,134**（远景 `lod_out` 合计 20,724） |
+| 越界 | **56 张全部 0 个** |
+| 室内 | 按 P 口径摆；sdn 21 套 / 3,760 件、bla 10 套 / 1,618 件、sod 1 套 / 224 件，野地全 0 |
+| 体积 | blend 合计 **9.9 GB**；地形图 56×3 = **32.3 MB** |
+| 地形图 | **56 张全 PASS**（最大误差 0.000 m） |
+| 状态表 | `deliverable/blender/scenes/scene_build_status.csv` 全部 `done` |
+
+**批量中修的两个问题**
+
+1. **`rat` 超时 40 分钟**：`bisect_plane` 卡死在共面地形片（`outg_a_03_hd_02`）。
+   修法 = 隐藏类（`terrain_cell` / `terrain_lod`）跨边界**直接丢、不裁剪**；`rat` 728 → 498 对象、21 秒完成。
+   详见 `docs/AGENTS.md` **§6.12**。
+2. **远景碎片来源**：改为从打散分组远景库按需 append（§6.11），tile 里的 lod 一律跳过。
 
 ### A. 地基现状（每一条都跑过、有数字）
 
@@ -29,31 +72,41 @@
 |---|---|
 | 地形（UV / 采样 / 自检） | ✅ `check_scene_terrain.py` **PASS**（含 UV 朝向往返 + 三条负面测试） |
 | 分类（21 类，`unknown=0`） | ✅ `_check_rules.py` **PASS**（34 条用例）；黑水镇 72→0 |
-| 室内 MLO 摆放 | ✅ 黑水镇 12 套**实拍对比通过**；`sod` 1 套 / 224 件 |
+| 室内 MLO 摆放 | ✅ 黑水镇按 P 口径 **10 套 / 1,618 件**（旧 T 口径 12 套 / 1,789 件）；`sod` 1 套 / 224 件 |
 | **野地「城只留 lod」** | ✅ `wild_10` 试点：`据点内降 lod 2262`；P 内对象 66 个**全是 `lod_out`**、非 lod 0 个；野地不放室内 |
 | 分类开关单测 | ✅ `_check_tour_vis_unit.py` → `=== UNIT OK ===` |
 | 审计表 | ✅ 251 包 / `inside=True` 179；全量重算 **30 s** |
-| 批量干跑 | ✅ `build_scenes.py --dry-run` → **剩 53 张** |
+| 批量构建 | ✅ **56 / 56 `done`**（`scene_build_status.csv` 全 done，剩 0 张） |
 | 地图页房间层 | ✅ 171 间，滚轮放大看名字（无按钮） |
+| **远景碎片来源** | ✅ **从打散分组远景库按需 append**（`continent_lod_split_v23.blend`，与远景框相交的组）；tile 里的 lod 一律跳过。实测 sdn 20 组 / 1,154 件；西西卡拆件 `new_area_slod4__split_sis` 可见。详见 `docs/AGENTS.md` **§6.11** |
+| **每场景地形图**（高度 + mask） | ✅ **56 张全 PASS** → `deliverable/blender/scenes/terrain/`：`<id>_height_16bit.png`（16 bit · 4 m/px · 行 0 = 北）+ `<id>_mask.png`（全 255）+ `<id>_terrain.json`；自检最大误差 **0.000 m**；工具 `tools/export_scene_terrain_maps.py`，**已接进 `build_scenes.py`**（每建完一张自动导，自检不过就停批） |
 
-**已建 3 张**：`bla` 233.9 MB（12 套）· `sod` 41.9 MB（1 套）· `wild_10` 347.9 MB（野地规则）。
+### B. TODO-3 / 4 / 5 已出（2026-11-04）
 
-### B. 顺序（别跳）
+| # | 产物 | 数字 |
+|---|---|---|
+| **TODO-3** | `deliverable/handoff/mesh_texture_audit.csv` + `texture_list.csv` + `mesh_texture_audit.json`（`tools/audit_mesh_textures.py`） | 用到模型 **39,946**（索引里 0 个找不到）；贴图 **20,888** 张（文件缺失 **0**）；缺 albedo **1,688** / normal **6,529** / ma **7,267**（单独列出）。🔴 **缺 albedo 是已知接受缺口**（README §6「小道具贴图缺失」：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替）——**不是新缺陷，不要再重新解包** |
+| **TODO-4** | `deliverable/blender/scenes/placement_<id>.jsonl` × 56（`tools/export_scene_placements.py`） | 69 MB；字段 = hash / model_hash / cls / ring / loc / quat / scale / bbox / part_key / split_of / int_pkg / tile；**对账 = manifest + 室内件，56 张全一致** |
+| **TODO-5** | `deliverable/handoff/prefabs/<group_id>.json` + `prefabs_index.json`（`tools/build_lod_prefabs.py`） | **55 组 / 2,324 碎片**，每组计数与 `lod_groups.json` 一致；局部坐标 `gx,gy,gz` 相对组锚点。🔴 空组 `abe/dow/twi` 的"高清减面兜底"**已有现成管线** `tools/build_miniatures.py`（46 据点微缩代理，目标面数见 `RDR2_沙盒大地图_微缩模型规格.md`）——**不要另造减面工具** |
 
-1. ~~补跑 sod~~ ✅ 已完成（41.9 MB / `rooms=1/224`）
-2. **样板 2 张**：`val` 瓦伦丁（有室内的大城）+ `wild_04`（最大的野地，最能暴露野地规则问题）
-   → 看：日志 `[int]` 数、`scene_build_status.csv` 的 `rooms` 列、体积、Blender 里开一眼
-3. 样板没问题 → **全量剩余 51 张**
+### C. 只剩 TODO-6：用户逐张预览
 
-### C. 命令（可逐行复制）
+- 大 / 中 / 野地各开一张：`sdn`（圣丹尼斯）· `val`（瓦伦丁）· `wild_04`（最大野地）
+- 命令：`Start-Process -FilePath "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\launchers\打开大陆_流畅.bat" -ArgumentList "sdn"`
+- 看：P 内高清 / P 外只剩远景碎片 / 无品红 / 室内集合在 `ENTITIES/C_int_室内`
+- 你说"可以" → TODO-6 勾掉，`region/` 的清理再动。
+
+> 抽样验收入口：`打开大陆_流畅.bat <id>`（大中小各一张看即可）。
+
+### D. 命令（重跑用；全部已 done，只有 `--force` 才重建）
 
 ```powershell
 Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
 
-# 2) 样板：一座城 + 一张野地
+# 重跑样板：一座城 + 一张野地
 python -X utf8 tools\build_scenes.py --only val,wild_04 --force
 
-# 3) 全量（断点续跑：已 done 的自动跳过，剩 51 张）
+# 全量（断点续跑：已 done 的自动跳过；现在剩 0 张）
 python -X utf8 tools\build_scenes.py
 ```
 
@@ -61,13 +114,14 @@ python -X utf8 tools\build_scenes.py
 > 任一张 FAIL 立即停批。**不要**自己另写循环、不要并发。
 > 每张结束把 `rooms`（包数/件数）写进 `scene_build_status.csv`。
 
-### D. 每张的验收基线（`rooms` 列 = 包数/件数）
+### E. 历史验收基线（旧 T 口径；**实际以 `scene_build_status.csv` 为准**）
 
-只有 **34 个据点**有室内（野地一律 `0/0`）。合计 **183 包 / 28,129 件**（含已建的黑水镇）。头部：
+P 口径实测：**32 个据点有室内**（野地一律 `0/0`），合计 **129 包 / 20,656 件**。
+下表是**旧 T 口径**的预算，仅作口径差异参考（sdn 31→21 包、5,922→3,760 件）：
 
-| 场景 | 预计 | 场景 | 预计 |
+| 场景 | 预计（旧 T 口径） | 场景 | 预计 |
 |---|---:|---|---:|
-| sdn 圣丹尼斯 | 31 / 5922 | str 草莓镇 | 8 / 873 |
+| sdn 圣丹尼斯 ✅ | **21 / 3760**（P 口径实测） | str 草莓镇 | 8 / 873 |
 | bra 布雷斯韦特庄园 | 11 / 2306 | lak 拉凯 | 7 / 733 |
 | val 瓦伦丁 | 15 / 2095 | ora 奥兰治 | 7 / 676 |
 | bla 黑水镇 ✅ | 12 / 1789 | lag 拉格拉斯 | 7 / 676 |
@@ -211,7 +265,7 @@ python -X utf8 tools\build_scenes.py
 
 - 室内是**整包平铺**，没有门 / 房间裁剪（与圣丹尼斯同一现状）——"推门进屋"要另做 MLO rooms/portals；
 - 室内对象**不进 manifest**（manifest 由 trim 在摆室内之前写），所以批量验收的"0 超界"不覆盖它们；
-- 其余 55 张场景还没跑，跑之前 `audit` 表已是最新，会按同样口径自动摆室内；
+- ~~其余 55 张场景还没跑~~ ✅ **56/56 已建完**（2026-11-04，P 口径 + 远景库）；
 - **22 个区域 blend 和大陆 v23 还是旧分类**（`bldg 161 / unknown 72` 那套）。要统一就走
   `reclassify.py`（18~20 分钟，不重建几何）；本轮只重建了 bla。
 
@@ -274,17 +328,16 @@ python -X utf8 tools\build_scenes.py
 
 | 项 | 状态 |
 |---|---|
-| `bla.blend` | ✅ 按上述全部口径重建（6,770 对象；`lod` 40 隐藏 / `lod_out` 617 显示；水面 40.5；活动区内可见 lod 逐顶点 0） |
-| `sod.blend` | ⚠️ 旧口径产物，需重跑 |
-| 其余 55 张 | ❌ 未跑 |
+| `bla.blend` | ✅ 按 P 口径重建（6,213 对象；远景 676；室内 10 套 / 1,618 件） |
+| `sod.blend` | ✅ 按 P 口径重建（267 对象；远景 190） |
+| 其余 54 张 | ✅ **全部已建**（2026-11-04，合计 56/56） |
 | 交接规范 | ✅ 写进 `README_骑砍2交接.md` §0.6/§0.7（场景数 57+1、每场景 5 件交付物、两层内容、预览门槛、TODO-0~6） |
 
 ### 下一步（顺序）
 
-1. ✅ 上面那条**已定位、已修、已重跑**（贴图 UV 南北镜像，见本节顶部第一篇）——
-   `bla.blend` / `sod.blend` 已于 14:10 用修正后的脚本重建，UV 复验通过。
-2. `python -X utf8 tools\build_scenes.py`（批量 55 张；开跑前自动过地形自检，含 UV 朝向检查）。
-3. 按 `README_骑砍2交接.md` §0.7 做 TODO-2~6（每场景高度图+材质 mask / 全局网格与三类贴图清单 / 每场景摆放清单 / 大地图按据点 prefab / 用户逐张预览）。
+1. ✅ 贴图 UV 南北镜像已修并重跑（见本节顶部第一篇）。
+2. ✅ `build_scenes.py` 全量 56 张已建完（P 口径 + 远景库 + 地形图 + 摆放清单）。
+3. ✅ TODO-2~5 已出；**只剩 TODO-6 用户预览**（见本文顶部 C 节）。
 
 ---
 
@@ -316,12 +369,14 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 （`S_<据点>_<中文名>` 41 / `W_wild_01..12` / `G_<瓜玛>` 2，`tools/group_lod_blend.py`，幂等可重跑）——
 各组数量与 `lod_groups.json` 逐组一致。**没有 `X_未匹配`、没有第三个地形集合**。
 
-**遗留（还没做）**：
+**遗留（更新于 2026-11-04）**：
 
-1. **3 个小点位没有远景碎片**（`dow` 唐斯牧场 / `twi` 双岩 / `abe` 阿伯丁猪场）——
-   各只有 2~11 个高清建筑，要做「高清减面兜底」才能出大地图缩略。
-2. **网格导出**：本轮只交分组数据，没导出 OBJ/GLB；下一步要按组导出并定 RDR2 → 骑砍2 的轴映射。
-3. 237 个 `lod` 实例在解包里没有网格（摆不出来），和「817 个 archetype 缺模型」同一类。
+1. ✅ **3 个小点位没有远景碎片**（`dow` / `twi` / `abe`）—— **已解决**：现成
+   `tools/build_miniatures.py`（46 据点微缩代理，合计 84,502 面；abe 330 / dow 252 / twi 362），
+   已重跑，产物在 `deliverable/miniatures/`。**不要再另造减面工具。**
+2. ✅ **网格导出**：`tools/build_lod_prefabs.py` 已按组出 `deliverable/handoff/prefabs/<group_id>.json`
+   （55 组 / 2,324 碎片，`gx,gy,gz` 相对组锚点）；**OBJ/GLB 不另导**——骑砍2 侧按 prefab JSON 实例化。
+3. 237 个 `lod` 实例在解包里没有网格（摆不出来），和「817 个 archetype 缺模型」同一类（已接受）。
 
 ---
 
@@ -338,17 +393,17 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 | 瓜玛岛 | **1** | 阿瓜多切斯 / 瓜玛营 相距约 342 m，**合并成一张**（2026-11-04） |
 | **总计** | **57** | 44 + 12 + 1 |
 
-**🔴 2026-11-03 定稿：场景只有两层（旧 P / T / O 三个字母作废）**
+**🔴 2026-11-04 定稿：场景只有两层 —— 能走范围 P 就是活动区边界**
 
 | 层 | 大白话 | 地形 | 数据列（`scene_list.csv`） |
 |---|---|---|---|
-| **玩家活动区** | 玩家走得到的地面，走到边上被挡住（边界用 `border_hard` 预制体围，不是地形尽头） | 4 m 精细 | `活动区宽_m` / `活动区高_m` |
-| **远景范围** | 从活动区边缘往外再铺一圈，只做背景、走不到 | 16 m 粗 | `每边外扩_m` → `远景宽_m` / `远景高_m` |
+| **玩家活动区 = 能走范围 P** | 玩家走得到的地面，走到 P 边界被挡住（`border_hard`）；**P 外一律按远景处理** | 4 m | 末尾四列 `能走_x0 / 能走_y0 / 能走_x1 / 能走_y1`（生成器写） |
+| **远景范围** | P 每边再往外扩一圈，只做背景、走不到；**零室内** | 4 m | `远景宽_m` / `远景高_m`（沿用原配置，**不随 P 变**） |
 
-- 据点活动区是正方形：512 / 640 / 768 / 896 / 1,024 / 1,152 / 1,536（圣丹尼斯）；每边外扩 512 / 640 / 896 / 1,280。
-- 野地活动区就是那张矩形（2,048–4,352 边长），每边外扩 1,024。
-- 🔴 **活动区宽高、每边外扩必须是 128 的倍数** —— 地形按 128 m 节点整块切，不取整的话细/粗地形会切在节点中间（生成器已自动取整）。
-- 据点规则：能走范围到活动区边缘**每边至少留 64 m**（种屏障）；不够的由生成器自动加一档。
+- 据点 P = 建成区外切矩形（用户画/生成）；野地 P = 手画矩形。
+- ~~据点活动区是正方形（512~1,536）；每边至少留 64 m~~ —— **2026-11-04 作废**，P 就是边界。
+- 🔴 **远景框宽高、每边外扩必须是 128 的倍数**（地形按 128 m 节点整块切；生成器已自动取整）。
+- 🔴 **远景区域完全不放室内**：`scene_interiors` 只摆 MLO 实例落在 P 内的包，P 外零室内。
 
 ### 🔴 规则（用户裁定，别再改）
 
@@ -389,25 +444,21 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 - **保存**：改动自动存浏览器 localStorage（带 BUILD_ID，页面重新生成后旧缓存自动失效）；点「导出改动」→ `scene_overrides.json`（**只含改过的项，是增量**）→ 由 Claude 合并进 `_scratch\settlement_plan\scene_overrides.json` 再重跑。
 - 导出里的 `wilds_final` 一旦存在就是**权威**：构建完全按它来（编号、矩形、每边外扩都以它为准；活动区由矩形自动取整到 128），`deleted_wilds` 对它无效。
 
-### 🔴 下一步（RDR2 侧）：按新的 57 张划分**重跑 blend** —— 骑砍2 必须等这一步验收通过
+### ✅ 已完成（RDR2 侧）：按新的 57 张划分重跑 blend（2026-11-04）
 
 **现状**
-- `D:/BrainMaker/大镖客2解包分析/deliverable/blender/continent/continent_v23.blend` = 全集（7.3 GB，**红线，不许改**）。
-- `deliverable/blender/regions/<编号>_<tile>.blend` = 22 块，按 **`wild2000_XX_YY` 的 2,000 m 瓦片网格**切。**这 22 块已全部 `_check_region.py` PASS**（网格/分类/贴图齐全），但那是**旧的切法**。
+- `continent_v23.blend` = 全集（7.3 GB，**红线，不许改**）。
+- **56 张子场景已全部建完**（`deliverable/blender/scenes/`，见本文顶部）：
+  - 活动区 = **能走范围 P**（用户画的矩形；P 外一律按远景处理）；
+  - 远景碎片 = 从打散分组远景库按需 append（合并块已按据点 P 切开）；
+  - 每张自动出高度图 + 材质 mask + 摆放清单。
+- 旧的 22 块 `regions/`（2,000 m 瓦片切法）**已被场景目录取代**，等你验证后再决定删不删。
 
-**为什么必须重跑（跟现在的 58 张对不上）**
-1. 野地现在是 **12 块横平竖直的矩形**（`scene_list.csv` 的 `wild_01..12`，边长 1,400–4,352 m）；旧 region 是 2,000 m 方格 ⇒ 一张新野地跨 2–4 个旧瓦片，边界也不齐。
-2. 据点是 **44 个活动区方框**（512–1,536 m），旧 region 里没有“按据点切”的图。
-3. 场景还需要 **活动区外的远景范围**（活动区 + 每边外扩），旧瓦片没有这个概念。
-
-**要做（按顺序）**
-1. 写「**按场景切 blend**」脚本：输入 = `scene_list.csv`（x, y, 活动区宽/高, 每边外扩, 远景宽/高）+ `continent_v23.blend` → 每张场景一个 `.blend`：
-   - 以场景中心为原点裁剪，裁到 **远景范围**那么大（矩形，不是正方形）；
-   - **活动区内**保留高清（bldg / props / 碰撞）；
-   - **活动区外**（远景范围那一圈）只放远景碎片：不碰撞、不寻路、不投影。
-2. 先出 **试点 2 张**（圣丹尼斯 + 一个野地），按 `_check_region.py` 同款对账（对象数 / 包围盒 / 贴图）跑到 PASS。
-3. 试点过 → 批量 **57 张**（输出目录 = `deliverable/blender/scenes/`，驱动 `tools/build_scenes.py`）。
-4. **57 张场景 blend 全部验收通过，才进入「骑砍2 建场景」那一步**（用户 2026-11-03 明确）。
+**本轮完成（原计划）**
+1. ✅ 「按场景切 blend」脚本 = `tools/build_scenes.py` + `scene_terrain/scene_trim/scene_interiors`；
+2. ✅ 试点：`sdn`（最大城）+ `wild_10`（野地）先行验证；
+3. ✅ 批量 **56/56 done**（瓜玛无尺寸，不跑）；
+4. ✅ 0 超界、地形图全 PASS；**下一步是骑砍2 建场景**（待 TODO-6 预览确认）。
 
 > 地形精度（建场景时用）：**活动区内 4 m 网格，活动区外 16 m**；地形按 128 m 节点切，活动区宽高与外扩都是 128 的倍数，细/粗正好落在节点边界上。
 
@@ -637,7 +688,7 @@ python "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR
 
 ---
 
-## ★ 下一步（新 session 从这一节开始）：批量生成 22 个「有网格」的区域裁剪
+## ✅ 2026-11-01 · 批量生成 22 个「有网格」的区域裁剪（已完成，保留作流程参考）
 
 > ✅ **2026-11-01 已完成**：22/22 块 `status=done`，`_check_region` 全部 PASS；
 > 本节保留作流程/命令参考。**上一件事（两层材质 B）也已在同日落地**，见上面那一节；
@@ -814,13 +865,14 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\continent_v24.l
 
 ---
 
-## 遗留清理（等用户确认后执行）
+## 遗留清理（2026-11-04 核对）
 
-| 文件 | 原因 |
-|---|---|
-| `deliverable\blender\regions\19_wild2000_04_02.blend1` | Blender 自动备份（860 MB）；新构建已要求 `save_version=0` |
-| `deliverable\blender\regions_support\_probe_cards_wide.json` / `_probe_crosscards.json` | 一次性探针输出 |
-| `D:\BrainMaker\大镖客2解包分析\_logs\test2.bat` / `test_launcher.bat` / `bat_dump.txt` | 调试 bat 的临时文件 |
+| 文件 | 原因 | 现状 |
+|---|---|---|
+| `deliverable\blender\regions\19_wild2000_04_02.blend1` | Blender 自动备份（860 MB） | ✅ 已不存在（用户已清） |
+| `_logs\test2.bat` / `test_launcher.bat` / `bat_dump.txt` | 调试 bat 临时文件 | ✅ 已不存在（用户已清） |
+| `deliverable\blender\regions_support\_probe_cards_wide.json` / `_probe_crosscards.json` | 一次性探针输出 | ⏳ 仍在（约 0 MB）；`regions/` 清理时一并删 |
+| 探针预览图 `deliverable\blender\scenes\shots\` + `_scratch\sdn_check\` | 本轮场景核对用 | ⏳ 12 MB，看完可删 |
 
 ---
 

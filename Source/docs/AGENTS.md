@@ -431,6 +431,8 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | `tools/check_scene_terrain.py` | 离线自检：3 个断崖回归点对 H4 + 网格吸附 + **贴图 UV 朝向往返比对** + **三条负面测试**（"行偏移不修正""半格偏移""V 翻转"必须被抓到，证明检查有分辨力） |
 | `tools/build_scenes.py` | 批量开跑**前先调自检**，不过就 `return 4` 停止，一张都不跑 |
 | `tools/_check_tour_vis_unit.py` | **分类开关/可见性的合成单测**（Blender，2 秒）：类名解析、`show_all` / `apply_defaults` / `cat_show` **精确匹配** / `only` / `full`。**改过 `blender_tour` / `class_rules` / `rdr2_cat_ui` / `blender_autoload` 必跑** —— 2026-11-04 发现它缺 `terrain_lod`/`road` 一直 FAIL，因为没人跑（闸门不接进流程 = 没有闸门） |
+| `tools/_check_scene_trim_clip.py` | **远景框裁剪合成单测**（Blender，2 秒）：matrix 口径 / clear 侧 / 镜像 / 包围盒高估 A~G 七条 + 负面测试。**改过 `scene_trim` 必跑**，已接进 `build_scenes.py`（不过就 `return 4`，一张都不跑） |
+| `tools/export_scene_terrain_maps.py` | **每场景地形交付物**（TODO-2）：16 bit 高度图（4 m/px · 行 0 = 北）+ 全 255 材质 mask + JSON 元数据；采样与 blend 共用 `scene_terrain_core`，自检 ±0.05 m。已接进 `build_scenes.py`（导出失败/自检不过就停批） |
 
 复现：
 
@@ -498,4 +500,125 @@ python -X utf8 tools\check_scene_terrain.py -v
    批量会把它写进 `scene_build_status.csv` 的 `rooms` 列（`包数/件数`）。
 
 **验收**：日志里 `[int] 室内：N 个包 / M 个对象`；地图页 `regions_viewer.html` 点据点看紫方块。
+
+### 6.9 远景框裁剪：三条错叠在一起 = "日志说裁了、物体还在框外"（2026-11-04 圣丹尼斯）
+
+**症状**：`build_scenes.py --only sdn` 验收报「1 个对象超出远景框」，但日志写着
+「按远景框裁掉超界几何：1 个对象」——看起来裁过了，实际几何原封不动。
+
+**根因（三条独立错误，缺一条都不会暴露）**
+
+1. **矩阵口径不一致**：`clip_to_rect` 用 `o.matrix_world` 定位切平面，而新建对象在
+   depsgraph 跑之前 `matrix_world` 还是**单位阵**（`bb_of` 早就写明：无父级必须用
+   `matrix_basis`）⇒ 切平面落到别处，一刀没切却照样 `clipped += 1`。
+2. **clear 语义用反**：`bmesh.ops.bisect_plane` 的 `clear_outer` 删**法线所指**那一侧、
+   `clear_inner` 删**反向**那一侧（合成实验实测：立方体 x[4,6]、切面 x=5、法线 +X，
+   `clear_outer=True` 剩 x[4,5]）。外框四条边法线朝框内 ⇒ 旧代码删的是**框内**。
+   附带：活动区挖空那组两个标志都是 False = 只切不删（空转），且顺序切四刀也不是挖洞
+   （会删掉"任一半空间之外"的全部几何 = 整块删光）⇒ 该参数已删除。
+3. **法线变换方向反了**：切平面要的是**世界→局部** `n_l = Mᵀ·n_w`（由
+   `n_w·(M·p_l + t − c_w)=0` 推得），旧代码写的是 `(M⁻¹)ᵀ` —— 那是**局部→世界**。
+   不旋转的物体两者恰好相同（所以早期单测全过、`bla`/`wild_10` 也没暴露），
+   一旋转就切到错误方向（实测 `cor_derricks_slod_09` 绕 Z 转 15°：算出的局部法线
+   y 分量符号相反，一刀切下去整块几何从"没动"变成"全删"）。
+4. **包围盒高估**：`bound_box` 是**局部轴对齐**盒，乘上带旋转的矩阵后 8 个角点会比真实
+   顶点范围大。实测 `cor_es_pipes_slod` 顶点 x≥511.2（在框内），角点报 498.2（越界 8 m）
+   ⇒ manifest / 验收假报超界。
+
+另外：**裁剪判定前必须先 `view_layer.update()`** —— 新建对象的 `bound_box` 未求值时是
+默认 ±1 的盒，会被误判「在框内」整块跳过裁剪（实测 `cor_derricks_slod_09` 漏了 7876 个顶点）。
+
+**修法（已落地）**
+
+| 位置 | 怎么改 |
+|---|---|
+| `clip_to_rect` | 矩阵与 `bb_of` 同口径（无父级用 `matrix_basis`）；四条边一律 `clear_inner=True`；法线用 `Mᵀ`（世界→局部）；去掉 `det` 符号乘子（逆转置本身已处理镜像） |
+| `trim_current_scene` | 裁剪循环前强制 `bpy.context.view_layer.update()`；裁完再 update 一次（`bound_box` 要重新求值） |
+| manifest | 被裁过的对象改用 `exact_bb()`（逐顶点世界包围盒）；未裁的仍用 `bb_of`（便宜，且保守包围盒在框内 ⇒ 真实也在框内） |
+| 闸门 | 新增 `tools/_check_scene_trim_clip.py`（A~G 七条 + 负面测试），已接进 `build_scenes.py` |
+
+**影响面**：已建的 `bla` / `sod` / `wild_10` 日志里都没有「按远景框裁掉超界几何」，
+说明**从未走到这条路径**，产物不受影响；只有 `sdn` 触发（14 个）。
+
+### 6.10 活动区口径：**能走范围 P 就是活动区边界**（2026-11-04 用户裁定）
+
+**规则**：P（据点 = 你在编辑器画的矩形；野地 = 手画矩形）是唯一的活动区边界；
+**P 外一律按远景处理**（只留 `C_lod_远景碎片`，非 lod 对象删除）。
+旧的"正方形档位 T + 四边各留 64 m"不再是活动区，`T` 只保留用来算远景框的尺寸。
+
+**数据流**
+
+| 环节 | 做法 |
+|---|---|
+| 生成器 | `build_scene_division.py` 把 P 的世界矩形写进 `scene_list.csv` 末尾四列：`能走_x0/y0/x1/y1`；`活动区宽/高` 改成 P 的宽高；`远景宽/高` **保持原值不变** |
+| 读取 | `scene_trim.load_scene()` 读这四列 → `sc["p"]`；`rects()` 返回 `(P, 远景框)`；读不到才退回旧正方形（兼容老 CSV） |
+| 构建 | `blender_continent` 的预筛、`scene_trim` 的保留/删除判定、`verify_no_visible_lod_inside`、`scene_terrain` 的活动区/条带分界、`scene_interiors` 的室内取舍，**全部用 P** |
+| 远景框 | **不改**：仍按原配置的 `远景宽/高`（sdn = 4096×4096），只是不再随 P 变 |
+
+**闸门**：`_check_scene_trim_clip.py` 的 I 项断言 `scene_list.csv` 的「能走」四列必须被读出、
+`rects()` 必须拿它当活动区。
+
+**后果（sdn 实测）**：活动区对象 29,690 → **19,763**（完全在 P 外的 9,927 个不再算高清，
+其中 401 栋建筑、4,825 个道具、836 个植被按远景圈规则处理）。
+
+### 6.11 远景碎片改从「打散分组」的远景库按需取（2026-11-04 用户裁定）
+
+**规则**：场景的远景碎片**不再从 tile 装 lod**，改从
+`deliverable/blender/continent/continent_lod_split_v23.blend` 按组 append ——
+只取 bbox 与场景远景框相交的组（sdn 是 20 组 / 1,154 件）。
+
+**为什么**：合并 LOD 块（`new_area_slod4`，x[2127,3415]）在 tile 流里是**一整块**且跨活动区 P；
+按"跨边界 lod 隐藏"规则会整块被藏 ⇒ 活动区外的另一座据点（西西卡监狱，拆件 549 顶点）
+在 sdn 里完全消失。远景库里 `S_sis_西西卡监狱` 有按据点切开的
+`new_area_slod4__split_sis`，直接用即可，不用在 trim 里二次切割。
+
+**实现**
+
+| 环节 | 做法 |
+|---|---|
+| 远景库 | `extract_class_blend` → `backfill_lod_blend` → `split_span_blocks`（按据点 P 切）→ `group_lod_blend`（55 组）；产物 = `continent_lod_split_v23.blend` + `lod_groups.json` |
+| 取用 | `blender_continent.append_lod_groups(scene)`：按 `lod_groups.json` 的 `bbox_world` 挑相交组 → `bpy.data.libraries.load(link=False)` append → 对象挂 `ENTITIES`，删临时集合 |
+| tile | `build_entities` 在场景模式下**跳过所有 lod 实体**（日志 `tile lod 跳过 N（由远景库提供）`）；高清对象照旧 |
+| 分类 | 拆件名字含 `slod` → `classify_name` 归 `lod`；trim 照旧：P 内隐藏 `lod` / P 外可见 `lod_out` |
+
+**实测（sdn，2026-11-04）**：`[lod] append 20 个分组 / 1154 个远景碎片`；
+`new_area_slod4__split_sis` 在 `C_lod_out_远景碎片·区外`、`ring=1`、顶点世界 bbox
+x[3097.4,3414.6] y[−731.1,−487.9]；未拆整块 `new_area_slod4` 不再存在；远景框越界 **0**。
+**性能**：打开 1.1 GB 库 + append 一组实测 **0.5 s**，不需要按组拆小文件。
+
+### 6.12 `bisect_plane` 会卡死在共面地形片上 —— 隐藏类跨边界直接丢（2026-11-04）
+
+**症状**：`rat`（岔路酒馆）构建 **40 分钟超时**，日志停在 `[trim] 保留 活动区 397 · 远景 113`
+之后 —— 即远景框裁剪循环里，没有任何后续输出。
+
+**根因**：`clip_to_rect` 对 `terrain_cell` 地形补片（`outg_a_03_hd_02`，5,473 顶点，
+大片共面三角形）做 `bmesh.ops.bisect_plane` 时卡死。逐对象计时探针实测：前两个同类对象
+0.01~0.02 s 就切完，到 `outg_a_03_hd_02` 直接不返回。
+
+**修法**：`trim_current_scene` 的裁剪循环里，`cls_key in ('terrain_cell', 'terrain_lod')`
+且跨远景框 → **直接丢掉，不做裁剪**（`HIDDEN_TERRAIN`）。它们本来就是整类默认隐藏的
+冗余地形片，场景有自己按 H4 建的 `Terrain` 网格，丢了不可见。统计键 `删·隐藏地形跨边界`。
+
+**实测**：`rat` 728 → **498** 对象，**21 秒**完成，0 超界，地形图 PASS。
+
+### 6.13 补数据 / 补资产前，先查「已接受缺口」与现成管线（2026-11-04 教训）
+
+**症状**：审计出「1,688 个模型缺 albedo」「abe/dow/twi 没有远景碎片」，第一反应是重新解包 +
+另外写减面工具 —— 实际上两件都早有结论/管线，**是在重复造轮子**。
+
+**三条判据（动手前必查）**
+
+1. **`work/` 是 `raw/` 的 junction**（README §3「目录联接」）——两棵树是**同一份文件**，
+   在 `work/all_packs` 和 `raw/all_packs` 各搜一遍 = 白搜两遍。
+2. **raw 已经做过源侧闭环**（README §③：2,158 个嵌套包 / **0 空包** / 176,097 文件 / 58.58 GB），
+   **不要重新解包**。`extract_ytd_all.py` 的 `state` 说"已完成"就是真的抽出过了。
+3. **README §6「已知缺口」里已有的，就是已接受的**：
+   - 缺 albedo 的小道具（硬币/罐头/书/杯子等）：**扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无**，
+     用近似色代替 —— 所以 `mesh_texture_audit.csv` 里那 1,688 个缺 albedo **不是新发现**；
+   - `abe` / `dow` / `twi` 没有远景碎片：**现成** `tools/build_miniatures.py`（46 据点 /
+     84,502 面）就是它们的"高清减面兜底"，不要另写工具；
+   - 单城真实模型/微缩模型早就有（README §2.3b + `RDR2_沙箱大地图_微缩模型规格.md`），别重造。
+
+**动作**：写"补数据/补资产"工具前，先 `grep` 一下 README §6 / TODO / `tools/` 里的相关名字
+（`miniature` / `relink` / `extract_*` / `audit_*`），确认没有现成管线；有就**跑它**，没有才新写。
 

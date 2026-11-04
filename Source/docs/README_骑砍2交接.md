@@ -99,11 +99,11 @@
 
 | # | 交付物 | 规格 | 现状 |
 |---|---|---|---|
-| 1 | **高度图** | 16 bit PNG（或 raw），**4 m/px**，行 0 = 北；范围 = 该场景远景范围 | 需按场景切 |
-| 2 | **地形材质图** | RDR2 只有**单层** → 只要一张 8 bit 灰度 mask（全 1 即可），**不拆 8 层** | 待出 |
-| 3 | **场景 blend** | 打开即可预览（地编信息全在里面） | ✅ 已有 `scenes/*.blend` |
-| 4 | **对象摆放清单** | 一行一个对象：模型 hash / 位置 / 旋转 / 缩放 / 分类 / 是否远景 | 已有 manifest，字段待按本规范补齐 |
-| 5 | **网格库 + 三类贴图** | 全局一份：漫反射（alb）/ 法线（nm）/ 高光（ORM、`_ma`） | `lib_native` 已有，待出清单 |
+| 1 | **高度图** | 16 bit PNG（或 raw），**4 m/px**，行 0 = 北；范围 = 该场景远景范围（按全局 4 m 格点取整） | ✅ 已出：`deliverable/blender/scenes/terrain/<id>_height_16bit.png`（56 张） |
+| 2 | **地形材质图** | RDR2 只有**单层** → 只要一张 8 bit 灰度 mask（全 1 即可），**不拆 8 层** | ✅ 已出：`<id>_mask.png`（全 255） |
+| 3 | **场景 blend** | 打开即可预览（地编信息全在里面） | ✅ **56/56 已建**（9.9 GB；P 口径 + 远景库 + 室内） |
+| 4 | **对象摆放清单** | 一行一个对象：模型 hash / 位置 / 旋转 / 缩放 / 分类 / 是否远景 | ✅ 56 个 `placement_<id>.jsonl`（`tools/export_scene_placements.py`） |
+| 5 | **网格库 + 三类贴图** | 全局一份：漫反射（alb）/ 法线（nm）/ 高光（ORM、`_ma`） | ✅ `mesh_texture_audit.csv` + `texture_list.csv`（`tools/audit_mesh_textures.py`） |
 
 ### C. 每个子场景里放什么（两层，规则固定）
 
@@ -142,11 +142,11 @@
 | # | 事项 | 改哪里 | 验收（可复核） |
 |---|---|---|---|
 | **TODO-0** | **远景碎片两类落地**：分类器新增 `lod_out`（远景碎片·区外，默认显示）；场景裁剪把"完全在活动区外"的碎片改标为 `lod_out`，活动区内保持 `lod`（默认隐藏）；跨边界留在 `lod`；**不删对象** | `tools/class_rules.py` + `tools/scene_trim.py` | 打开 `bla.blend`：分类面板有 `远景碎片` / `远景碎片·区外` 两行；活动区内看不到 lod；活动区外可见；地形回归点 PASS |
-| **TODO-1** | 用修好的口径**重建 58 张子场景 blend** | `tools/build_scenes.py` | 每张：内容 0 超界、贴图 0 缺失、活动区无 lod、`check_scene_terrain.py` PASS |
-| **TODO-2** | 每张场景出**高度图 + 材质 mask** | 新工具（读场景地形） | 高度图与 blend 顶点在回归点一致（±0.05 m）；mask 全 1 |
-| **TODO-3** | 出**全局网格库清单 + 三类贴图清单** | 读 `lib_native/index.json` | 每个用到的网格都有 alb；缺 nm/orm 的单独列出（不阻塞） |
-| **TODO-4** | 每场景出**对象摆放清单**（供骑砍2 生成 xscene） | 扩 `scene_trim.py` 的 manifest | 字段齐全、坐标与 blend 一致、`ring` 标记正确 |
-| **TODO-5** | 大地图**按据点分组的 prefab** | 用现成 `lod_fragments.csv` | 分组数量与 §0.5.2 一致（41 据点组 + 12 野地组） |
+| **TODO-1** | 用修好的口径**重建 58 张子场景 blend** | ✅ `tools/build_scenes.py` | ✅ **56/56 done**（瓜玛无尺寸不跑）：全部 0 超界、地形自检 PASS、`rooms` 已入表；远景碎片来自打散分组远景库 |
+| **TODO-2** | 每张场景出**高度图 + 材质 mask** | ✅ `tools/export_scene_terrain_maps.py`（已接进 `build_scenes.py`，每建完一张自动导） | ✅ 56 张全 PASS：高度图与 blend 用**同一套采样**（`scene_terrain_core`），自检最大误差 0.000 m；mask 全 255；元数据 `<id>_terrain.json` |
+| **TODO-3** | 出**全局网格库清单 + 三类贴图清单** | ✅ `tools/audit_mesh_textures.py` | ✅ 用到模型 **39,946** / 贴图 **20,888** 张（文件缺失 **0**）；缺 albedo **1,688**、缺 normal **6,529**、缺 ma **7,267** —— 清单在 `deliverable/handoff/mesh_texture_audit.csv` / `texture_list.csv`。🔴 **缺 albedo 是已知接受缺口**（本项目 README §6「小道具贴图缺失」：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替），**不要再重新解包** |
+| **TODO-4** | 每场景出**对象摆放清单**（供骑砍2 生成 xscene） | ✅ `tools/export_scene_placements.py` | ✅ 56 个 `placement_<id>.jsonl`（69 MB）：`hash / model_hash / cls / ring / loc / quat / scale / bbox / part_key / split_of / int_pkg / tile`；对账 = manifest + 室内件，**56 张全一致** |
+| **TODO-5** | 大地图**按据点分组的 prefab** | ✅ `tools/build_lod_prefabs.py` | ✅ **55 组 / 2,324 碎片**，每组计数与 `lod_groups.json` 一致；输出 `deliverable/handoff/prefabs/<group_id>.json` + `prefabs_index.json`。空组 `abe/dow/twi` 的兜底**用现成** `tools/build_miniatures.py`（46 据点已全生成，合计 84,502 面），**不要另造减面工具** |
 | **TODO-6** | 用户逐张预览确认 | — | 用户点开任意 3 张（大/中/小各一）说"可以" |
 
 > 顺序硬约束：**TODO-0 不过，不要开 TODO-1 的批量**；TODO-1 不全过，不进入 TODO-2~5。

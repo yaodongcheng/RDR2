@@ -34,6 +34,10 @@ SRC = os.path.dirname(HERE)
 DEFAULT_CSV = os.path.join(SRC, "docs", "世界与地编", "scene_list.csv")
 RING_COLLECTION = "C_lod_out_远景碎片·区外"
 SPECIAL = ("Terrain", "Water")
+# 跨远景框时**直接丢、不做裁剪**的隐藏类：它们是整类默认隐藏的冗余地形片
+# （场景有自己按 H4 建的 Terrain 网格）。而且 `bisect_plane` 遇到大片共面三角形会
+# 卡死 —— 实测 rat 的 outg_a_03_hd_02（5,473 顶点）卡了 40 分钟，把整批拖超时。
+HIDDEN_TERRAIN = ("terrain_cell", "terrain_lod")
 
 
 # ------------------------------------------------------------------ 场景数据
@@ -42,17 +46,32 @@ def load_scene(sid, csv_path=DEFAULT_CSV):
         for r in csv.DictReader(fp):
             if r.get("id") == sid or r.get("code") == sid:
                 n = lambda k: float((r.get(k) or "0").strip() or 0)
+                # 🔴 2026-11-04 用户裁定：**能走范围 P 就是活动区边界**（P 外一律按远景处理）。
+                # 末尾四列是 P 的世界矩形；读不到才退回旧的正方形（兼容老 CSV）。
+                p = None
+                try:
+                    v = [float((r.get(k) or "").strip())
+                         for k in ("能走_x0", "能走_y0", "能走_x1", "能走_y1")]
+                    if v[2] > v[0] and v[3] > v[1]:
+                        p = tuple(v)
+                except Exception:
+                    p = None
                 return {"id": sid, "kind": r.get("kind"), "name": r.get("name"),
                         "x": n("x"), "y": n("y"),
                         "aw": n("活动区宽_m"), "ah": n("活动区高_m"), "w": n("每边外扩_m"),
-                        "fw": n("远景宽_m"), "fh": n("远景高_m")}
+                        "fw": n("远景宽_m"), "fh": n("远景高_m"), "p": p}
     raise SystemExit("[scene] scene_list.csv 里找不到 %s" % sid)
 
 
 def rects(sc):
+    """返回 (活动区, 远景)。活动区 = 能走范围 P（读不到才退回以 x,y 为中心的正方形）。"""
     x, y = sc["x"], sc["y"]
-    return ((x - sc["aw"] / 2, y - sc["ah"] / 2, x + sc["aw"] / 2, y + sc["ah"] / 2),
-            (x - sc["fw"] / 2, y - sc["fh"] / 2, x + sc["fw"] / 2, y + sc["fh"] / 2))
+    if sc.get("p"):
+        act = sc["p"]
+    else:
+        act = (x - sc["aw"] / 2, y - sc["ah"] / 2, x + sc["aw"] / 2, y + sc["ah"] / 2)
+    far = (x - sc["fw"] / 2, y - sc["fh"] / 2, x + sc["fw"] / 2, y + sc["fh"] / 2)
+    return act, far
 
 
 def settlement_zones(csv_path=DEFAULT_CSV):
@@ -119,6 +138,28 @@ def bb_of(o):
     return mn, mx
 
 
+def exact_bb(o):
+    """逐顶点世界包围盒（裁剪过的对象必须用这个口径）。
+
+    为什么不能复用 `bb_of`：`bound_box` 是**局部轴对齐**的盒，乘上带旋转的矩阵后，
+    8 个角点会跑出一个比真实几何更大的世界盒 —— 物体贴着远景边界时就会假报"超界"。
+    实测（sdn, 2026-11-04）：`cor_es_pipes_slod` 顶点 x≥511.2 全在框内，`bound_box`
+    角点却报到 498.2（越界 8 m）。
+    """
+    import numpy as np
+    mw = o.matrix_world if o.parent else o.matrix_basis
+    n = len(o.data.vertices)
+    if not n:
+        return Vector((0.0, 0.0, 0.0)), Vector((0.0, 0.0, 0.0))
+    co = np.empty(n * 3, dtype=np.float32)
+    o.data.vertices.foreach_get("co", co)
+    co = co.reshape(n, 3)
+    m = np.array(mw, dtype=np.float64)
+    w = co @ m[:3, :3].T + m[:3, 3]
+    return (Vector((w[:, 0].min(), w[:, 1].min(), w[:, 2].min())),
+            Vector((w[:, 0].max(), w[:, 1].max(), w[:, 2].max())))
+
+
 def hit(mn, mx, r):
     return not (mx.x < r[0] or mn.x > r[2] or mx.y < r[1] or mn.y > r[3])
 
@@ -133,39 +174,97 @@ def unhide_all(lc):
         unhide_all(ch)
 
 
-def clip_to_rect(o, far, inner=None):
-    """把几何裁到矩形内；给了 `inner` 时再把**活动区内部**挖掉（远景碎片专用）。
+def clip_to_rect(o, far):
+    """把几何裁到远景矩形内（只保留框内的部分）。
 
     🔴 网格是跨实例共享的（meshcache），裁剪前必须**复制成单用户**，
        否则裁一个实例会把同模型的所有实例一起改掉（实测裁成空网格）。
     返回 False 表示整块都被裁光了，调用方应删除该对象。
+
+    🔴 2026-11-04 两处实锤修正（圣丹尼斯 cor_01_slod）：
+      · **矩阵口径必须与 `bb_of` 一致** —— 新建对象在 depsgraph 跑之前 `matrix_world`
+        还是单位阵，无父级对象只有 `matrix_basis` 准。原来这里用 `matrix_world`，
+        切平面落到别处 ⇒ 网格一刀没切、却照样 `clipped += 1`（假"已裁"，包围盒仍在框外）。
+      · **`bisect_plane` 的 clear 语义**（合成实验实测）：`clear_outer` 删**法线所指**那一侧，
+        `clear_inner` 删**法线反向**那一侧。四条边的法线都朝框内（= 要保留的一侧），
+        所以一律 `clear_inner=True` 删框外；原来写 `clear_outer=True` 删的是框内（方向反了）。
+      · 不再乘 `det` 符号：逆转置已经正确处理镜像（负缩放），再乘一次反而把侧翻回去。
+      · **法线变换方向**：切平面要世界→局部 `Mᵀ·n_w`；原写法 `(M⁻¹)ᵀ` 是局部→世界，
+        对不旋转的物体恰好相同，一旋转就切错方向（实测 `cor_derricks_slod_09` 绕 Z 15°）。
+
+    ⚠️ 原先还有一个 `inner=` 参数（把活动区内部挖空），已删除（2026-11-04）：
+       ① **按构造它是空转** —— 只有包围盒与活动区不相交的对象才会进 `keep_ring`（见
+          `trim_current_scene` 的 `elif`），几何不可能落在活动区里；
+       ② 就算真要挖洞，顺序切四刀也不行（那会删掉"任一半空间之外"的全部几何 = 整块删光），
+          必须做布尔差集。空转 + 实现错误，直接移除。
     """
     import bmesh
     if o.data.users > 1:
         o.data = o.data.copy()
-    mw = o.matrix_world
+    mw = o.matrix_world if o.parent else o.matrix_basis
     mwi = mw.inverted()
-    nmat = mwi.to_3x3().transposed()          # 法线用逆转置
-    flip = -1.0 if mw.determinant() < 0 else 1.0
+    # 🔴 法线要的是**世界→局部**：n_l = Mᵀ·n_w（由 n_w·(M·p_l + t − c_w)=0 推得）。
+    #    原来写的是 (M⁻¹)ᵀ —— 那是**局部→世界**的变换，方向正好相反。
+    #    不旋转的物体两者相同（所以早期单测全过、bla/wild_10 也没暴露），
+    #    一旋转就切到错误方向（实测 sdn 的 cor_derricks_slod_09，绕 Z 15°）。
+    nmat = mw.to_3x3().transposed()
 
-    def _cut(bm, pco, pno, clear_outer):
+    def _cut(bm, pco, pno):
         co = mwi @ Vector(pco)
-        no = (nmat @ Vector(pno)).normalized() * flip
+        no = (nmat @ Vector(pno)).normalized()
         geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
         bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-4, plane_co=co, plane_no=no,
-                               clear_outer=clear_outer)
+                               clear_outer=False, clear_inner=True)
 
     bm = bmesh.new()
     bm.from_mesh(o.data)
-    # ① 裁到远景框内
+    # 裁到远景框内（法线朝框内 → clear_inner 删掉法线反向的一侧 = 框外）
     for pco, pno in (((far[0], 0, 0), (1, 0, 0)), ((far[2], 0, 0), (-1, 0, 0)),
                      ((0, far[1], 0), (0, 1, 0)), ((0, far[3], 0), (0, -1, 0))):
-        _cut(bm, pco, pno, True)
-    # ② 远景碎片：再把活动区内部挖空（法线朝外 → clear_inner 挖掉矩形内）
-    if inner is not None:
-        for pco, pno in (((inner[0], 0, 0), (-1, 0, 0)), ((inner[2], 0, 0), (1, 0, 0)),
-                         ((0, inner[1], 0), (0, -1, 0)), ((0, inner[3], 0), (0, 1, 0))):
-            _cut(bm, pco, pno, False)
+        _cut(bm, pco, pno)
+    n_left = len(bm.verts)
+    bm.to_mesh(o.data)
+    bm.free()
+    o.data.update()
+    return n_left > 0
+
+
+def clip_to_outside_rect(o, rect):
+    """把矩形**内部**从网格里挖掉（保留矩形外）。用于跨活动区的远景碎片。
+
+    🔴 为什么是"切四刀 + 删内部面"，不是布尔：见 `clip_to_rect` 的注释 ——
+       顺序四刀删的是"任一半空间之外"的全部几何，会整块删光。
+       这里先只切不删（四刀把每个面切成要么全在矩形内、要么全在外），
+       再删**中心严格在矩形内**的面；边界上的切面保留（它们是外侧那一半的封口）。
+    返回 False 表示整块都在矩形内（复制件应丢弃）。
+    """
+    import bmesh
+    if o.data.users > 1:
+        o.data = o.data.copy()
+    mw = o.matrix_world if o.parent else o.matrix_basis
+    mwi = mw.inverted()
+    nmat = mw.to_3x3().transposed()          # 世界 → 局部法线
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    for pco, pno in (((rect[0], 0, 0), (-1, 0, 0)), ((rect[2], 0, 0), (1, 0, 0)),
+                     ((0, rect[1], 0), (0, -1, 0)), ((0, rect[3], 0), (0, 1, 0))):
+        co = mwi @ Vector(pco)
+        no = (nmat @ Vector(pno)).normalized()
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:],
+                               dist=1e-4, plane_co=co, plane_no=no,
+                               clear_outer=False, clear_inner=False)
+    eps = 0.05
+    dead = []
+    for f in bm.faces:
+        p = mw @ f.calc_center_median()
+        if (rect[0] + eps < p.x < rect[2] - eps
+                and rect[1] + eps < p.y < rect[3] - eps):
+            dead.append(f)
+    if dead:
+        bmesh.ops.delete(bm, geom=dead, context='FACES')
+    loose = [v for v in bm.verts if not v.link_faces]
+    if loose:
+        bmesh.ops.delete(bm, geom=loose, context='VERTS')
     n_left = len(bm.verts)
     bm.to_mesh(o.data)
     bm.free()
@@ -299,6 +398,28 @@ def trim_current_scene(sc, out="", report="", manifest="",
                 and any(hit(mn, mx, z) for z in town_zones)):
             keep_act.append(o)
             stats["留·活动区"] += 1
+            # 🔴 跨活动区的 lod：原件照旧隐藏（不裁不删），另做一份「只保留 P 外」的
+            # 可见副本归 dock 到远景圈。不做的话，合并 LOD 块（new_area_slod4 含西西卡
+            # 292 面）会整块被打成 lod 隐藏 ⇒ 活动区外的另一座据点什么也看不到。
+            if o.get("cls_key") == "lod":
+                fully_inside = (mn.x >= act[0] and mx.x <= act[2]
+                                and mn.y >= act[1] and mx.y <= act[3])
+                if not fully_inside:
+                    cp = o.copy()
+                    cp.data = o.data.copy()
+                    cp.name = o.name + '_out'
+                    bpy.context.scene.collection.objects.link(cp)
+                    cp.hide_viewport = False
+                    cp.hide_render = False
+                    try:
+                        cp.hide_set(False)
+                    except Exception:
+                        pass
+                    if clip_to_outside_rect(cp, act):
+                        keep_ring.append(cp)
+                        stats["跨边界lod副本"] += 1
+                    else:
+                        bpy.data.objects.remove(cp, do_unlink=True)
         elif o.get("cls_key") == "lod":
             keep_ring.append(o)
             stats["留·远景碎片"] += 1
@@ -330,7 +451,11 @@ def trim_current_scene(sc, out="", report="", manifest="",
 
     # 跨出远景范围的残件（铁路/隧道 LOD 单块能横跨 2 km）→ 按远景框裁掉。
     # 先裁、后删：被裁光的对象并进 drop 一起删，避免拿到已释放的引用。
+    # 🔴 判定前强制求值：新建对象的 bound_box 在 depsgraph 跑之前是默认 ±1 的盒，
+    #    会被误判「在框内」而整块跳过裁剪（实测 sdn 的 cor_derricks_slod_09 漏了 7876 个顶点）。
+    bpy.context.view_layer.update()
     clipped = 0
+    clipped_names = set()
     for o in list(keep_act + keep_ring):
         if o.type != "MESH" or o.name.startswith(("Terrain", "Water")):
             continue
@@ -338,17 +463,26 @@ def trim_current_scene(sc, out="", report="", manifest="",
         if (mn.x >= far[0] - 1 and mx.x <= far[2] + 1
                 and mn.y >= far[1] - 1 and mx.y <= far[3] + 1):
             continue
+        # 隐藏类地形片跨边界 → 直接丢（不裁剪；共面三角形会让 bisect 卡死）
+        if o.get("cls_key") in HIDDEN_TERRAIN:
+            (keep_act if o in keep_act else keep_ring).remove(o)
+            drop.append(o)
+            stats["删·隐藏地形跨边界"] += 1
+            continue
         try:
-            _inner = act if o.get("ring") else None
-            if not clip_to_rect(o, far, inner=_inner):
+            if not clip_to_rect(o, far):
                 (keep_act if o in keep_act else keep_ring).remove(o)
                 drop.append(o)
                 stats["删·整块裁光"] += 1
                 continue
             clipped += 1
+            clipped_names.add(o.name)
         except Exception as e:
             print("[trim] 裁剪失败 %s：%s" % (o.name, e))
     if clipped:
+        # 网格刚被改过：`bound_box` 要等 depsgraph 求值才更新，否则下面清单里记的仍是
+        # 裁剪前的包围盒 —— 批量验收会误报"超出远景框"（2026-11-04 圣丹尼斯）。
+        bpy.context.view_layer.update()
         print("[trim] 按远景框裁掉超界几何：%d 个对象" % clipped)
 
     for o in drop:
@@ -371,7 +505,8 @@ def trim_current_scene(sc, out="", report="", manifest="",
         ring = 1 if o.get("ring") else 0
         (cr if ring else ca)[k] += 1
         has_mesh = True
-        b0, b1 = bb_of(o)
+        # 被裁过的对象用逐顶点口径：bound_box 角点经旋转会外扩，贴着边界时假报超界。
+        b0, b1 = exact_bb(o) if o.name in clipped_names else bb_of(o)
         for i in range(3):
             mn[i] = min(mn[i], b0[i])
             mx[i] = max(mx[i], b1[i])

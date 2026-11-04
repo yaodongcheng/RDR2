@@ -204,8 +204,13 @@ def build(scene, step=STEP, tex_dir=DEFAULT_TEXDIR, verbose=True):
     meta = load_meta()
     H = heights(meta)
     cx, cy = scene["x"], scene["y"]
-    ax0, ay0 = cx - scene["aw"] / 2, cy - scene["ah"] / 2
-    ax1, ay1 = cx + scene["aw"] / 2, cy + scene["ah"] / 2
+    # 🔴 2026-11-04：活动区 = 能走范围 P（P 外一律按远景处理）。地形仍按**整块远景框**
+    # 铺满，只是"活动区/远景条带"的分界改用 P 的矩形（P 不一定以场景中心对称）。
+    if scene.get("p"):
+        ax0, ay0, ax1, ay1 = scene["p"]
+    else:
+        ax0, ay0 = cx - scene["aw"] / 2, cy - scene["ah"] / 2
+        ax1, ay1 = cx + scene["aw"] / 2, cy + scene["ah"] / 2
     fx0, fy0 = cx - scene["fw"] / 2, cy - scene["fh"] / 2
     fx1, fy1 = cx + scene["fw"] / 2, cy + scene["fh"] / 2
     fx0, fy0 = max(fx0, meta["x0"]), max(fy0, meta["y0"])

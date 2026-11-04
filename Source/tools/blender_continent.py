@@ -18,6 +18,9 @@ import struct
 import numpy as np
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
+# 2026-11-04：场景的远景碎片改从「打散分组」的远景库按需 append（合并块已按据点 P 切开）。
+LOD_GROUPS_JSON = os.path.join(ROOT, 'deliverable/handoff/lod_groups.json')
+LOD_SPLIT_BLEND = os.path.join(ROOT, 'deliverable/blender/continent/continent_lod_split_v23.blend')
 # Blender 用 -P 跑脚本时不一定把 tools/ 放进 sys.path；材质模块（mat_rdr2）要能 import。
 if os.path.join(ROOT, 'tools') not in sys.path:
     sys.path.insert(0, os.path.join(ROOT, 'tools'))
@@ -669,6 +672,59 @@ def _ntex_mat(col):
   return m
 
 
+def append_lod_groups(scene, verbose=True):
+  """把与该场景**远景框相交**的「打散分组远景碎片」从远景库 append 进来。
+
+  2026-11-04 用户裁定：远景碎片改从 `continent_lod_split_v23.blend` 按组取用 ——
+  合并块（如 `new_area_slod4`）已按据点 P 切开并归到 `S_<据点>` 集合，
+  不会再出现"整块跨活动区 → 被整块隐藏 → 隔壁据点（西西卡）消失"的问题。
+  高清对象仍由 `build_entities` 从 tile 装；**tile 里的 lod 一律跳过**（见 build_entities）。
+  """
+  if not (os.path.exists(LOD_SPLIT_BLEND) and os.path.exists(LOD_GROUPS_JSON)):
+    print('[lod] 缺远景库/分组表，跳过：%s / %s' % (LOD_SPLIT_BLEND, LOD_GROUPS_JSON))
+    return 0
+  import scene_trim as _st
+  act, far = _st.rects(scene)
+  meta = json.load(open(LOD_GROUPS_JSON, encoding='utf-8'))
+  names = []
+  for g in meta.get('groups') or []:
+    bb = g.get('bbox_world') or []
+    if not g.get('count') or len(bb) < 5:
+      continue
+    if bb[3] < far[0] or bb[0] > far[2] or bb[4] < far[1] or bb[1] > far[3]:
+      continue
+    gt, gid = g.get('group_type'), g.get('group_id')
+    if gt == 'settlement':
+      names.append('S_%s_%s' % (gid, g.get('name_zh')))
+    elif gt == 'wild':
+      names.append('W_%s' % gid)
+    elif gt == 'guama':
+      names.append('G_%s_%s' % (gid, g.get('name_zh')))
+  names = [n for n in names if n]
+  if not names:
+    print('[lod] 没有与远景框相交的分组')
+    return 0
+
+  ent = bpy.data.collections.get('ENTITIES') or bpy.context.scene.collection
+  try:
+    with bpy.data.libraries.load(LOD_SPLIT_BLEND, link=False) as (src, dst):
+      dst.collections = names
+  except Exception as e:
+    print('[lod] 打开远景库失败（%s），跳过' % e)
+    return 0
+  got = [c for c in dst.collections if c is not None]
+  n_obj = 0
+  for c in got:
+    for o in list(c.all_objects):
+      if o.name not in ent.objects:
+        ent.objects.link(o)
+      n_obj += 1
+    bpy.data.collections.remove(c)      # 对象已挂到 ENTITIES，临时集合删掉
+  if verbose:
+    print('[lod] append %d 个分组 / %d 个远景碎片（与远景框相交的组）' % (len(got), n_obj))
+  return n_obj
+
+
 def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails=False,
                    bbox=None, scene_rects=None, town_rects=None):
   # 名字表：给"无贴图模型"按类别上色用
@@ -714,6 +770,7 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
   skipped_flat = 0
   outside = 0         # --bbox 之外（按实体原点判；精确裁剪请用 crop_blend.py）
   town_lod = 0        # 野地场景里落在据点范围、被强制降成 lod 的实体数
+  skipped_lod_scene = 0   # 场景模式：tile 里的 lod 跳过（远景由 append_lod_groups 提供）
   # 地表分块网格（terrain 包里的 *_r_c_69.ydr 之类）与 H4 地形重复，必须剔掉
   src = {}
   mp = os.path.join(ROOT, 'export/world/continent/models.json')
@@ -770,6 +827,13 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       # 精确判定仍由 scene_trim 按真实矩阵做。
       if scene_rects is not None:
         act, far = scene_rects
+        # 🔴 场景模式：tile 里的 lod **一律不装** —— 远景碎片由 append_lod_groups 从
+        # 打散分组的远景库按需取（合并块已按据点 P 切开）。不跳的话，
+        # `new_area_slod4` 这类跨 P 的整块会进来，再被"跨边界 lod 隐藏"规则整块藏掉
+        # ⇒ 活动区外的另一座据点（西西卡）什么也看不到（2026-11-04 用户指出）。
+        if _cls_name is not None and _cls_name(_NAMES.get(e[0], '')) == 'lod':
+          skipped_lod_scene += 1
+          continue
         sx, sy, sz = e[8], e[8], e[9]
         wx0, wx1 = e[1] + bb[0] * sx, e[1] + bb[3] * sx
         wy0, wy1 = e[2] + bb[1] * sy, e[2] + bb[4] * sy
@@ -831,10 +895,11 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       if is_rail:
         rail_made += 1
     print(' %s 实体 %d 网格 %d' % (fn, total, len(meshcache)))
-  print('ENTITIES %d / 唯一网格 %d / 跳过扁平贴片 %d（标记不删）%s%s'
+  print('ENTITIES %d / 唯一网格 %d / 跳过扁平贴片 %d（标记不删）%s%s%s'
         % (made, len(meshcache), skipped_flat,
            (' / bbox 外 %d' % outside) if bbox else '',
-           (' / 据点内降 lod %d' % town_lod) if town_rects else ''))
+           (' / 据点内降 lod %d' % town_lod) if town_rects else '',
+           (' / tile lod 跳过 %d（由远景库提供）' % skipped_lod_scene) if scene_rects else ''))
   print('ENTITY 覆盖：遍历 %d 条，缺模型 %d，库有但网格无效 %d，落地 %d'
         % (seen, no_model, no_mesh, made))
   BUILD_STATS.update({'seen': seen, 'no_model': no_model, 'no_mesh': no_mesh,
@@ -1032,6 +1097,8 @@ def main():
       print('WILD 场景：%d 个据点范围内的物件只建远景碎片（走到边界切场景）' % len(town_rects))
     build_entities(a.lib, TILES, a.max_entities, a.only_tile, not a.no_conj_quat, a.rails, bb,
                    scene_rects=srects, town_rects=town_rects)
+    # 远景碎片：从打散分组的远景库按需 append（tile 里的 lod 已在上面跳过）
+    append_lod_groups(scene)
 
   os.makedirs(os.path.dirname(a.out), exist_ok=True)
   if a.shots:

@@ -33,8 +33,17 @@ def read_scene(path, sid):
         for r in csv.DictReader(fp):
             if r.get("id") == sid or r.get("code") == sid:
                 n = lambda k: float((r.get(k) or "0").strip() or 0)
-                return {"x": n("x"), "y": n("y"), "aw": n("活动区宽_m"), "ah": n("活动区高_m"),
-                        "fw": n("远景宽_m"), "fh": n("远景高_m")}
+                p = None
+                try:
+                    v = [float((r.get(k) or "").strip())
+                         for k in ("能走_x0", "能走_y0", "能走_x1", "能走_y1")]
+                    if v[2] > v[0] and v[3] > v[1]:
+                        p = tuple(v)
+                except Exception:
+                    p = None
+                return {"x": n("x"), "y": n("y"),
+                        "aw": n("活动区宽_m"), "ah": n("活动区高_m"),
+                        "fw": n("远景宽_m"), "fh": n("远景高_m"), "p": p}
     raise SystemExit("[check] 找不到场景 %s" % sid)
 
 
@@ -45,8 +54,12 @@ def hit(bb, r):
 
 def side(sc):
     x, y = sc["x"], sc["y"]
-    return ((x - sc["aw"] / 2, y - sc["ah"] / 2, x + sc["aw"] / 2, y + sc["ah"] / 2),
-            (x - sc["fw"] / 2, y - sc["fh"] / 2, x + sc["fw"] / 2, y + sc["fh"] / 2))
+    if sc.get("p"):
+        act = sc["p"]            # 2026-11-04：能走范围 P = 活动区边界
+    else:
+        act = (x - sc["aw"] / 2, y - sc["ah"] / 2, x + sc["aw"] / 2, y + sc["ah"] / 2)
+    far = (x - sc["fw"] / 2, y - sc["fh"] / 2, x + sc["fw"] / 2, y + sc["fh"] / 2)
+    return act, far
 
 
 def expected_from_v23(sc):

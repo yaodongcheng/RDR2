@@ -125,18 +125,24 @@ def build(scene, save=True, verbose=True):
     models, texmeta = idx['models'], idx['tex']
 
     cx, cy = scene['x'], scene['y']
-    ax0, ay0 = cx - scene['aw'] / 2, cy - scene['ah'] / 2
-    ax1, ay1 = cx + scene['aw'] / 2, cy + scene['ah'] / 2
+    # 🔴 2026-11-04：活动区 = 能走范围 P（P 外按远景处理，那里的建筑不建，室内也不摆）。
+    if scene.get('p'):
+        ax0, ay0, ax1, ay1 = scene['p']
+    else:
+        ax0, ay0 = cx - scene['aw'] / 2, cy - scene['ah'] / 2
+        ax1, ay1 = cx + scene['aw'] / 2, cy + scene['ah'] / 2
 
     col = _col()
     matcache, meshcache = {}, {}
     placed = made = 0
+    skipped_out = 0          # P 外（= 远景区域）的包：一律不摆
     for rec in ok:
         pkg = rec['pkg']
         inst = find_mlo(pkg)
         if inst is None:
             continue
         if not (ax0 <= inst[1] <= ax1 and ay0 <= inst[2] <= ay1):
+            skipped_out += 1
             continue
         yp = _ytyp(pkg)
         if yp is None:
@@ -190,6 +196,7 @@ def build(scene, save=True, verbose=True):
 
     print('[int] 室内：%d 个包 / %d 个对象（活动区 %.0f×%.0f）'
           % (placed, made, scene['aw'], scene['ah']))
+    print('[int] 远景圈跳过 %d 个包（活动区 P 外，一律不放室内）' % skipped_out)
     if save and made:
         # 🔴 必须 compress=True：`scene_trim` 存出来的是 zstd 压缩的（187 MB），
         # 这里显式写 False 会把整份文件摊成未压缩（922 MB）—— 体积 4 倍，白吓人。

@@ -247,6 +247,22 @@ def main():
             return 4
         log('    分类开关单测 PASS（=== UNIT OK ===）')
 
+    # 远景框裁剪单测（Blender，约 3 s）。2026-11-04 加：圣丹尼斯 cor_01_slod 漏裁，
+    # 根因是 clip_to_rect 用错矩阵（matrix_world 未求值）+ bisect 的 clear 侧用反。
+    clip = os.path.join(TOOLS, '_check_scene_trim_clip.py')
+    if os.path.exists(clip):
+        clog = os.path.join(LOGDIR, 'check_scene_trim_clip.log')
+        subprocess.run('tools\\run.cmd "%s" "%s" -b --factory-startup -P "%s"'
+                       % (clog, a.blender, clip), cwd=SRC, shell=True)
+        try:
+            ctxt = open(clog, encoding='utf-8', errors='replace').read()
+        except Exception:
+            ctxt = ''
+        if '=== UNIT OK ===' not in ctxt:
+            log('ERROR 远景框裁剪单测未过（tools/_check_scene_trim_clip.py），日志 %s' % clog)
+            return 4
+        log('    远景框裁剪单测 PASS（=== UNIT OK ===）')
+
     os.makedirs(a.dir, exist_ok=True)
     os.makedirs(LOGDIR, exist_ok=True)
     failed = 0
@@ -278,6 +294,30 @@ def main():
             log('[%s] FAILED：验收 %s（批量停止）' % (sid, vmsg))
             failed = 1
             break
+        # TODO-2：同步导出该场景的**高度图 + 材质 mask**（骑砍2 交付物）。
+        # 采样口径与 blend 地形同一份实现（scene_terrain_core），自检不过 = 交付物不对。
+        try:
+            import export_scene_terrain_maps as _maps
+            tm = _maps.export_scene(sid)
+        except Exception as e:
+            row['status'] = 'failed'; row['note'] = '地形图导出异常：%s' % e
+            status[sid] = row; write_status([status[k] for k in sorted(status)])
+            log('[%s] FAILED：地形图导出异常 %s（批量停止）' % (sid, e))
+            failed = 1
+            break
+        if tm is None:
+            log('[%s] 地形图跳过（该行没有远景尺寸）' % sid)
+        else:
+            ck = tm['check']
+            log('[%s] 地形图 %s / %s（%d×%d，最大误差 %.3f m，%s）'
+                % (sid, tm['height_png'], tm['mask_png'], tm['width'], tm['height'],
+                   ck['max_err_m'], ck['status']))
+            if ck['status'] != 'PASS':
+                row['status'] = 'failed'; row['note'] = '地形图自检 FAIL'
+                status[sid] = row; write_status([status[k] for k in sorted(status)])
+                log('[%s] FAILED：地形图自检 FAIL（%s）（批量停止）' % (sid, ck))
+                failed = 1
+                break
         row['status'] = 'done'
         status[sid] = row; write_status([status[k] for k in sorted(status)])
         log('[%s] -> done：%d 对象（远景 %d）/ %ds / %.1f MB'
