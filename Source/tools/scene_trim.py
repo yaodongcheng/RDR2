@@ -15,7 +15,7 @@
 * 世界包围盒与**远景范围**不相交 → 删；
 * 与**玩家活动区**相交 → 留（高清）；
 * 只在远景那一圈 → **只留 `cls_key == 'lod'`**（远景碎片），其余删；
-* 留下的远景碎片打 `ring=1` 并额外挂到集合 `O_远景`（导出时据此关碰撞 / 寻路 / 投影）；
+* 留下的远景碎片打 `ring=1` 并额外挂到集合 `活动区外远景`（导出时据此关碰撞 / 寻路 / 投影）；
 * 默认把场景中心平移到原点。
 
 产物：`manifest_<id>.jsonl`（平移前的世界包围盒，方便和 v23 / region 对账）+ 报告 JSON。
@@ -32,7 +32,7 @@ from mathutils import Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.dirname(HERE)
 DEFAULT_CSV = os.path.join(SRC, "docs", "世界与地编", "scene_list.csv")
-RING_COLLECTION = "O_远景"
+RING_COLLECTION = "C_lod_out_远景碎片·区外"
 SPECIAL = ("Terrain", "Water")
 
 
@@ -90,8 +90,8 @@ def unhide_all(lc):
         unhide_all(ch)
 
 
-def clip_to_rect(o, far):
-    """把超出远景范围的几何裁掉（4 个平面，clear_outer）。
+def clip_to_rect(o, far, inner=None):
+    """把几何裁到矩形内；给了 `inner` 时再把**活动区内部**挖掉（远景碎片专用）。
 
     🔴 网格是跨实例共享的（meshcache），裁剪前必须**复制成单用户**，
        否则裁一个实例会把同模型的所有实例一起改掉（实测裁成空网格）。
@@ -104,16 +104,25 @@ def clip_to_rect(o, far):
     mwi = mw.inverted()
     nmat = mwi.to_3x3().transposed()          # 法线用逆转置
     flip = -1.0 if mw.determinant() < 0 else 1.0
-    planes = [((far[0], 0, 0), (1, 0, 0)), ((far[2], 0, 0), (-1, 0, 0)),
-              ((0, far[1], 0), (0, 1, 0)), ((0, far[3], 0), (0, -1, 0))]
-    bm = bmesh.new()
-    bm.from_mesh(o.data)
-    for pco, pno in planes:
+
+    def _cut(bm, pco, pno, clear_outer):
         co = mwi @ Vector(pco)
         no = (nmat @ Vector(pno)).normalized() * flip
         geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
         bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-4, plane_co=co, plane_no=no,
-                               clear_outer=True)
+                               clear_outer=clear_outer)
+
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    # ① 裁到远景框内
+    for pco, pno in (((far[0], 0, 0), (1, 0, 0)), ((far[2], 0, 0), (-1, 0, 0)),
+                     ((0, far[1], 0), (0, 1, 0)), ((0, far[3], 0), (0, -1, 0))):
+        _cut(bm, pco, pno, True)
+    # ② 远景碎片：再把活动区内部挖空（法线朝外 → clear_inner 挖掉矩形内）
+    if inner is not None:
+        for pco, pno in (((inner[0], 0, 0), (-1, 0, 0)), ((inner[2], 0, 0), (1, 0, 0)),
+                         ((0, inner[1], 0), (0, -1, 0)), ((0, inner[3], 0), (0, 1, 0))):
+            _cut(bm, pco, pno, False)
     n_left = len(bm.verts)
     bm.to_mesh(o.data)
     bm.free()
@@ -130,6 +139,39 @@ def _layer_of(name, node):
         if r is not None:
             return r
     return None
+
+
+def verify_no_visible_lod_inside(rect):
+    """活动区内不得有**可见**的远景碎片（逐顶点判定，比包围盒严）。
+
+    rect = (x0, y0, x1, y1)，场景局部坐标（此时场景中心已在原点）。
+    返回违规对象名列表；空 = 合格。
+    """
+    import numpy as np
+    bad = []
+    for o in bpy.data.objects:
+        if o.type != "MESH" or o.get("cls_key") != "lod":
+            continue
+        try:
+            if not o.visible_get():
+                continue
+        except Exception:
+            continue
+        me = o.data
+        n = len(me.vertices)
+        if not n:
+            continue
+        mw = o.matrix_world if o.parent else o.matrix_basis
+        co = np.empty(n * 3, dtype=np.float32)
+        me.vertices.foreach_get("co", co)
+        co = co.reshape(n, 3)
+        m = np.array(mw, dtype=np.float64)
+        w = co @ m[:3, :3].T + m[:3, 3]
+        inside = ((w[:, 0] >= rect[0]) & (w[:, 0] <= rect[2]) &
+                  (w[:, 1] >= rect[1]) & (w[:, 1] <= rect[3]))
+        if inside.any():
+            bad.append(o.name)
+    return bad
 
 
 def restore_hidden_classes(ring_name=RING_COLLECTION):
@@ -170,6 +212,8 @@ def restore_hidden_classes(ring_name=RING_COLLECTION):
         if lc is not None:
             lc.hide_viewport = False
         shown = len(rc.objects)
+    # 说明（2026-11-04）：**不要**对 lod 做对象级 hide_set —— 分类面板切的是集合可见性，
+    # 对象级隐藏会让"显示"按钮失效（用户实测看不见）。两类已拆开后，只靠集合开关即可。
     print("[trim] 复原默认隐藏：%s（%d 类）｜远景集合可见 %d 个"
           % (",".join(sorted(set(hidden))), len(set(hidden)), shown))
 
@@ -194,7 +238,7 @@ def trim_current_scene(sc, out="", report="", manifest="",
         if o.name.startswith("Terrain"):
             (keep_act if keep_terrain else drop).append(o)
             continue
-        if o.name == "Water":
+        if o.name.startswith("Water"):
             (keep_act if keep_water else drop).append(o)
             continue
         if o.type != "MESH":
@@ -228,6 +272,13 @@ def trim_current_scene(sc, out="", report="", manifest="",
             bpy.context.scene.collection.children.link(col)
         for o in keep_ring:
             o["ring"] = 1
+            o["cls_key"] = "lod_out"      # 分类改成「远景碎片·区外」（2026-11-04 两类拆分）
+            # 🔴 只挂「活动区外远景」集合，**从类集合里摘出来**（2026-11-04 用户要求两个区分）：
+            #   不摘的话，"隐藏远景碎片类"对它们无效（它们同时属于可见的 O_ 集合，照样显示）。
+            #   分类信息保留在对象的 cls_key 自定义属性里，分类器口径不变。
+            for c in list(o.users_collection):
+                if c is not col:
+                    c.objects.unlink(o)
             if o.name not in col.objects:
                 col.objects.link(o)
 
@@ -235,14 +286,15 @@ def trim_current_scene(sc, out="", report="", manifest="",
     # 先裁、后删：被裁光的对象并进 drop 一起删，避免拿到已释放的引用。
     clipped = 0
     for o in list(keep_act + keep_ring):
-        if o.type != "MESH" or o.name.startswith("Terrain"):
+        if o.type != "MESH" or o.name.startswith(("Terrain", "Water")):
             continue
         mn, mx = bb_of(o)
         if (mn.x >= far[0] - 1 and mx.x <= far[2] + 1
                 and mn.y >= far[1] - 1 and mx.y <= far[3] + 1):
             continue
         try:
-            if not clip_to_rect(o, far):
+            _inner = act if o.get("ring") else None
+            if not clip_to_rect(o, far, inner=_inner):
                 (keep_act if o in keep_act else keep_ring).remove(o)
                 drop.append(o)
                 stats["删·整块裁光"] += 1
@@ -266,8 +318,8 @@ def trim_current_scene(sc, out="", report="", manifest="",
     mx = Vector((-1e18,) * 3)
     has_mesh = False
     for o in kept:
-        if o.type != "MESH" or o.name.startswith("Terrain"):
-            continue                     # 灯/相机/场景地形不进清单（对账只算实体）
+        if o.type != "MESH" or o.name.startswith(("Terrain", "Water")):
+            continue                     # 灯/相机/地形/水面不进清单（对账只算实体）
         k = o.get("cls_key") or ("terrain" if o.name.startswith("Terrain") else
                                  "water" if o.name == "Water" else "mesh")
         ring = 1 if o.get("ring") else 0
@@ -308,8 +360,8 @@ def trim_current_scene(sc, out="", report="", manifest="",
     if recenter:
         off = Vector((-sc["x"], -sc["y"], 0.0))
         for o in kept:
-            if o.name.startswith("Terrain"):
-                continue          # 场景地形本来就是按局部坐标建的
+            if o.name.startswith(("Terrain", "Water")):
+                continue          # 地形与水面本来就是按局部坐标建的，不能再平移一次
             mw = (o.matrix_world if o.parent else o.matrix_basis).copy()
             mw.translation += off
             o.matrix_world = mw
@@ -318,6 +370,15 @@ def trim_current_scene(sc, out="", report="", manifest="",
 
     # 复原「整类默认隐藏」（write_manifest 会把集合全开）+ 远景集合可见
     restore_hidden_classes()
+
+    # 验收：活动区内不得有【可见】的远景碎片（逐个顶点判，比包围盒严）
+    # 注意：此时场景已平移到以场景中心为原点 → 用局部矩形。
+    bad = verify_no_visible_lod_inside((-sc["aw"] / 2, -sc["ah"] / 2,
+                                        sc["aw"] / 2, sc["ah"] / 2))
+    if bad:
+        print("[trim] ❌ 活动区内仍有可见的远景碎片 %d 个：%s" % (len(bad), bad[:5]))
+    else:
+        print("[trim] ✅ 活动区内无可见远景碎片（逐顶点检查）")
 
     if out:
         os.makedirs(os.path.dirname(out), exist_ok=True)

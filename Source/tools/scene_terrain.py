@@ -66,6 +66,71 @@ def crop_color(meta, fx0, fy0, fx1, fy1, out_png):
     return out_png
 
 
+def scene_water_level(fx0, fy0, fx1, fy1, default=40.5):
+    """该场景范围内的水位（取两级水位图的中位数；范围内没有水面就用 default）。
+
+    水位图与 `tools/water_two_levels.py` 同一坐标系：X0/Y0 = 左下角，行 0 = 南。
+    """
+    path = os.path.join(RDR2, "export", "world", "water_level_map_2lv.npy")
+    if not os.path.exists(path):
+        return default
+    lvl = np.load(path)
+    if lvl.ndim != 2:
+        return default
+    X0, Y0, WORLD = -7684.0, -8196.0, 12296.0
+    P = lvl.shape[0]
+    res = WORLD / P
+    c0 = int(np.clip(round((fx0 - X0) / res), 0, P - 1))
+    c1 = int(np.clip(round((fx1 - X0) / res), 0, P - 1))
+    r0 = int(np.clip(round((fy0 - Y0) / res), 0, P - 1))
+    r1 = int(np.clip(round((fy1 - Y0) / res), 0, P - 1))
+    sub = lvl[min(r0, r1):max(r0, r1) + 1, min(c0, c1):max(c0, c1) + 1]
+    v = sub[np.isfinite(sub)]
+    if v.size == 0:
+        return default
+    return float(np.median(v))
+
+
+def _water_plane(fx0, fy0, fx1, fy1, level, cx, cy, _mat_tex=None):
+    """一块覆盖远景范围的水面（局部坐标，z = 绝对水位）。"""
+    verts = [(fx0 - cx, fy0 - cy, level), (fx1 - cx, fy0 - cy, level),
+             (fx1 - cx, fy1 - cy, level), (fx0 - cx, fy1 - cy, level)]
+    faces = [(0, 1, 2, 3)]
+    me = bpy.data.meshes.new("Water")
+    me.from_pydata(verts, [], faces)
+    me.update()
+    ob = bpy.data.objects.new("Water", me)
+    ob.data.materials.append(_water_material())
+    bpy.context.scene.collection.objects.link(ob)
+    return ob
+
+
+def _water_material():
+    m = bpy.data.materials.get("water")
+    if m and m.use_nodes:
+        return m
+    m = bpy.data.materials.new("water")
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if bsdf:
+        bsdf.inputs["Base Color"].default_value = (0.055, 0.135, 0.235, 1.0)
+        bsdf.inputs["Roughness"].default_value = 0.08
+        for k, v in (("IOR", 1.333), ("Alpha", 0.72)):
+            if k in bsdf.inputs:
+                bsdf.inputs[k].default_value = v
+    for attr, val in (("surface_render_method", "BLENDED"), ("blend_method", "BLEND")):
+        try:
+            setattr(m, attr, val)
+        except Exception:
+            pass
+    try:
+        m.use_backface_culling = False
+    except Exception:
+        pass
+    return m
+
+
 def _mat(tex_path):
     key = "scene_terrain_" + os.path.basename(tex_path)
     m = bpy.data.materials.get(key)
@@ -173,6 +238,14 @@ def build(scene, step=STEP, tex_dir=DEFAULT_TEXDIR, verbose=True):
         made.append((nm, len(v)))
         if verbose:
             print("[terrain] %s %d 顶点 / %d 面（%.0f m 网格）" % (nm, len(v), len(f), step))
+    # 水面：**一块大平面**（2026-11-04 用户裁定：一个场景不会同时有两种水位，
+    # 只有大地图才有两级）。水位取该场景范围内的水位中位数。
+    try:
+        lvl = scene_water_level(fx0, fy0, fx1, fy1)
+        _water_plane(fx0, fy0, fx1, fy1, lvl, cx, cy, mat)
+        print("[terrain] 水面：单平面 z=%.1f m（覆盖远景范围）" % lvl)
+    except Exception as e:
+        print("[terrain] 水面构建失败（跳过）：%s" % e)
     print("[terrain] 场景地形完成（%.1f s，贴图 %s）" % (time.time() - t0, os.path.basename(tex)))
     return made
 

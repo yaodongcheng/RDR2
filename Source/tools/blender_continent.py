@@ -1042,6 +1042,7 @@ def main():
         scene, out=a.out,
         report=os.path.join(d, 'scene_report_%s.json' % a.scene),
         manifest=os.path.join(d, 'manifest_%s.jsonl' % a.scene),
+        keep_water=True,          # 场景必须有水（两级水体，2026-11-04）
         recenter=not a.scene_no_recenter)
   elif scene is not None:
     raise SystemExit('--scene 必须配 --full（要先分类才知道哪些对象是 lod）')

@@ -24,7 +24,7 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 
 # 类表（顺序只影响报告打印；判定优先级看 RULES）
 CLASSES = (
-    'lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
+    'lod', 'lod_out', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
     'rail', 'rail_decal', 'struct', 'road', 'ruin', 'decal', 'veg', 'stone', 'rock',
     'veh', 'bldg', 'part', 'junk', 'prop', 'unknown',
 )
@@ -159,6 +159,10 @@ ALL_CLASSES = []
 for _k, _zh, _rx in RULES:
     if _k not in [c[0] for c in ALL_CLASSES]:
         ALL_CLASSES.append((_k, _zh))
+# 2026-11-04 用户裁定：远景碎片按「活动区外/内」分成两类。
+# 名字规则永远判不出 lod_out —— 它由场景裁剪按几何（是否在活动区内）改标，
+# 大陆/旧分区里这个类永远为空，不受影响。
+ALL_CLASSES.append(('lod_out', '远景碎片·区外'))
 ALL_CLASSES.append(('unknown', '未分类'))
 
 
