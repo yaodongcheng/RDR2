@@ -53,6 +53,8 @@ def parse():
   ap.add_argument('--scene', default='', help='场景 id（sdn / wild_01 …），读 docs/世界与地编/scene_list.csv')
   ap.add_argument('--no-terrain', action='store_true', help='不建大陆地形网格')
   ap.add_argument('--scene-no-recenter', action='store_true', help='场景模式：不把场景中心平移到原点')
+  ap.add_argument('--no-interiors', action='store_true',
+                  help='场景模式：不摆室内 MLO（黑水镇加室内后 187→922 MB，嫌大就用它）')
   # 按世界坐标范围裁剪（TODO #7）。坐标系 = RDR2 原生 X 东 / Y 北 / Z 上，单位米。
   # ⚠️ 区域产物原则上应由全集 crop_blend.py 裁出来（最高原则 §二.2）；--bbox 是
   # 「小范围试验」用的快速子集，不替代裁剪管线。
@@ -668,7 +670,7 @@ def _ntex_mat(col):
 
 
 def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails=False,
-                   bbox=None, scene_rects=None):
+                   bbox=None, scene_rects=None, town_rects=None):
   # 名字表：给"无贴图模型"按类别上色用
   def _joaat(t):
     h = 0
@@ -711,6 +713,7 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
   no_mesh = 0         # 库里有 index，但 .mdl 读不出来/无有效三角面
   skipped_flat = 0
   outside = 0         # --bbox 之外（按实体原点判；精确裁剪请用 crop_blend.py）
+  town_lod = 0        # 野地场景里落在据点范围、被强制降成 lod 的实体数
   # 地表分块网格（terrain 包里的 *_r_c_69.ydr 之类）与 H4 地形重复，必须剔掉
   src = {}
   mp = os.path.join(ROOT, 'export/world/continent/models.json')
@@ -777,6 +780,14 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
         if not hit_act and (_cls_name is None or _cls_name(_NAMES.get(e[0], '')) != 'lod'):
           outside += 1
           continue
+        # 🔴 野地场景：落在**据点活动区**里的东西一律只留远景碎片（2026-11-04 用户裁定）
+        # 设计：野地可以包含城，但城在野地里必须整座用 lod 表示；玩家走到据点边界 → 弹「进入 XX」→ 切场景。
+        # 不挡的话，2~4 km 的活动区会把整座城建高清，既大又和"切场景"设计打架。
+        if town_rects and hit_act and (_cls_name is None or _cls_name(_NAMES.get(e[0], '')) != 'lod'):
+          if any(not (wx1 < tx0 or wx0 > tx1 or wy1 < ty0 or wy0 > ty1)
+                 for tx0, ty0, tx1, ty1 in town_rects):
+            town_lod += 1
+            continue
       dx, dy, dz = bb[3] - bb[0], bb[4] - bb[1], bb[5] - bb[2]
       # 地表 LOD 分块（64×64 / 128×128）：任何地方都剔——和 H4 地形重复，且高度对不上，
       # 留着就是一块块浮在镇子上的褐色"岛"
@@ -820,9 +831,10 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       if is_rail:
         rail_made += 1
     print(' %s 实体 %d 网格 %d' % (fn, total, len(meshcache)))
-  print('ENTITIES %d / 唯一网格 %d / 跳过扁平贴片 %d（标记不删）%s'
+  print('ENTITIES %d / 唯一网格 %d / 跳过扁平贴片 %d（标记不删）%s%s'
         % (made, len(meshcache), skipped_flat,
-           (' / bbox 外 %d' % outside) if bbox else ''))
+           (' / bbox 外 %d' % outside) if bbox else '',
+           (' / 据点内降 lod %d' % town_lod) if town_rects else ''))
   print('ENTITY 覆盖：遍历 %d 条，缺模型 %d，库有但网格无效 %d，落地 %d'
         % (seen, no_model, no_mesh, made))
   BUILD_STATS.update({'seen': seen, 'no_model': no_model, 'no_mesh': no_mesh,
@@ -1010,8 +1022,16 @@ def main():
       pad = 48.0      # 预筛是粗判（忽略旋转），活动区留点余量；精确判定交给 scene_trim
       srects = ((act[0] - pad, act[1] - pad, act[2] + pad, act[3] + pad), far)
       print('SCENE 预筛：活动区内建高清、活动区外只建 lod（活动区外扩 48 m 粗判）')
+    # 🔴 野地场景：据点范围里**只建远景碎片**（2026-11-04 用户裁定：野地可以包含城，
+    # 但城要整座用 lod 表示；玩家走到据点边界 → 弹「进入 XX」→ 切到据点场景）。
+    # 不挡的话 2~4 km 的活动区会把整座城建高清，跟"切场景"的设计直接打架。
+    town_rects = None
+    if scene is not None and (scene.get('kind') or '') != 'settlement':
+      import scene_trim as _st2
+      town_rects = _st2.settlement_zones()
+      print('WILD 场景：%d 个据点范围内的物件只建远景碎片（走到边界切场景）' % len(town_rects))
     build_entities(a.lib, TILES, a.max_entities, a.only_tile, not a.no_conj_quat, a.rails, bb,
-                   scene_rects=srects)
+                   scene_rects=srects, town_rects=town_rects)
 
   os.makedirs(os.path.dirname(a.out), exist_ok=True)
   if a.shots:
@@ -1043,7 +1063,16 @@ def main():
         report=os.path.join(d, 'scene_report_%s.json' % a.scene),
         manifest=os.path.join(d, 'manifest_%s.jsonl' % a.scene),
         keep_water=True,          # 场景必须有水（两级水体，2026-11-04）
-        recenter=not a.scene_no_recenter)
+        recenter=not a.scene_no_recenter,
+        # 野地场景：据点范围内的 lod **不许当活动区物件**（它们整类默认隐藏，
+        # 而野地里这是城的唯一表示）→ 交给 trim 归到「远景碎片·区外」可见集合
+        town_zones=town_rects)
+      # 室内（2026-11-04）：必须在 trim **之后**摆 —— 室内件不是地图实体，
+      # 提前摆会被 trim 的"圈内非远景碎片"规则当垃圾删掉；且 trim 已把场景平移，
+      # scene_interiors 直接按局部坐标落位。--no-interiors 可跳过（体积敏感时）。
+      if not a.no_interiors:
+        import scene_interiors
+        scene_interiors.build(scene)
   elif scene is not None:
     raise SystemExit('--scene 必须配 --full（要先分类才知道哪些对象是 lod）')
 

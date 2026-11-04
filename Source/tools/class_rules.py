@@ -91,7 +91,7 @@ RULES = [
     ('decal', '地面贴花', re.compile(
         r'decal|grndec|ground_dec|puddle|dirt|dust|gravel|skid|stain|mudstain|trackmark|rut|patch|mud_|'
         r'oil(slick)?|blood|gore|road_?mark|sidewalk|roadway|_road|path_|trail_|'
-        r'ground_?decal|grounddecal|shadow|shad_|_decl\d', re.I)),
+        r'ground_?decal|grounddecal|shadow|shad_|_decl\d|codemarkings', re.I)),
     ('veg', '植被', VEG),
     ('stone', '石块', re.compile(
         r'wallstone|rubble|cobble|gravelpile|rockpile|stonepile|boulder|'
@@ -104,11 +104,17 @@ RULES = [
     # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
     ('prop', '道具', re.compile(r'_em$', re.I)),
     ('bldg', '建筑', re.compile(
-        r'_ext_|bldg|building|church|chapel|saloon|store|shop|bank|hotel|barn|shed|cabin|'
+        r'(?<!arch)_ext(?=_|$)|bldg|building|church|chapel|saloon|store|shop|bank|hotel|barn|shed|cabin|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
-        r'postoffice|storefront|res\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
-        r'undertaker|gunsmith|tailor|butcher|doctor|photograph|newspaper|'
+        r'postoffice|storefront|res_?\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
+        r'undertaker|gunsmith|tailor|butcher|doctor|photo|newspaper|'
+        # 2026-11-04 黑水镇 72 个 unknown 复盘补的词（都是当时漏网的写法）：
+        #   `_ext` 原来只认 `_ext_`（后跟下划线），`bla_bakery_ext` 这种**结尾**写法全漏；
+        #   restaurant / bakery / cafe / cityhall / hardware / lawyer / fishmonger / slum /
+        #   corner02 / construction / barber 不在表里；`res01` 认、`res_01` 不认。
+        r'restaurant|bakery|cafe|city_?hall|hardware|hardare|lawyer|fishmonger|slum|'
+        r'corner\d|construction|barber|(^|_)news(?=_|$)|'
         # 2026-10-31 用户样本（区域 #20）：街区建筑/公寓/牢房/仓库/车站/工厂/水塔/凉亭
         r'apts(?!.*(sign|_dec(?![a-z])|decals|_em$))|'
         r'cellblock(?!.*(_dec(?![a-z])|decals|_em$))|'
@@ -124,13 +130,14 @@ RULES = [
     ('part', '建筑部件', re.compile(
         r'wall|roof|porch|fence|fencing|gate|door|window|stair|balustr|railing|rail_?post|rail$|'
         r'deck|beam|pillar|column|framing|trim|awning|sign_?post|boardwalk|plank|lumber|'
-        r'scaffold|ladder|fencepen|pen\d|hitching|trough|gutter|shutter|chimney|'
+        r'scaf+old|ladder|fencepen|pen\d|hitching|trough|gutter|shutter|chimney|'
         r'foundation|support|brace|joist|stud|veranda|canopy|pergola|trellis|woodboard|board\d|'
         r'buildsite|backrail|_awn\d|_hoist|hoist_|_pipes$|_tarp$|walkway|ctwalk|_winclosed|'  # 2026-11-01 用户样本
-        r'_glue|_outerwall|_shell$|_shell_', re.I)),
+        r'glue|_outerwall|_shell$|_shell_|parklights|arch_?ext', re.I)),   # 2026-11-04：scaf+old 兼容数据里的拼写 scafold
     ('junk', '杂物堆', re.compile(
         r'debris|debirs|rubble|trash|garbage|junk|scrap|cloth|cotton|bale|bundle|sugarcane|cane_|'
-        r'inv_|_stks|twgs|twig|branch|leaves|leaf_|pile|papers|newspaper|sack|rags|wdbrds|oldrailcamp', re.I)),
+        r'inv_|_stks|twgs|twig|branch|leaves|leaf_|pile|papers|newspaper|sack|rags|wdbrds|oldrailcamp|'
+        r'burial|plane\d*$', re.I)),
     ('prop', '道具', re.compile(
         r'barrel|crate|box\d|chair|table|lamp|lantern|bucket|bottle|wheel|crate|tool|'
         r'anvil|sack|stove|bed|desk|shelf|cabinet|piano|safe|cash|register|counter|'
@@ -142,7 +149,9 @@ RULES = [
         r'balcony|balc(?!o)|props|'
         # 2026-11-01：售货亭 / 摊 / 篷布 / 线缆接头 / 灯珠 / 发光片
         r'shut(?![a-z])|booth|kiosk|newsstand|_items$|fizzlod|hdfizz|spiderdream|tent|_prop$|'
-        r'cableconnect|bulb|emitter', re.I)),
+        r'cableconnect|bulb|emitter|'
+        # 2026-11-04 黑水镇 unknown 复盘：赛马跳栏 / 市政人像（fman）/ 无名散件 objectNNN / 环境零散件
+        r'horsejump|_fman\d*|object\d{3}|^amb_', re.I)),
 ]
 
 # 兜底：只对前面全没中的对象生效

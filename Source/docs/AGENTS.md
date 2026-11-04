@@ -331,6 +331,8 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | **Collection.hide_viewport ≠ LayerCollection.hide_viewport** | 数据层关了、视层"眼睛"还开着 → 清单写"已隐藏"、画面仍可见 | 两套一起设：`tour._set_eye()`、`cat_show()`、`classify_entities` 默认隐藏都已统一；验收用 `tools/_check_class_visibility.py` |
 | **`show_all()` / `full()` / `only()` 会把默认隐藏类放出来** | 每次"全图/恢复"都把远景碎片、地形块一起打开 | 统一按 `DEFAULT_HIDDEN` 走 `apply_defaults()`（面板「全图」已改）；`only()` 跳过默认隐藏类 |
 | **`-b` 测不出启动器画面** | `blender -b` 没有视口 → autoload 走"保持文件保存态"分支；拿 `-b` 截图当证据会判错（2026-10-29 踩过） | 启动器行为只认 **GUI 双击 bat**；`-b` 只能证明文件保存态 |
+| 🔴 **工具搬进仓库后 ROOT 指错，静默烂掉**（2026-11-04） | `audit_interior_placement.py` 按"文件住在数据工程 tools/ 下"算 `ROOT`，搬进 `Source/tools` 后 `assets/lib_native` 直接找不到 —— 一跑就 `FileNotFoundError`，而没人跑它就没人知道 | 要读数据工程的脚本统一 `ROOT = os.environ.get('RDR2_ROOT') or r'D:/BrainMaker/大镖客2解包分析'`（`scene_terrain.py` / `scene_interiors.py` 都这么写）；**改完必须真跑一遍**，编译通过不算 |
+| 🔴 **收尾步骤重存盘 = 悄悄改掉压缩设置**（2026-11-04） | `scene_trim` 存的是 zstd 压缩包（187 MB），新加的 `scene_interiors` 用 `save_as_mainfile(compress=False)` 又存了一次 → **922 MB**，被当成"室内要 5 倍体积"查了半天 | 任何在别人存盘之后再存的脚本一律 **`compress=True`**；判据 = 文件头：`BLENDER1` 开头 = 未压缩，`28 B5 2F FD`（zstd）= 压缩。**比体积前先看这个**，否则比的是两种格式 |
 
 ---
 
@@ -354,6 +356,7 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | 文件 | 作用 |
 |---|---|
 | `tools/scene_terrain.py` | 场景地形：`deliverable/terrain/final` 高度 + 彩图，结构 = 活动区一块 + 远景四条带 |
+| `tools/scene_interiors.py` | 场景**室内**：按 MLO 实例变换把 `*_int` 包摆进已经 trim 过的场景（`--no-interiors` 可关）；必须在 trim 之后跑 |
 | `tools/scene_trim.py` | 两层裁剪 + 默认隐藏复原 + 平移（场景中心→原点） |
 | `tools/build_scenes.py` | 批量驱动（断点续跑、每张验收"0 超界"、一次只跑一个 Blender） |
 
@@ -463,4 +466,36 @@ python -X utf8 tools\check_scene_terrain.py -v
 
 **已受影响的产物**：`bla.blend`、`sod.blend`（都是这个脚本建的）⇒ 修完必须**重跑**这两张；
 其余 55 张未建的不受影响。
+
+### 6.8 场景室内（MLO）与野地规则（2026-11-04 黑水镇实拍验收通过）
+
+**数据链路**：`levels/rdr3/interiors/<pkg>_int.rpf` → `raw/all_packs/<pkg>/<pkg>.ytyp`
+（件是**室内局部坐标**）+ area ymap 里的 `<pkg>` MLO 实例（pos + quat）⇒ `world = P + q·local`。
+与 `merge_interior_into_willard.py` / `instantiate_interiors.py` 同一套口径。
+
+| 件 | 作用 |
+|---|---|
+| `tools/audit_interior_placement.py` | 审计每个 `*_int` 包：室内 bbox 是否被某栋建筑包住 → `export/world/interior_placement_audit.json`（`inside` / `host` / `gaps` / `items`）。全量 278 包 **30 s**（names.txt 与 90 个 tile json 已缓存） |
+| `tools/scene_interiors.py` | 场景收尾：把 `inside=True` 且 MLO 落在活动区的包摆进 blend，集合 `ENTITIES/C_int_室内/int\|<地块>`，对象带 `int_pkg` |
+
+**四条硬口径**
+
+1. **只在 `scene_trim` 之后摆** —— 提前摆会被 trim 的"圈内非远景碎片"规则当垃圾删掉；
+   且 trim 已完成平移，`scene_interiors` 直接按局部坐标（世界 − 场景中心）落位。
+2. **宿主判据不能只看"名字前缀 + 最近"**（旧版就这么错：银行配到 `_em` 发光片、剧院配到贴花）。
+   现在三档：真包住（间隙 ≥0）→ 容差内（≥ -1.5）→ 最不偏；并硬性排除 **LOD 合并块**（`_slod/_lod`）
+   与 `_em/_decal/_dec/_d/_det` 附属件（名字质量降档）。`inside=True` 179/251。
+3. **野地场景里，城整座用远景碎片（lod）表示**（用户裁定）：
+   · `build_entities(town_rects=…)` —— 落在**据点活动区**内的非 lod 实体**不建**（日志 `据点内降 lod N`）；
+   · `trim_current_scene(town_zones=…)` —— 这些范围内的 lod **不能留在活动区**（`C_lod_*` 整类默认隐藏，
+     城里会空无一物），要归到可见的 `C_lod_out_远景碎片·区外`；
+   · 野地**不放室内**（`scene_interiors` 直接跳过非 settlement 场景；实测不挡的话 wild_04 会多 43 套 / 6465 件）。
+4. **体积**：黑水镇 **+46 MB（187.5 → 233.9 MB，压缩后）**，+1789 件 / +217 万顶点。
+   🔴 **别拿"未压缩 vs 压缩"两个数比大小**：`scene_trim` 存的是 zstd 压缩包（`BLENDER1` vs zstd 魔数可查），
+   而 `scene_interiors` 第一版写了 `save_as_mainfile(compress=False)`，把 187 MB 直接摊成 922 MB ——
+   一度以为室内要 5 倍体积。**任何在收尾步骤里重新存盘的脚本，必须 `compress=True`**。
+   `blender_continent --no-interiors` 可关。
+   批量会把它写进 `scene_build_status.csv` 的 `rooms` 列（`包数/件数`）。
+
+**验收**：日志里 `[int] 室内：N 个包 / M 个对象`；地图页 `regions_viewer.html` 点据点看紫方块。
 

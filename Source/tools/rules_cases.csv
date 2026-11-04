@@ -23,3 +23,13 @@ nopq_92_95_slod4,,terrain_lod,地形远景块从远景碎片里分出来
 rstu_96_99_slod4,,terrain_lod,同上（四象限网格前缀）
 rstu_96_99_rails_lod_202,,lod,铁路的 lod 仍是远景碎片
 new_aus_bridge2_slod,,lod,建筑 lod 仍是远景碎片
+bla_bakery_ext,,bldg,结尾 _ext（不带尾下划线）也是建筑 —— 2026-11-04 黑水镇复盘
+bla_05_restaurant01,,bldg,restaurant 不在旧词表里
+bla_south_res_01,,bldg,res_01 这种带下划线的写法
+bla_cityhall01x,,bldg,cityhall
+bla_policescafold01x,,part,数据里拼成 scafold（少一个 f）
+bla_policeglue_01,,part,glue 不带前下划线
+bla_arch_ext,,part,拱门归部件，bldg 的 _ext 对它要让路
+bla_codemarkings_003,,decal,墙面/地面涂装
+bla_object012,,prop,无名散件
+dis_grt_horsejumpc,,prop,赛马跳栏

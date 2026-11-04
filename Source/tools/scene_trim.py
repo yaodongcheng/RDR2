@@ -55,6 +55,49 @@ def rects(sc):
             (x - sc["fw"] / 2, y - sc["fh"] / 2, x + sc["fw"] / 2, y + sc["fh"] / 2))
 
 
+def settlement_zones(csv_path=DEFAULT_CSV):
+    """所有**据点**的「能走范围 P」矩形（世界坐标）。
+
+    用途：野地场景可以包含城，但城在野地里必须**整座用远景碎片（lod）表示** ——
+    玩家走近到据点边界会弹「进入 XX」切到据点场景（2026-11-04 用户裁定）。
+    P = 切场景的触发边界，所以拿它当"城"的范围（**不是活动区**：活动区含城外一圈草地，
+    拿它当范围会把城外植被/道具一起抹掉）。
+
+    数据优先 `scene_specs.json` 的 `P`（由 `scene_overrides.json` 生成）；读不到才退回
+    `scene_list.csv` 的活动区矩形（宁可范围大一点，也别让城里留高清）。
+    """
+    import json
+    root = os.environ.get('RDR2_ROOT') or r'D:/BrainMaker/大镖客2解包分析'
+    spec = os.path.join(root, '_scratch', 'settlement_plan', 'scene_specs.json')
+    out = []
+    if os.path.exists(spec):
+        try:
+            S = json.load(open(spec, encoding='utf-8')).get('settlements') or []
+            for s in S:
+                r = (s.get('P') or [None])[0]
+                if not r or len(r) < 3:
+                    continue
+                xs = [q[0] for q in r]
+                ys = [q[1] for q in r]
+                out.append((min(xs), min(ys), max(xs), max(ys)))
+        except Exception as e:
+            print('[trim] 读 scene_specs.json 失败（%s），退回活动区矩形' % e)
+            out = []
+    if out:
+        return out
+    with open(csv_path, encoding="utf-8-sig", newline="") as fp:
+        for r in csv.DictReader(fp):
+            if (r.get("kind") or "").strip() != "settlement":
+                continue
+            try:
+                x, y = float(r["x"]), float(r["y"])
+                aw, ah = float(r["活动区宽_m"]), float(r["活动区高_m"])
+            except Exception:
+                continue
+            out.append((x - aw / 2, y - ah / 2, x + aw / 2, y + ah / 2))
+    return out
+
+
 def build_bbox(sc, pad=128.0):
     """给 blender_continent.build_entities 的**原点**过滤框：远景范围外扩 pad。"""
     _, far = rects(sc)
@@ -219,7 +262,8 @@ def restore_hidden_classes(ring_name=RING_COLLECTION):
 
 
 def trim_current_scene(sc, out="", report="", manifest="",
-                       keep_terrain=True, keep_water=False, recenter=True, unhide=False):
+                       keep_terrain=True, keep_water=False, recenter=True, unhide=False,
+                       town_zones=None):
     t0 = time.time()
     act, far = rects(sc)
     print("[trim] 场景 %s（%s）中心 (%.0f, %.0f)" % (sc["id"], sc["name"], sc["x"], sc["y"]))
@@ -250,7 +294,9 @@ def trim_current_scene(sc, out="", report="", manifest="",
         if not hit(mn, mx, far):
             drop.append(o)
             stats["删·远景范围外"] += 1
-        elif hit(mn, mx, act):
+        elif hit(mn, mx, act) and not (
+                town_zones and o.get("cls_key") == "lod"
+                and any(hit(mn, mx, z) for z in town_zones)):
             keep_act.append(o)
             stats["留·活动区"] += 1
         elif o.get("cls_key") == "lod":

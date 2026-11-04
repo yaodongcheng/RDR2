@@ -69,6 +69,9 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
 .detail { margin:0 18px 9px; padding:10px 11px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; }
 .detail h2 { font-family:var(--serif); font-size:17px; margin:2px 0 4px; }
 .detail .row { display:flex; justify-content:space-between; gap:10px; font-size:11.5px; }
+.detail .roomrow { display:flex; justify-content:space-between; gap:10px; font-size:11px; color:var(--muted); cursor:pointer; padding:1px 2px; border-radius:3px; }
+.detail .roomrow:hover { background:var(--panel-2); color:var(--ink); }
+.detail .roomrow b { font-weight:600; color:var(--ink); }
 .detail .row span { color:var(--muted); }
 .detail .row b { text-align:right; font-variant-numeric:tabular-nums; }
 .detail .hint { margin:7px 0 0; font-size:11px; color:var(--muted); line-height:1.45; }
@@ -120,6 +123,10 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
 .lbl.small { font-size:calc(30px * var(--k,1)); font-weight:600; fill:var(--map-ink); stroke-width:calc(5px * var(--k,1)); }
 .lbl.wild { font-size:calc(34px * var(--k,1)); font-weight:700; fill:var(--wild); stroke-width:calc(5.5px * var(--k,1)); }
 .lbl.click { pointer-events:auto; cursor:pointer; }
+/* 含室内场景的房间（2026-11-04）：只在点选据点后出现 */
+.room-mark { fill:#7c3aed; fill-opacity:.85; stroke:#fff8ef; stroke-width:calc(3px * var(--k,1)); }
+.lbl.room { font-size:calc(20px * var(--k,1)); font-weight:600; fill:#6d28d9; stroke-width:calc(4px * var(--k,1)); }
+.lbl.room-head { font-size:calc(24px * var(--k,1)); font-weight:700; fill:#6d28d9; stroke-width:calc(5px * var(--k,1)); paint-order:stroke; stroke:var(--map-halo); pointer-events:none; }
 @media (max-width:860px) {
   .app { grid-template-columns:1fr; height:auto; }
   .main { order:1; height:58vh; height:58svh; min-height:360px; }
@@ -164,6 +171,7 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
         <div><i style="background:repeating-linear-gradient(45deg,rgba(90,80,70,.05) 0 3px,rgba(90,80,70,.45) 3px 5px);border:1px dashed rgba(90,80,70,.55)"></i><span><b>斜线区 = 地图外</b>：官方地图上就是空白羊皮纸（河流以南、西北角、东侧海面外侧），<b>不算有效地图</b>；只做远景，谁也不能走。</span></div>
         <div><i class="sw-anchor"></i><span><b>绿点 = 野地地图的中心</b>：玩家在这一片扎营，就载入以它为中心的野地场景。</span></div>
         <div><i class="sw-edge"></i><span><b>深色虚线 = 大镖客地图边缘</b>；外面是扩充区，不能走。</span></div>
+        <div><i style="background:#7c3aed;border:1px solid #fff8ef;border-radius:2px"></i><span><b>紫方块 = 含室内场景的房间</b>：这栋建筑内部有独立室内模型（已摆进场景 blend）。<b>点一个据点就显示</b>，滚轮放大到房间铺得开时会自动出名字（<b>再点它一次 / 按 Esc 取消</b>）；悬停看包名 / 宿主建筑 / 世界坐标；左侧清单点一行可单间放大。</span></div>
         <div><span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap"><i class="sw-city"></i>黄星=城市 · <i class="sw-castle"></i>蓝菱=城堡 · <i class="sw-village"></i>绿点=村庄/营地/点位 · <i class="sw-hideout"></i>紫三角=藏身处</span></div>
       </div>
     </details>
@@ -185,6 +193,7 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
       <g id="l-wild"></g>
       <g id="l-settle"></g>
       <g id="l-issues"></g>
+      <g id="l-rooms"></g>
       <g id="l-selected"></g>
       <g id="l-marks"></g>
     </svg>
@@ -220,6 +229,7 @@ const GAPS = [[[824.4, -3006.2], [816.8, -3018.1], [810.3, -3020.8], [804.6, -30
 const OVLS = [];
 const PROJ = {"x0": -6841.488602840953, "x1": 3921.897347273891, "y0": -4796.582053907185, "y1": 3221.8240132336014};
 const CHECK = {"valid_km2": 48.1188, "cover_km2": 59.2403, "missing_km2": 0.0003, "settle_km2": 8.4421, "wild_km2": 59.2403, "wild_settle_overlap_km2": 8.4421, "settle_pair_max_overlap_m2": 0.0, "wild_pair_max_overlap_m2": 3788.2000000000367};
+const ROOMS = [{"code": "adl", "pkg": "adl_barn_int", "host": "adl_stables", "x": -535.7, "y": 2670.7}, {"code": "ann", "pkg": "ann_depot_int", "host": "ann_04_depot08", "x": 2934.7, "y": 1280.8}, {"code": "ann", "pkg": "ann_gunsmith_int", "host": "ann_04_gun_ext", "x": 2948.2, "y": 1318.2}, {"code": "ann", "pkg": "ann_jail_int", "host": "ann_03_jail_ext", "x": 2906.4, "y": 1312.6}, {"code": "ann", "pkg": "ann_roomnbath_int", "host": "ann_04_playersroom_ext", "x": 2948.7, "y": 1332.3}, {"code": "ann", "pkg": "ann_setlrs_reg_int", "host": "ann_04_house_02", "x": 2920.4, "y": 1342.7}, {"code": "ann", "pkg": "ann_settlers_int", "host": "ann_04_house_02", "x": 2919.9, "y": 1343.8}, {"code": "arm", "pkg": "arm_bank_int", "host": "arm_04_bank_cholera", "x": -3665.4, "y": -2629.7}, {"code": "arm", "pkg": "arm_genstore_int", "host": "arm_04_generalstore01x", "x": -3686.2, "y": -2628.3}, {"code": "arm", "pkg": "arm_saloon_int", "host": "arm_03_saloon01x", "x": -3703.5, "y": -2594.0}, {"code": "arm", "pkg": "arm_trainstation_int", "host": "arm_01_stationmain", "x": -3729.1, "y": -2604.4}, {"code": "man", "pkg": "aur_shack01_int", "host": "aur_aurbasin_detail", "x": -2578.0, "y": -1382.1}, {"code": "bee", "pkg": "bee_barn_int", "host": "bee_stable_stage01", "x": -1601.3, "y": -1412.7}, {"code": "bee", "pkg": "bee_house_int", "host": "bee_house_stg5", "x": -1642.3, "y": -1359.5}, {"code": "tum", "pkg": "ben_shack_int", "host": "ben_01_shack", "x": -5205.1, "y": -3490.5}, {"code": "tum", "pkg": "ben_train_int", "host": "ben_01_stn_int_shadbox", "x": -5225.9, "y": -3471.7}, {"code": "bla", "pkg": "bla_bank_int", "host": "bla_new_bank_ext", "x": -815.2, "y": -1276.2}, {"code": "bla", "pkg": "bla_barber_int", "host": "bla_barber_photo", "x": -816.3, "y": -1366.9}, {"code": "bla", "pkg": "bla_carriagehouse_int", "host": "bla_blk01_stable_01", "x": -868.0, "y": -1367.0}, {"code": "bla", "pkg": "bla_fenceshop_int", "host": "bla_lumber_office", "x": -870.8, "y": -1289.0}, {"code": "bla", "pkg": "bla_genstore_int", "host": "bla_generalstore01x", "x": -782.8, "y": -1324.1}, {"code": "bla", "pkg": "bla_jail_int", "host": "bla_sheriff_ext", "x": -763.2, "y": -1268.0}, {"code": "bla", "pkg": "bla_photo_int", "host": "bla_barber_photo", "x": -814.4, "y": -1374.3}, {"code": "bla", "pkg": "bla_saloon_int", "host": "bla_new_saloon_ext", "x": -817.5, "y": -1319.5}, {"code": "bla", "pkg": "bla_theater_int", "host": "bla_theater_ext", "x": -779.9, "y": -1362.7}, {"code": "bla", "pkg": "bla_train_int", "host": "bla_freightstation_ext01", "x": -875.2, "y": -1332.9}, {"code": "bra", "pkg": "bra_cornmill_int", "host": "bra_cornmill_ext_shell", "x": 979.6, "y": -2024.5}, {"code": "bra", "pkg": "bra_mansion_int", "host": "bra_01_endsum_dec_01", "x": 1011.5, "y": -1770.5}, {"code": "bra", "pkg": "bra_stable_int", "host": "bra_01_stable_d_good", "x": 969.0, "y": -1830.6}, {"code": "bra", "pkg": "bra_tre_house_int", "host": "bra_01_house_01", "x": 1118.2, "y": -1988.0}, {"code": "mfr", "pkg": "brb_dockhouse_int", "host": "brb_01__bpl_dock_new04", "x": -2023.8, "y": -3033.2}, {"code": "hso", "pkg": "bur_calaboose_int", "host": "bur_brick", "x": -326.3, "y": -151.1}, {"code": "han", "pkg": "but_shack_int", "host": "her_01_shack_01_dc", "x": -2532.1, "y": 1174.3}, {"code": "lak", "pkg": "can_manor_int", "host": "can_shack_decals", "x": 2497.8, "y": -421.4}, {"code": "cor", "pkg": "car_barn_int", "host": "car_shed", "x": 770.0, "y": 875.7}, {"code": "val", "pkg": "cas_house_int", "host": "cas_p_plc_stg1_frm_sup1", "x": -443.4, "y": 497.8}, {"code": "bra", "pkg": "cat_house_01_int", "host": "cat_house", "x": 1320.3, "y": -2281.2}, {"code": "bra", "pkg": "cat_shack01_int", "host": "cat_shack_01_rf_de", "x": 1336.7, "y": -2294.6}, {"code": "che", "pkg": "che_barn_int", "host": "che_stable_002", "x": -415.1, "y": 1752.8}, {"code": "che", "pkg": "che_shack1_int", "host": "che_shack_ext_shk2", "x": -423.3, "y": 1735.9}, {"code": "van", "pkg": "civ_cellar_int", "host": "civ_vine2_005", "x": 2444.9, "y": 291.0}, {"code": "col", "pkg": "col_barn_int", "host": "col_02_barn_walls_decals", "x": -1339.9, "y": 2401.0}, {"code": "col", "pkg": "col_bunkhouse_int", "host": "col_01_bunkhse", "x": -1359.5, "y": 2425.9}, {"code": "abe", "pkg": "com_muleshed_int", "host": "com_shed_int_burnt", "x": 1237.2, "y": -439.8}, {"code": "cor", "pkg": "cor_factb_int", "host": "cor_factoryes_dtls", "x": 482.5, "y": 681.7}, {"code": "cor", "pkg": "din_barn_int", "host": "", "x": 193.8, "y": 986.1}, {"code": "ann", "pkg": "dis_stonehenge_int", "host": "wll_stonehenge_ground", "x": 2381.6, "y": 1692.3}, {"code": "dow", "pkg": "dow_barn_int", "host": "dow_barn", "x": -861.4, "y": 337.5}, {"code": "dow", "pkg": "dow_house_int", "host": "dow_01_hse_main", "x": -817.5, "y": 354.6}, {"code": "eme", "pkg": "eme_depot_int", "host": "eme_station_building", "x": 1522.3, "y": 442.5}, {"code": "eme", "pkg": "eme_genstore_int", "host": "eme_genstoreext", "x": 1420.1, "y": 379.7}, {"code": "eme", "pkg": "eme_saloon_int", "host": "eme_messhall", "x": 1448.9, "y": 372.8}, {"code": "hso", "pkg": "grh_house_int", "host": "grh_ext_d", "x": -61.8, "y": -391.1}, {"code": "che", "pkg": "gri_g1_shack_int", "host": "sfe_shack_roof", "x": -1021.5, "y": 1691.3}, {"code": "col", "pkg": "gri_g2_shack_int", "host": "grishkg2_01_shack", "x": -1961.3, "y": 2160.9}, {"code": "han", "pkg": "han_barn_int", "host": "han_barnes_dec1", "x": -2217.6, "y": 733.4}, {"code": "han", "pkg": "han_house_int", "host": "han_ext_es_dec_01", "x": -2180.3, "y": 722.3}, {"code": "str", "pkg": "jum_horseshop_int", "host": "hrs_01_horseshop_ext", "x": -1819.4, "y": -561.4}, {"code": "dow", "pkg": "l_08_train_tunnel2_int", "host": "reg_bgv_l08tunnelentrance01", "x": -947.8, "y": 710.6}, {"code": "lak", "pkg": "lak_altar_int", "host": "lak_cistern01_decal02", "x": 2254.6, "y": -754.5}, {"code": "lak", "pkg": "lak_dockhouse_int", "host": "lak_dockhouse_wallplanks", "x": 2228.4, "y": -770.2}, {"code": "lak", "pkg": "lak_hideout_int", "host": "lak_hideout_decals", "x": 2253.6, "y": -789.5}, {"code": "lak", "pkg": "lak_houseruined_int", "host": "lak_houseruined", "x": 2260.6, "y": -761.8}, {"code": "lak", "pkg": "lak_loveshack_int", "host": "lak_shack01_love", "x": 2267.2, "y": -781.4}, {"code": "cor", "pkg": "lar_house_int", "host": "lar_home_ext", "x": 901.0, "y": 261.5}, {"code": "arm", "pkg": "ldj_shack01_int", "host": "ldj_01_main_ext", "x": -3400.5, "y": -3305.4}, {"code": "abe", "pkg": "lnn_lonnie_shack_int", "host": "lnn_house01_decals02", "x": 1623.2, "y": -362.6}, {"code": "lon", "pkg": "lon_mule_int", "host": "lon_01_home_ext_weeds", "x": -862.8, "y": -744.7}, {"code": "dow", "pkg": "luc_serial_house_int", "host": "luc_serialhouse", "x": -614.0, "y": 527.3}, {"code": "ora", "pkg": "maco_shack01_int", "host": "maco_shack_01_d", "x": 1877.9, "y": -737.8}, {"code": "man", "pkg": "man_cabin01_int", "host": "man_01_cab_dec", "x": -1978.7, "y": -1668.2}, {"code": "roc", "pkg": "met_house01_int", "host": "met_glue", "x": 2474.6, "y": 1999.3}, {"code": "mfr", "pkg": "mfr_blacksmith01_int", "host": "mfr_02_blacksmith01", "x": -2397.6, "y": -2380.2}, {"code": "mic", "pkg": "mic_hideout_int", "host": "mic_hid_tower_floor", "x": -1491.6, "y": 1249.3}, {"code": "mic", "pkg": "mil_shed_int", "host": "mil_01_brick", "x": -1414.9, "y": 1132.8}, {"code": "sdn", "pkg": "new_art_int", "host": "new_frn_rds_03b_decal_b_pom", "x": 2693.0, "y": -1194.8}, {"code": "sdn", "pkg": "new_barber_int", "host": "new_frn02_newhouse_dec_02", "x": 2655.1, "y": -1180.2}, {"code": "sdn", "pkg": "new_carriagehouse_int", "host": "new_wrh_rds_05_decal_01", "x": 2507.9, "y": -1449.8}, {"code": "sdn", "pkg": "new_com_bank_int", "host": "new_com_03_lastatebank2", "x": 2645.6, "y": -1295.5}, {"code": "sdn", "pkg": "new_com_tinycs_int", "host": "new_com_03_hotel_grand", "x": 2677.7, "y": -1271.3}, {"code": "sdn", "pkg": "new_frn_03_alley_int", "host": "new_frn_03_artgallery_det_01", "x": 2698.9, "y": -1189.0}, {"code": "sdn", "pkg": "new_gamble_int", "host": "new_com_07_gunext06", "x": 2715.8, "y": -1287.5}, {"code": "sdn", "pkg": "new_grocery_int", "host": "new_mrk04_grcy_decals", "x": 2826.9, "y": -1317.2}, {"code": "sdn", "pkg": "new_gunshop_int", "host": "new_com_07_gunext06", "x": 2714.9, "y": -1286.1}, {"code": "sdn", "pkg": "new_hotel_3rd_floor_int", "host": "new_com_07_1101_decatur", "x": 2759.7, "y": -1339.8}, {"code": "sdn", "pkg": "new_magic_es_int", "host": "new_com_05_107_charles_1", "x": 2695.9, "y": -1354.3}, {"code": "sdn", "pkg": "new_man_gala_int", "host": "new_gar_gala_ground01", "x": 2402.2, "y": -1084.0}, {"code": "sdn", "pkg": "new_pharmacy_int", "host": "new_frn_06_doc_balcony", "x": 2721.1, "y": -1229.5}, {"code": "sdn", "pkg": "new_photo_int", "host": "new_frn05_619bourbon_det02", "x": 2731.4, "y": -1122.0}, {"code": "sdn", "pkg": "new_pie_tunnel_int", "host": "p_14__hd_0_-4_0", "x": 2330.3, "y": -1505.7}, {"code": "sdn", "pkg": "new_res_doctor_int", "host": "new_frn_06_doc_balcony", "x": 2729.7, "y": -1228.5}, {"code": "sdn", "pkg": "new_saloon01_int", "host": "new_frn_04_saloon_detail", "x": 2631.2, "y": -1227.0}, {"code": "sdn", "pkg": "new_saloon02_int", "host": "new_frn_05_slumsaloon_d", "x": 2795.9, "y": -1170.0}, {"code": "sdn", "pkg": "new_stairwell01_int", "host": "new_frn_03_511_blk01", "x": 2677.2, "y": -1186.5}, {"code": "sdn", "pkg": "new_tailor01_int", "host": "new_frn_01_apts_01_b", "x": 2550.9, "y": -1158.8}, {"code": "sdn", "pkg": "new_theater_int", "host": "new_com_02_opera2", "x": 2544.5, "y": -1294.2}, {"code": "old", "pkg": "old_stable_int", "host": "old_new_stable_detail", "x": 357.3, "y": 1504.6}, {"code": "old", "pkg": "old_storage_int", "host": "old_walkway01", "x": 365.8, "y": 1491.5}, {"code": "old", "pkg": "old_tower02_int", "host": "old_fort_twr2", "x": 366.8, "y": 1473.7}, {"code": "old", "pkg": "old_tower03_int", "host": "old_fort_twr3", "x": 321.4, "y": 1510.5}, {"code": "old", "pkg": "old_tower04_int", "host": "old_fort_twr4", "x": 362.1, "y": 1516.1}, {"code": "ora", "pkg": "ora_house_01_int", "host": "ora_pla_house_detail", "x": 2068.6, "y": -851.6}, {"code": "dow", "pkg": "pai_house_int", "host": "", "x": -616.0, "y": -28.7}, {"code": "lak", "pkg": "pho_houseboat_int", "host": "pho_01_houseboat", "x": 2310.1, "y": -330.5}, {"code": "twi", "pkg": "ple_house01_int", "host": "ple_01_structure_new", "x": -4369.5, "y": -2414.8}, {"code": "pro", "pkg": "pro_barn_int", "host": "pro_barn_ext", "x": -2548.0, "y": 399.6}, {"code": "pro", "pkg": "pro_mansion_int", "host": "pro_house002_em", "x": -2571.1, "y": 344.8}, {"code": "pro", "pkg": "pro_workshop_int", "host": "pro_barn_workshop_ext005", "x": -2592.6, "y": 412.6}, {"code": "bla", "pkg": "qua_shack01_int", "host": "qua_shack1", "x": -1200.1, "y": -1940.2}, {"code": "bla", "pkg": "qua_shack02_int", "host": "qua_shack2", "x": -1164.2, "y": -1941.6}, {"code": "rho", "pkg": "rad_house_01_int", "host": "p_12_rad_dcl", "x": 1114.9, "y": -1300.7}, {"code": "fom", "pkg": "rdl_house_01_int", "host": "rdl_01__structure", "x": -3483.9, "y": -3469.0}, {"code": "rho", "pkg": "rho_fenceshop_int", "host": "rho_04_fenceshop_ext", "x": 1317.1, "y": -1141.9}, {"code": "rho", "pkg": "rho_genstore_int", "host": "rho_03_props_debris02", "x": 1324.5, "y": -1289.2}, {"code": "rho", "pkg": "rho_graysecret_int", "host": "rho_03_genstore_ab_decs", "x": 1356.0, "y": -1248.3}, {"code": "rho", "pkg": "rho_gunsmith_int", "host": "rho_gunsmith_ext", "x": 1326.8, "y": -1323.0}, {"code": "rho", "pkg": "rho_sheriff_int", "host": "rho_sheriff_ext", "x": 1359.2, "y": -1301.5}, {"code": "rho", "pkg": "rho_slum_player_int", "host": "rho_slum_house00_d003", "x": 1297.8, "y": -1132.5}, {"code": "rho", "pkg": "rho_train_int", "host": "rho_station", "x": 1231.3, "y": -1294.7}, {"code": "lon", "pkg": "rig_station_int", "host": "rig_railing", "x": -1093.9, "y": -576.7}, {"code": "gap", "pkg": "scr_shack_int", "host": "scr_01_stonehs_roof", "x": -5849.4, "y": -3743.9}, {"code": "sha", "pkg": "sha_mansion_int", "host": "sha_ext_main", "x": 1897.7, "y": -1863.7}, {"code": "roc", "pkg": "shack_ai_int", "host": "sai_shack_ai_detail", "x": 3028.1, "y": 1779.1}, {"code": "han", "pkg": "shack_bv_int", "host": "big_roofb", "x": -2460.1, "y": 841.2}, {"code": "che", "pkg": "shack_dr_int", "host": "sdr_ext", "x": -156.1, "y": 1491.1}, {"code": "ann", "pkg": "shack_it_01_int", "host": "shk_shack_it_01_int_occ", "x": 2835.8, "y": 1686.2}, {"code": "ann", "pkg": "shack_it_02_int", "host": "shk_it2_ezzt_hd", "x": 2624.9, "y": 1695.8}, {"code": "but", "pkg": "shack_pl_int", "host": "spl_shack_pl_rf", "x": 2543.4, "y": 697.0}, {"code": "cle", "pkg": "shack_rarefish_int", "host": "spl_shack_rarefish_ext", "x": 344.8, "y": -665.5}, {"code": "str", "pkg": "shack_rc_int", "host": "src_rc_exterior", "x": -2174.3, "y": -251.2}, {"code": "val", "pkg": "shack_sc_int", "host": "ssc_cabin_02", "x": -689.7, "y": 1044.0}, {"code": "cal", "pkg": "shack_sk2_int", "host": "", "x": 1707.6, "y": -1004.6}, {"code": "bra", "pkg": "shack_sp_int", "host": "ssp_shack_sp_ext", "x": 1388.2, "y": -2082.7}, {"code": "lak", "pkg": "shack_sw_int", "host": "new_rur03_sw_ex1_glue", "x": 2370.6, "y": -862.6}, {"code": "rat", "pkg": "sil_house_int", "host": "sil_01_steadmain", "x": -5552.9, "y": -2399.2}, {"code": "old", "pkg": "six_cabin_int", "host": "six_01_logwalls_decals", "x": -62.9, "y": 1237.8}, {"code": "sod", "pkg": "sod_house_int", "host": "sod_02_house", "x": 1867.1, "y": 585.7}, {"code": "str", "pkg": "str_doctor_int", "host": "str_01_doctor_ext", "x": -1805.6, "y": -432.3}, {"code": "str", "pkg": "str_dressingroom_int", "host": "str_03_mill01_ext_dcl", "x": -1793.7, "y": -394.8}, {"code": "str", "pkg": "str_genst_int", "host": "str_03_debrispile01", "x": -1791.2, "y": -386.8}, {"code": "str", "pkg": "str_jailpost_int", "host": "str_04_jail01", "x": -1811.2, "y": -350.9}, {"code": "str", "pkg": "str_mayorshouse_int", "host": "str_03_mayorwindow", "x": -1786.0, "y": -357.6}, {"code": "str", "pkg": "str_res02_int", "host": "str_02_res02_dcl1", "x": -1782.1, "y": -399.6}, {"code": "str", "pkg": "str_whore_int", "host": "str_04_whore_ext_new1", "x": -1815.3, "y": -370.5}, {"code": "hso", "pkg": "swa_depot01_int", "host": "swa_dep_depot01_decals", "x": -332.5, "y": -360.6}, {"code": "mfr", "pkg": "swc_shack01_int", "host": "swc_01_shack", "x": -1810.2, "y": -2393.1}, {"code": "man", "pkg": "tan_house_int", "host": "tan_cabin_st00", "x": -2376.9, "y": -1590.1}, {"code": "tum", "pkg": "tum_genstore_int", "host": "s_96_swerve_rd_dcl_01", "x": -5488.5, "y": -2938.2}, {"code": "tum", "pkg": "tum_gunsmith_int", "host": "tum_03_gunsmith_dcl1", "x": -5507.2, "y": -2965.4}, {"code": "twi", "pkg": "twi_shack01_int", "host": "twi_01_blanket_01", "x": -3956.0, "y": -2125.8}, {"code": "val", "pkg": "val_carriagehouse_int", "host": "val_01_aucyard_barn", "x": -272.9, "y": 689.5}, {"code": "val", "pkg": "val_doctor_int", "host": "", "x": -285.6, "y": 811.3}, {"code": "val", "pkg": "val_hotel_int", "host": "val_hotel_ext", "x": -322.6, "y": 767.8}, {"code": "val", "pkg": "val_jail_int", "host": "", "x": -275.4, "y": 807.7}, {"code": "val", "pkg": "val_res_01_f_int", "host": "val_shrffhs_dcl", "x": -261.4, "y": 738.0}, {"code": "val", "pkg": "val_res_a_int", "host": "val_05_res_a_dcl", "x": -288.6, "y": 868.7}, {"code": "val", "pkg": "val_saloon2_int", "host": "val_saloon2", "x": -240.6, "y": 770.0}, {"code": "val", "pkg": "val_saloon_int", "host": "val_03_saloon_ext", "x": -309.5, "y": 808.7}, {"code": "val", "pkg": "val_stable_int", "host": "val_03_stable_ext", "x": -369.1, "y": 787.3}, {"code": "val", "pkg": "val_trainstn_int", "host": "val_01_trainstn_ext", "x": -177.8, "y": 632.4}, {"code": "van", "pkg": "van_depot_int", "host": "van_horn_02_depot_ext", "x": 2982.2, "y": 573.2}, {"code": "van", "pkg": "van_exoticgoods_int", "host": "van_horn_02_tradingpost", "x": 3024.3, "y": 561.4}, {"code": "van", "pkg": "van_fenceshop_int", "host": "van_horn_01_fenceshop", "x": 2932.6, "y": 560.4}, {"code": "van", "pkg": "van_hobo_int", "host": "van_horn_02_ruin", "x": 2974.1, "y": 497.0}, {"code": "van", "pkg": "van_hotel_int", "host": "van_horn_01_hotel", "x": 2946.9, "y": 548.3}, {"code": "van", "pkg": "van_lighthouse_int", "host": "van_horn_02_lghthse", "x": 3035.9, "y": 432.0}, {"code": "van", "pkg": "van_mansion_int", "host": "van_03_farmhse2_veg00", "x": 2824.8, "y": 275.2}, {"code": "van", "pkg": "van_roomnbath_int", "host": "van_horn_02_depot_ext", "x": 2982.2, "y": 573.2}, {"code": "van", "pkg": "van_saloon_int", "host": "van_horn_04_clothesline001", "x": 2941.1, "y": 522.5}, {"code": "wal", "pkg": "wal_trainstation_int", "host": "wal_stn_ext_platform", "x": -1304.6, "y": 394.8}, {"code": "han", "pkg": "wat_cabin_int", "host": "wat_ext_shell", "x": -1817.4, "y": 660.0}];
 const MAP_W = 2500, MAP_H = 1859;
 const MX = (PROJ.x1 - PROJ.x0) / MAP_W;
 const MY = (PROJ.y1 - PROJ.y0) / MAP_H;
@@ -275,12 +285,23 @@ function focusOnBBox(b) {
 }
 function zoomView(k) {
   const cx = state.view.x + state.view.w / 2, cy = state.view.y + state.view.h / 2;
-  state.view.w = Math.max(150, Math.min(MAP_W * 2, state.view.w * k));
+  state.view.w = Math.max(60, Math.min(MAP_W * 2, state.view.w * k));
   state.view.h = state.view.w * (MAP_H / MAP_W);
   state.view.x = cx - state.view.w / 2; state.view.y = cy - state.view.h / 2;
   applyView();
 }
 function resetView() { state.view = { x: 0, y: 0, w: MAP_W, h: MAP_H }; applyView(); }
+
+// ---- 室内房间的「放大模式」（2026-11-04：用户反馈点完据点房间还是太小）----------
+// 一个据点可能有离得很远的房间（黑水镇有两个码头棚屋在 600 m 外），
+// 所以先取**中位中心**、只用 260 m 内的房间算放大框，免得被离群点拉远。
+function roomsOf(code) { return ROOMS.filter(r => r.code === code); }
+function focusRoom(x, y) {
+  const w = 60, h = w * (MAP_H / MAP_W);
+  state.view = { x: clamp(px(x) - w / 2, 0, Math.max(0, MAP_W - w)),
+                 y: clamp(py(y) - h / 2, 0, Math.max(0, MAP_H - h)), w, h };
+  applyView(); render();
+}
 
 function marker(g, p, x, y) {
   if (p.tier === "city") {
@@ -397,10 +418,12 @@ function drawTFrames(g) {
 }
 
 function drawMarks(g) {
+  // 放大到房间级（view.w 很小）时，据点名会按 --k 被撑到几十像素、盖住房间标签 → 深放大时不画地名
+  const deep = state.view.w < 220;
   for (const p of SETTLE) {
     const x = px(p.x), y = py(p.y);
-    marker(g, p, x, y);
-    if (state.tab === "settle" || state.tab === "overview" || state.tab === "cover") {
+    if (!deep) marker(g, p, x, y);   // 深放大时连据点图标也不画（星星会被放大成一大块，挡住房间）
+    if (!deep && (state.tab === "settle" || state.tab === "overview" || state.tab === "cover")) {
       const cls = (p.tier === "city" || p.tier === "castle") ? "lbl big click" : "lbl small click";
       const t = text(g, x + 10, y - 8, p.name, cls);
       t.addEventListener("click", ev => { ev.stopPropagation(); select({ kind: "settle", id: p.code }); });
@@ -432,6 +455,58 @@ function drawSelected(g) {
   }
 }
 
+// 含室内场景的房间：点了据点就画（没有额外开关，取消选中就消失）
+function drawRooms(g, code) {
+  const list = ROOMS.filter(r => r.code === code);
+  const k = Math.max(0.12, Math.min(1, state.view.w / MAP_W));
+  // 方块跟着 --k 走 → 屏幕上恒定约 6 px（镇里 10 间房挨得近，画大了会糊成一坨）
+  const s = 14 * k;
+  // 标签密度判据：按"相邻两个房间在屏幕上的间距"决定显不显示，
+  // 而不是死盯缩放比例 —— 圣丹尼斯房间铺得开（21 间 / 800 m），黑水镇挤成一团，
+  // 同一个缩放值对两者意义完全不同。
+  const rect = SVG.getBoundingClientRect();
+  const pxPerUnit = (rect.width || 1100) / state.view.w;
+  const xs = list.map(r => px(r.x)), ys = list.map(r => py(r.y));
+  const span = Math.max(1, Math.max.apply(null, xs) - Math.min.apply(null, xs),
+                        Math.max.apply(null, ys) - Math.min.apply(null, ys));
+  const spacingPx = (span / Math.max(1, list.length - 1)) * pxPerUnit;
+  const showLbl = spacingPx >= 16;
+  // 屏幕恒定字号：CSS 的 --k 在深放大时被 clamp 到 0.12 就不再缩小，字会越放越大，
+  // 所以这里直接按「屏幕像素 / 每单位像素」写死字号（13 px 高、光晕 4 px）。
+  const fs = (13 / pxPerUnit).toFixed(3);
+  const sw = (4 / pxPerUnit).toFixed(3);
+  const labeled = new Set();
+  list.forEach((r, i) => {
+    const x = px(r.x), y = py(r.y);
+    const box = el("rect", { x: (x - s / 2).toFixed(1), y: (y - s / 2).toFixed(1),
+                             width: s.toFixed(1), height: s.toFixed(1), rx: (s * 0.2).toFixed(1),
+                             class: "room-mark" }, g);
+    const t = el("title", {}, box);
+    t.textContent = `${r.pkg}${r.host ? "\n宿主建筑：" + r.host : ""}\n世界坐标 (${r.x}, ${r.y})`;
+    if (!showLbl) return;
+    const nm = r.host || r.pkg;
+    if (labeled.has(nm)) return;   // 同一栋楼里的两个室内（理发 + 照相）只标一次
+    labeled.add(nm);
+    // 标签去掉据点前缀（bla_new_bank_ext → new_bank_ext）：镇里房间挤，短名才不互相压
+    const short = nm.indexOf(code + "_") === 0 ? nm.slice(code.length + 1) : nm;
+    const right = (i % 2 === 0);
+    const dy = ((i % 4) - 1.5) * 20 * k;
+    // 标签与方块的间距按**屏幕像素**算（方块半个宽 + 5 px），否则深放大时会压在方块上
+    const off = s * 0.5 + 5 / pxPerUnit;
+    const lb = text(g, x + (right ? off : -off), y + 4.5 / pxPerUnit + dy,
+                    short, "lbl room", right ? "start" : "end");
+    lb.style.fontSize = fs + "px";
+    lb.style.strokeWidth = sw + "px";
+  });
+  const p = byCode.get(code);
+  if (list.length && p) {
+    const hd = text(g, px(p.x) + 10, py(p.y + p.O / 2) + 30,
+                    `含室内场景的房间 ×${list.length}（放大看名字 / 悬停看坐标）`, "lbl room-head");
+    hd.style.fontSize = (15 / pxPerUnit).toFixed(3) + "px";
+    hd.style.strokeWidth = (5 / pxPerUnit).toFixed(3) + "px";
+  }
+}
+
 function drawIssues(g) {
   if (!state.showIssues) return;
   const dg = polyPath(GAPS);
@@ -441,8 +516,8 @@ function drawIssues(g) {
 }
 
 function render() {
-  const go = $("#l-outside"), gf = $("#l-frames"), gs = $("#l-settle"), gw = $("#l-wild"), gi = $("#l-issues"), gx = $("#l-selected"), gm = $("#l-marks");
-  clear(go); clear(gf); clear(gs); clear(gw); clear(gi); clear(gx); clear(gm);
+  const go = $("#l-outside"), gf = $("#l-frames"), gs = $("#l-settle"), gw = $("#l-wild"), gi = $("#l-issues"), gr = $("#l-rooms"), gx = $("#l-selected"), gm = $("#l-marks");
+  clear(go); clear(gf); clear(gs); clear(gw); clear(gi); clear(gr); clear(gx); clear(gm);
   drawIssues(gi);
   drawOutside(go); drawTFrames(gf);
   if (state.tab === "overview") { drawSettle(gs, true); drawWild(gw, true); }
@@ -450,6 +525,8 @@ function render() {
   if (state.tab === "wild") { drawWild(gw, false); drawSettle(gs, false); }
   if (state.tab === "cover") { drawSettle(gs, false); drawWild(gw, false); }
   drawMarks(gm);
+  // 含室内场景的房间：只在点选了据点时出现
+  if (state.sel && state.sel.kind === "settle") drawRooms(gr, state.sel.id);
   drawSelected(gx); drawSnapGuides(gx);
   if (state.mode === "rect" && state.drawStart && state.draft.length) {
     const a = state.drawStart, b = state.draft[0];
@@ -490,9 +567,17 @@ function renderDetail() {
       <div class="row"><span>每边外扩</span>${wCell}</div>
       <div class="row"><span>远景范围</span><b id="oVal">${fmt((p.AW || p.T) + 2 * p.W)} × ${fmt((p.AH || p.T) + 2 * p.W)} m</b></div>
       <div class="row"><span>场景中心</span><b>${p.x.toFixed(0)}, ${p.y.toFixed(0)}</b></div>
+      ${(() => {
+        const rs = ROOMS.filter(r => r.code === p.code);
+        if (!rs.length) return "";
+        return `<div class="group-head" style="margin-top:10px">含室内场景的房间<span>${rs.length}</span></div>`
+          + rs.map(r => `<div class="roomrow" data-x="${r.x}" data-y="${r.y}" title="点一下放大到这间（${r.pkg}）"><b>${r.host || r.pkg}</b><span>${r.x.toFixed(0)}, ${r.y.toFixed(0)}</span></div>`).join("");
+      })()}
       ${state.edit ? '<p class="hint">拖方框 8 个把手改可行走范围；中间圆点整体挪。数字直接改活动区 / 外扩（步长 128）。</p>'
                    : '<p class="hint">玩家活动区 = 玩家走得到的地方，走到边上被挡住；每边外扩 = 活动区外面再铺多宽的远景（只做背景）。</p>'}
       ${state.edit ? '<div class="tools" style="padding:8px 0 0"><button class="ctrl" id="redraw">重画矩形</button><button class="ctrl" id="resetOne">重置这个</button></div>' : ''}`;
+    d.querySelectorAll(".roomrow").forEach(el2 =>
+      el2.addEventListener("click", () => focusRoom(+el2.dataset.x, +el2.dataset.y)));
     if (state.edit) {
       $("#redraw").addEventListener("click", () => { state.mode = "rect"; state.drawStart = null; state.draft = []; });
       $("#inT").addEventListener("input", e => {
@@ -564,6 +649,13 @@ function resetOne() {
 }
 
 function select(sel) {
+  // 再点一次同一个 = 取消选中（2026-11-04：原来"点地图任意处就取消"太容易误触，
+  // 滚轮放大时手一抖选中就没了 —— 现在只有「再点它一下 / 按 Esc」才取消）
+  if (sel && state.sel && sel.kind === state.sel.kind && sel.id === state.sel.id) {
+    state.sel = null;
+    render(); renderDetail(); renderList();
+    return;
+  }
   state.sel = sel;
   render(); renderDetail(); renderList();
   if (sel.kind === "settle") {
@@ -856,15 +948,18 @@ SVG.addEventListener("pointerup", () => {
   if (d && d.kind !== "pan") { persist(); render(); }
 });
 SVG.addEventListener("wheel", ev => {
-  if (!state.edit) return;
+  // 2026-11-04：原来这里写了 `if (!state.edit) return` —— 非编辑模式滚轮完全没反应，
+  // 用户只能靠按钮/缩放键。滚轮缩放本来就该随时可用（编辑模式也一样）。
   ev.preventDefault();
   const p = toSvg(ev);
   const k = ev.deltaY > 0 ? 1.15 : 1 / 1.15;
-  const nw = Math.max(150, Math.min(MAP_W * 2, state.view.w * k));
+  const nw = Math.max(60, Math.min(MAP_W * 2, state.view.w * k));
   const nh = nw * (MAP_H / MAP_W);
   state.view.x = p.x - (p.x - state.view.x) * (nw / state.view.w);
   state.view.y = p.y - (p.y - state.view.y) * (nh / state.view.h);
   state.view.w = nw; state.view.h = nh; applyView();
+  // 只有点着据点时才需要重画（房间标签的显隐/字号跟屏幕像素走）；否则保持轻量
+  if ((state.sel && state.sel.kind === "settle") || state.view.w < 240) render();
 }, { passive: false });
 
 function allWildsToRect() {
@@ -931,7 +1026,7 @@ function fitNeighbors() {
   alert("贴合完成：调整了 " + n + " 个据点的边（" + moved + " 处相邻边对齐）。没问题就点「导出改动」。");
 }
 
-const BUILD_ID = "34829827";
+const BUILD_ID = "24a3c3b5";
 const LS_KEY = "lwn_rdr2_scene_overrides_v1";
 let RESTORED = 0;
 function dirtyCount() { return state.dirtyS.size + state.dirtyW.size + state.deletedW.size; }
@@ -1038,9 +1133,9 @@ function bind() {
     $$(".tab").forEach(x => x.classList.toggle("active", x === b));
     render(); renderDetail(); renderList(); resetView();
   }));
-  $("#map").addEventListener("click", () => {
-    if (state.edit) return;
-    if (state.sel) { state.sel = null; render(); renderDetail(); renderList(); }
+  // 点地图空白**不再取消选中**（2026-11-04 用户反馈：滚轮放大时手一抖，选中和房间层就没了）
+  window.addEventListener("keydown", e => {
+    if (e.key === "Escape" && state.sel) { state.sel = null; render(); renderDetail(); renderList(); }
   });
   $("#reset").addEventListener("click", resetView);
   $("#edit").addEventListener("click", () => {
@@ -1149,6 +1244,7 @@ function bind() {
     render();
   });
 }
+
 applyView();
 bind();
 RESTORED = restoreCache();

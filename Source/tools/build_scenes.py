@@ -23,6 +23,7 @@ import csv
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -42,7 +43,7 @@ CONTINENT = os.path.join(TOOLS, 'blender_continent.py')
 DEFAULT_BLENDER = r'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe'
 DRIVER_LOG = os.path.join(LOGDIR, 'build_scenes.log')
 FIELDS = ['id', 'kind', 'name', 'activity', 'far', 'status', 'seconds', 'objects', 'ring',
-          'blend_mb', 'note']
+          'rooms', 'blend_mb', 'note']
 
 
 def log(msg):
@@ -135,6 +136,16 @@ def run_build(sc, out, blender, timeout):
     if 'Traceback' in txt:
         return False, '日志里有 Traceback（%s）' % logpath, dt
     return True, 'ok', dt
+
+
+def scene_rooms(logpath):
+    """从场景日志里抠出室内统计（`[int] 室内：N 个包 / M 个对象`）。没摆返回 '0/0'。"""
+    try:
+        txt = open(logpath, encoding='utf-8', errors='replace').read()
+    except Exception:
+        return '0/0'
+    m = re.search(r'\[int\] 室内：(\d+) 个包 / (\d+) 个对象', txt)
+    return '%s/%s' % (m.group(1), m.group(2)) if m else '0/0'
 
 
 def verify_scene(sc, manifest):
@@ -258,7 +269,9 @@ def main():
             failed = 1
             break
         vok, vmsg, n, ring = verify_scene(sc, manifest)
-        row.update({'objects': str(n), 'ring': str(ring), 'note': vmsg})
+        row.update({'objects': str(n), 'ring': str(ring),
+                    'rooms': scene_rooms(os.path.join(LOGDIR, 'scene_%s.log' % sid)),
+                    'note': vmsg})
         if not vok:
             row['status'] = 'failed'
             status[sid] = row; write_status([status[k] for k in sorted(status)])
