@@ -379,6 +379,14 @@ rdr2rpf extract <archive.rpf> <outdir> [关键词] [--recurse]
 > 按「大瓦片全留 + 小物件 450m 内」裁剪后导出 → **地面连续铺满，蓝色空洞消失**。
 > 关键坑：**同一瓦片 archetype 在多个格位复用**，按 hash 去重会丢实例，必须保留 `terrain_instances.json` 全量实例。
 > heightmap 地形保留为可切换按钮（`地形(heightmap)`），**默认关闭**（实测与 .ymap 基准差 ~129 m、相关仅 0.54）。
+>
+> 🔴 **2026-11-04 更正：`*_area_slod*` 不能一概当“地形”。** 实测大陆上
+> `nopq_11_14_area_slod4` / `nopq_07_10_area_slod4` / `rstu_96_99_area_slod4` 的贴图是
+> **建筑图集**（`*_area_slod4_ab`，还带 `railing_whiterail_basic_a` 栏杆件），是**建筑/道具的整区合并 LOD**，
+> 归「远景碎片」，已按据点边界切开（见 `docs/TODO.md` 2026-11-03 节）。
+> 上面 `jklm_07_10_area_slod4` 的“4 块地形网格”结论只适用于那一块/当时那次观察，
+> **别据此把所有 `area_slod` 分到地形**；分类规则里 `terrain_lod` 只认**不带 `area_`** 的
+> `<前缀>_<行>_<列>_slod<N>`。
 
 详见 `RDR2地形与城镇.md`。
 

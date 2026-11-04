@@ -23,30 +23,47 @@ except Exception:
              'veh', 'bldg', 'part', 'junk', 'prop', 'unknown')
 
 
+def _parse_key(rest):
+    """把 `<key>_<中文名>` 拆成 (key, 中文名)。
+
+    key 里可能带下划线（terrain_lod / terrain_cell），所以不能按 '_' 盲切
+    （2026-10-29：以前切成了 key='terrain'、名字='cell_地形块'，导致「地形块」开关不存在）。
+    按**最长匹配**挑 key，避免 `lod` 抢走 `terrain_lod`。
+    """
+    for k in sorted(_KEYS, key=len, reverse=True):
+        if rest == k or rest.startswith(k + '_'):
+            return k, (rest[len(k) + 1:] if rest != k else k)
+    parts = rest.split('_', 1)              # 未知类名：退回老切法
+    return parts[0], (parts[1] if len(parts) > 1 else parts[0])
+
+
 def _cats():
-    """返回 [(attr, key, 中文名, collection)]，按集合名解析。"""
-    ent = bpy.data.collections.get('ENTITIES')
+    """返回 [(attr, key, 中文名, collection)]，按集合名解析。
+
+    两种命名都认：
+      · `ENTITIES/C_<key>_<中文名>` —— 正式构建（v23 / 区域块）的分类集合；
+      · 根级 `ONLY_<key>_<中文名>` —— `extract_class_blend.py` 抽出来的「只看某一类」
+        （2026-11-04 用户要求：远景碎片版也要能勾开关，单独隐藏地形远景块）。
+    """
     out = []
-    if ent is None:
-        return out
-    for c in ent.children:
-        if not c.name.startswith('C_'):
+    seen = set()
+    ent = bpy.data.collections.get('ENTITIES')
+    if ent is not None:
+        for c in ent.children:
+            if not c.name.startswith('C_'):
+                continue
+            key, zh = _parse_key(c.name[2:])
+            out.append(('cat_' + key, key, zh, c))
+            seen.add(key)
+    # 根级 ONLY_ 集合（不与 C_ 重复；同名 key 以 C_ 为准）
+    for c in bpy.data.collections:
+        if not c.name.startswith('ONLY_'):
             continue
-        # C_<key>_<zh> —— key 里可能带下划线（terrain_cell），
-        # 所以不能按 '_' 盲切（2026-10-29：以前切成了 key='terrain'、名字='cell_地形块'，
-        # 导致「地形块」开关在面板上根本不存在）。
-        rest = c.name[2:]
-        key = zh = None
-        for k in _KEYS:
-            if rest == k or rest.startswith(k + '_'):
-                key = k
-                zh = rest[len(k) + 1:] if rest != k else k
-                break
-        if key is None:                     # 未知类名：退回老切法
-            parts = rest.split('_', 1)
-            key = parts[0]
-            zh = parts[1] if len(parts) > 1 else key
+        key, zh = _parse_key(c.name[len('ONLY_'):])
+        if key in seen:
+            continue
         out.append(('cat_' + key, key, zh, c))
+        seen.add(key)
     return out
 
 
@@ -278,6 +295,22 @@ def register():
                     self.report({'INFO'}, '已切到 %s（%d 对象）' % (tid, n))
             return {'FINISHED'}
 
+    class RDR2_OT_collapse_outliner(bpy.types.Operator):
+        bl_idname = 'rdr2.outliner_collapse'
+        bl_label = '全部收起 Outliner'
+        bl_description = '把 Outliner 里的集合全部收起到最外层（打开文件时也会自动收一次）'
+        bl_options = {'REGISTER'}
+
+        def execute(self, context):
+            try:
+                import blender_autoload as al
+                n = al.collapse_outliner()
+            except Exception as e:
+                self.report({'ERROR'}, '收起失败：%s' % e)
+                return {'CANCELLED'}
+            self.report({'INFO'}, '已收起 %d 个 Outliner 区域' % n)
+            return {'FINISHED'}
+
     class RDR2_PT_cats(bpy.types.Panel):
         bl_label = 'RDR2 分类开关'
         bl_space_type = 'VIEW_3D'
@@ -295,18 +328,22 @@ def register():
             row.operator('rdr2.cat_preset', text='全关').mode = 'none'
             lay.operator('rdr2.cat_sync', text='刷新状态（手动改过 Outliner 后点我）')
             lay.operator('rdr2.sync_render', text='同步渲染可见性（出图前点一次）')
+            lay.operator('rdr2.outliner_collapse', text='全部收起 Outliner')
             lay.separator()
-            lay.label(text='显示范围（地块级）')
-            row = lay.row(align=True)
-            row.operator('rdr2.cat_space', text='⏹ 全图',
-                         depress=(s.space_mode == 'all')).mode = 'all'
-            row.operator('rdr2.cat_space', text='当前地块（手动）',
-                         depress=(s.space_mode == 'tile')).mode = 'tile'
-            lay.separator()
-            row = lay.row(align=True)
-            row.operator('rdr2.cat_preset', text='只看人造物').mode = 'manmade'
-            row.operator('rdr2.cat_preset', text='去杂物/贴花').mode = 'clean'
-            lay.separator()
+            # 「地块级」开关依赖 ENTITIES/T_* 分区；ONLY_ 型 blend（远景碎片版）没有，
+            # 画出来点了也没反应，直接不画（2026-11-04）。
+            if bpy.data.collections.get('ENTITIES') is not None:
+                lay.label(text='显示范围（地块级）')
+                row = lay.row(align=True)
+                row.operator('rdr2.cat_space', text='⏹ 全图',
+                             depress=(s.space_mode == 'all')).mode = 'all'
+                row.operator('rdr2.cat_space', text='当前地块（手动）',
+                             depress=(s.space_mode == 'tile')).mode = 'tile'
+                lay.separator()
+                row = lay.row(align=True)
+                row.operator('rdr2.cat_preset', text='只看人造物').mode = 'manmade'
+                row.operator('rdr2.cat_preset', text='去杂物/贴花').mode = 'clean'
+                lay.separator()
             lay.label(text='环境')
             lay.prop(s, 'show_water', text='水面（Water）', toggle=True)
             lay.prop(s, 'water_z', text='水位高度 (m)', slider=True)
@@ -321,6 +358,7 @@ def register():
     bpy.utils.register_class(RDR2_OT_sync_render)
     bpy.utils.register_class(RDR2_OT_sync)
     bpy.utils.register_class(RDR2_OT_space)
+    bpy.utils.register_class(RDR2_OT_collapse_outliner)
     bpy.utils.register_class(RDR2_PT_cats)
     # 注册后再强制对齐一次（防止 property 默认值与集合状态不符）
     sync()

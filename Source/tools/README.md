@@ -54,13 +54,28 @@
 > `manifest_from_jsonl.py`（汇总加 `with_normal_objects` 等四项）、`export_sdn_props2.py`
 > （`.yft` 的 geom 也带 `ntex`/`mtex`）。
 
-## 整块大陆 / Blender 装配（19 个）
+## 整块大陆 / Blender 装配（23 个）
 
 - `blender_add_props.py`
 - `blender_add_train_peds.py`
 - `blender_add_trolley.py`
 - `blender_assemble_sdn.py`
 - `blender_bind_player_walk.py`
+- `extract_class_blend.py`  **按分类从大陆 blend 抽一个子集另存**（2026-11-01 建、11-03 归位）。
+  按当前 `class_rules` 重新判定名字（不信 blend 里的旧集合），删其它集合 + `orphans_purge` 批量清；
+  默认 `--keep lod,terrain_lod`。产物 = `deliverable/blender/continent/continent_lod_split_v23.blend`
+  （抽出来是 `ONLY_lod_远景碎片` 2,261 + `ONLY_terrain_lod_地形远景块` 31；再经 backfill + split + group
+  三步后是 2,324 + 31，见下三条）。🔴 保存前会把贴图相对路径按新目录重算（不重算 = 搬目录后 761 张全失效，已实测）。
+- `backfill_lod_blend.py`  **补回 v23 之后区域新增的远景碎片**（2026-11-04）。
+  v23 抽出的 blend 缺 57 条（`S_dewclm` 27 / `S_hso` 15 / `S_sha` 15，全在 `wild2000_04_02` / `03_02`）；
+  按 `lod_fragments.csv` 求差集 → 从 `regions/18_*.blend` / `19_*.blend` 用
+  `bpy.data.libraries.load(link=False)` 按对象名追加，挂回父集合。
+  区域 blend 与 continent/ 同在 `deliverable/blender/` 下一层深，贴图相对路径天然一致，不用重算。
+- `group_lod_blend.py`  **把远景碎片按片区拆成子集合**（2026-11-04）。
+  读 `lod_fragments.csv` + `lod_groups.json`，按 `(hash, x, y, z)`（0.1 m）匹配；
+  **拆分件优先按 `part_key` 匹配**（同一个整块切出的部件位置/哈希都相同，坐标匹配区分不了）；
+  在 `ONLY_lod_远景碎片` 下建 `S_<据点>_<中文名>` / `W_<野地>` / `G_<瓜玛>` / `M_跨据点区块` / `X_未匹配_N`
+  子集合；幂等（重跑先删自己的前缀集合），存回原文件。验收看日志 `VERDICT`。
 - `blender_continent.py`  主装配。关键参数：`--only-tile <id>`（分区）、`--no-pad`（POI 用）、
   `--no-conj-quat`（回退旋向，仅对照）、**`--rails`（铁路豁免剔除规则；不加会丢 1,024/1,359 件铁路）**
 - `build_regions.py`  区域批量驱动（规格 = `docs/TODO.md` §4）：读 `regions_support/region_list.csv`，
@@ -157,7 +172,7 @@
 - `blender_crop_continent_to_map.py`  按地图框重建 Terrain + 删框外实体 + 重建框内水面
 - `blender_probe_maparea.py`       裁剪后按地图框射线测覆盖率/空洞
 
-## 世界 / 地形 / 城镇（20 个）
+## 世界 / 地形 / 城镇（21 个）
 
 - `bake_campaign_map.py`
 - `bake_scene_tile.py`
@@ -206,6 +221,22 @@
   用法：`python tools/perschar_mem_pairs.py`（`--dry` 只统计，`--window 256` 调采样窗口）
   覆盖率与当前加载的区有关 —— 换区后再跑一次数字会变
 - `plan_town.py`
+- `build_lod_groups.py`          **远景碎片 → 据点/野地/瓜玛 分组**（2026-11-03 新增，骑砍2 大地图城镇 prefab 用）：
+  输入 = `tiles/*.json` 实例变换 + `lib_native/index.json` 局部包围盒 + v23/22 个区域 manifest 的对象名
+  + `_scratch/settlement_plan/scene_specs.json` 的 P 多边形；输出
+  `deliverable/handoff/lod_fragments.csv`（一行一个碎片：世界/局部变换、模型、贴图、三角面）
+  + `lod_groups.json`（每组汇总）+ `_scratch/lod_groups/` 的核对图与自检 JSON。
+  分配 = 据点 P 内 → 建筑类包围盒与 P 外扩 64 m 相交 → **跨据点整块标 `span`** → 野地 P →
+  野地远景范围 → 瓜玛；排除 `terrain_lod`（只认不带 `area_` 的 `<前缀>_<行>_<列>_slod<N>`；
+  🔴 `*_area_slod*` 是**建筑/道具的整区合并 LOD**，保留在远景碎片里）。
+  `--parts deliverable/handoff/lod_split_parts.json` 会自动用 `split_span_blocks.py` 切出的部件替换整块；
+  `--strict` 关近邻做对照、`--no-map` 不出图。包围盒用**共轭四元数**重算，对 22 个区域 manifest
+  反验最大误差 **0.005 m**。说明见 `docs/世界与地编/RDR2_据点分级与场景边界方案.md` §8.1
+- `split_span_blocks.py`          **按据点边界切开跨据点的合并 LOD**（2026-11-04 新增，Blender 脚本）：
+  读 `lod_fragments.csv` 里 `assign_via=span` 的行 → 按每个据点 P 矩形 bmesh 切网格 →
+  每个据点一块（`__split_<code>`）+ 余量（`__split_rest`，给野地）；写
+  `deliverable/handoff/lod_split_parts.json`（实测 tris/verts/bb）。
+  🔴 bisect 方向实测：`clear_inner=True` 保留法线正侧（法线指向矩形内）；切空了会保留原块不删。
 
 ### 微缩模型 / 沙盒大地图（2026-10-26 新增，经验见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）
 - `build_model_ledger.py`         全量模型台账（52 539 个：名字/面数/包围盒），替代旧的 10 893 条清单

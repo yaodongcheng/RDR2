@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """bat 交付前检查：静态规则 + 干跑（不启动真程序）。
 
-    python tools/_check_bat.py --bat "D:\\BrainMaker\\大镖客2解包分析\\打开大陆_流畅.bat" --dryrun
+    python tools/_check_bat.py --bat "H:\\SteamLibrary\\steamapps\\common\\Mount & Blade II Bannerlord\\Modules\\RDR2\\Source\\launchers\\打开大陆_流畅.bat" --dryrun
 
 静态检查（这次实际踩过的坑）：
   · 编码必须 GBK、换行必须 CRLF（裸 LF = 0）
@@ -95,7 +95,10 @@ def main():
         for k, v in outs.items():
             print('\n[bat] dryrun %s:' % k)
             print(v.strip()[:1200])
-        ok_list = '[审计分块]' in outs['list']
+        # 不同启动器的分节名不一样：`打开大陆_流畅.bat` 用 [区域裁剪]，
+        # 旧版用 [审计分块]。判据放宽成「至少列出 .blend」，别把措辞写死。
+        ok_list = ('[审计分块]' in outs['list']) or ('[区域裁剪]' in outs['list']) \
+            or ('.blend' in outs['list'])
         ok_19 = ('[DRYRUN] WOULD OPEN' in outs['19']) or ('[ERROR]' in outs['19'])
         ok_99 = ('[ERROR]' in outs['99'])
         print('\n[bat] 干跑判定：list=%s  19=%s  99=%s' % (ok_list, ok_19, ok_99))

@@ -47,6 +47,12 @@ def parse():
   ap.add_argument('--max-entities', type=int, default=0)
   ap.add_argument('--step', type=float, default=0)   # 0 = 原始 4 m
   ap.add_argument('--only-tile', default='')
+  # 场景模式（2026-11-03）：按 scene_list.csv 的两层规则装 + 裁一张场景。
+  # 装配框 = 远景范围外扩 128 m（build_entities 按**原点**筛），装完分类后由 scene_trim
+  # 用**包围盒**精确裁：活动区内全留，活动区外只留 lod。地形/水面默认不建。
+  ap.add_argument('--scene', default='', help='场景 id（sdn / wild_01 …），读 docs/世界与地编/scene_list.csv')
+  ap.add_argument('--no-terrain', action='store_true', help='不建大陆地形网格')
+  ap.add_argument('--scene-no-recenter', action='store_true', help='场景模式：不把场景中心平移到原点')
   # 按世界坐标范围裁剪（TODO #7）。坐标系 = RDR2 原生 X 东 / Y 北 / Z 上，单位米。
   # ⚠️ 区域产物原则上应由全集 crop_blend.py 裁出来（最高原则 §二.2）；--bbox 是
   # 「小范围试验」用的快速子集，不替代裁剪管线。
@@ -662,7 +668,7 @@ def _ntex_mat(col):
 
 
 def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails=False,
-                   bbox=None):
+                   bbox=None, scene_rects=None):
   # 名字表：给"无贴图模型"按类别上色用
   def _joaat(t):
     h = 0
@@ -721,6 +727,13 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
   files = sorted(f for f in os.listdir(tiles_dir) if f.endswith('.json'))
   if only_tile:
     files = [f for f in files if only_tile in f]
+  # 场景预筛要用与分类同一份名字规则（否则"哪些是远景碎片"两套口径）
+  try:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from class_rules import classify_name as _cls_name
+  except Exception as _e:
+    print('[scene] class_rules 导入失败，跳过滤镜：%s' % _e)
+    _cls_name = None
   for fn in files:
     ents = json.load(open(os.path.join(tiles_dir, fn), encoding='utf-8'))
     for e in ents:
@@ -748,6 +761,22 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       if bn and TERRAIN_CELL.search(bn) and not is_rail:
         hide_tag = 'terrain_cell'; skipped_flat += 1
       bb = ent['b']
+      # 🔴 场景模式预筛（2026-11-03）：活动区内建高清，活动区外**只建远景碎片**。
+      # 不预筛＝把远景范围里 2 万多个物件全装出来再删（实测 sod 21,798 → 只要 ~1,000）。
+      # 用模型包围盒 × 缩放 + 实体位置做粗判（忽略旋转，四周留 48 m 余量），
+      # 精确判定仍由 scene_trim 按真实矩阵做。
+      if scene_rects is not None:
+        act, far = scene_rects
+        sx, sy, sz = e[8], e[8], e[9]
+        wx0, wx1 = e[1] + bb[0] * sx, e[1] + bb[3] * sx
+        wy0, wy1 = e[2] + bb[1] * sy, e[2] + bb[4] * sy
+        if wx1 < far[0] or wx0 > far[2] or wy1 < far[1] or wy0 > far[3]:
+          outside += 1
+          continue
+        hit_act = not (wx1 < act[0] or wx0 > act[2] or wy1 < act[1] or wy0 > act[3])
+        if not hit_act and (_cls_name is None or _cls_name(_NAMES.get(e[0], '')) != 'lod'):
+          outside += 1
+          continue
       dx, dy, dz = bb[3] - bb[0], bb[4] - bb[1], bb[5] - bb[2]
       # 地表 LOD 分块（64×64 / 128×128）：任何地方都剔——和 H4 地形重复，且高度对不上，
       # 留着就是一块块浮在镇子上的褐色"岛"
@@ -935,12 +964,31 @@ def main():
   TWO_LAYER = (a.lyr == 'on')
   clear()
   setup_world()
-  terrain(a.step, use_pad=USE_PAD)
-  if not a.no_water:
+  scene = None
+  if a.scene:
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import scene_trim
+    scene = scene_trim.load_scene(a.scene)
+    print('SCENE %s（%s）活动区 %.0f×%.0f · 远景 %.0f×%.0f'
+          % (scene['id'], scene['name'], scene['aw'], scene['ah'], scene['fw'], scene['fh']))
+  if scene is not None:
+    if not a.no_terrain:
+      import scene_terrain
+      print('=== [scene] 从 deliverable/terrain 切场景地面（活动区 4 m / 远景 16 m）===')
+      scene_terrain.build(scene)
+  elif not a.no_terrain:
+    terrain(a.step, use_pad=USE_PAD)
+  if not a.no_water and scene is None:
     water()
   if a.lib and not a.terrain_only:
     bb = None
-    if a.bbox:
+    if scene is not None:
+      import scene_trim
+      bb = scene_trim.build_bbox(scene)
+      print('SCENE 装配框 x[%.0f,%.0f] y[%.0f,%.0f]（远景范围 + 128 m）'
+            % (bb[0], bb[2], bb[1], bb[3]))
+    elif a.bbox:
       try:
         parts = []
         for tok in a.bbox:
@@ -955,7 +1003,15 @@ def main():
       if bb:
         print('BBOX x[%.0f,%.0f] y[%.0f,%.0f]' % bb)
     print('BUILD ENTITIES from', a.lib)
-    build_entities(a.lib, TILES, a.max_entities, a.only_tile, not a.no_conj_quat, a.rails, bb)
+    srects = None
+    if scene is not None:
+      import scene_trim as _st
+      act, far = _st.rects(scene)
+      pad = 48.0      # 预筛是粗判（忽略旋转），活动区留点余量；精确判定交给 scene_trim
+      srects = ((act[0] - pad, act[1] - pad, act[2] + pad, act[3] + pad), far)
+      print('SCENE 预筛：活动区内建高清、活动区外只建 lod（活动区外扩 48 m 粗判）')
+    build_entities(a.lib, TILES, a.max_entities, a.only_tile, not a.no_conj_quat, a.rails, bb,
+                   scene_rects=srects)
 
   os.makedirs(os.path.dirname(a.out), exist_ok=True)
   if a.shots:
@@ -978,6 +1034,17 @@ def main():
 
   if a.full:
     run_postprocess(a.out, a.corrections)
+    if scene is not None:
+      import scene_trim
+      d = os.path.dirname(os.path.abspath(a.out))
+      print('=== [scene] 按两层规则裁：活动区内全留 / 活动区外只留 lod ===')
+      scene_trim.trim_current_scene(
+        scene, out=a.out,
+        report=os.path.join(d, 'scene_report_%s.json' % a.scene),
+        manifest=os.path.join(d, 'manifest_%s.jsonl' % a.scene),
+        recenter=not a.scene_no_recenter)
+  elif scene is not None:
+    raise SystemExit('--scene 必须配 --full（要先分类才知道哪些对象是 lod）')
 
 
 def run_postprocess(out, corrections=''):

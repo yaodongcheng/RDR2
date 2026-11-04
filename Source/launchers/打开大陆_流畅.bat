@@ -28,6 +28,7 @@ if "%ARG%"=="" (
   echo.
   echo   输入编号打开区域裁剪（例如 19），直接回车打开最新大陆。
   echo   输入 list 列出所有；也可以直接输入 blend 路径。
+  echo   输入 lod 打开远景碎片版（衍生版，不在默认列表里）。
   set /p ARG=请输入:
 )
 >>"%LOG%" echo [%date% %time%] prompted=%ARG%
@@ -39,6 +40,9 @@ if /i "%ARG%"=="list" (
   echo.
   echo [区域裁剪]
   dir /b /o-d "%AUDDIR%\*.blend" 2>nul
+  echo.
+  echo [衍生版]
+  dir /b /o-d "%BLENDDIR%\continent_lod_split_*.blend" 2>nul
   echo.
   pause
   exit /b 0
@@ -59,6 +63,7 @@ if not "%ARG%"=="" (
       exit /b 1
     )
   ) else (
+    if /i "%ARG%"=="lod" set "BLEND=%BLENDDIR%\continent_lod_split_v23.blend"
     if exist "%ARG%" set "BLEND=%ARG%"
     if not defined BLEND if exist "%PROJ%\%ARG%" set "BLEND=%PROJ%\%ARG%"
     if not defined BLEND (
@@ -93,6 +98,7 @@ echo 正在打开：%BLEND%
 echo   用法：打开大陆_流畅.bat            ^(默认最新大陆^)
 echo         打开大陆_流畅.bat 19         ^(区域裁剪 #19^)
 echo         打开大陆_流畅.bat list       ^(列出所有大陆/分块^)
+echo         打开大陆_流畅.bat lod        ^(远景碎片版^)
 echo         打开大陆_流畅.bat ^<路径.blend^>
 echo.
 >>"%LOG%" echo [%date% %time%] open "%BLEND%"

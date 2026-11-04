@@ -122,6 +122,54 @@ def show_only(tid):
     return shown
 
 
+def collapse_outliner(levels=16):
+    """把 Outliner 里的集合全部收起到最外层（2026-11-04 用户要求）。
+
+    每个 screen 的 OUTLINER 区域各有一份展开状态；`show_one_level(open=False)`
+    每次收一层，多调几次直到收完。后台模式没有 window，用 screen/area/region 覆盖即可。
+    """
+    n = 0
+    for scr in bpy.data.screens:
+        for area in scr.areas:
+            if area.type != 'OUTLINER':
+                continue
+            region = next((r for r in area.regions if r.type == 'WINDOW'), None)
+            kw = {'screen': scr, 'area': area, 'region': region}
+            win = next((w for w in bpy.context.window_manager.windows if w.screen == scr), None)
+            if win is not None:
+                kw['window'] = win
+            try:
+                with bpy.context.temp_override(**kw):
+                    for _ in range(levels):
+                        r = bpy.ops.outliner.show_one_level(open=False)
+                        if 'FINISHED' not in r:
+                            break
+            except Exception:
+                continue
+            n += 1
+    return n
+
+
+_COLLAPSE_TRIES = {'n': 0}
+
+
+def _collapse_timer():
+    """启动后再补收 3 次（1.5s / 1.5s / 1.5s）。
+
+    🔴 为什么不能只在 `--python` 里收一次：GUI 首次绘制 Outliner 时可能用文件里保存的
+    展开状态重建树，把我们之前收好的又铺开（2026-11-04 用户实测"打开还是展开"）。
+    定时器在窗口事件循环里跑，晚于首次绘制，才压得住。
+    """
+    try:
+        n = collapse_outliner()
+        print('[autoload] Outliner 延时收起 #%d：%d 个区域'
+              % (_COLLAPSE_TRIES['n'] + 1, n))
+    except Exception as e:
+        print('[autoload] Outliner 延时收起失败:', e)
+    _COLLAPSE_TRIES['n'] += 1
+    return 1.5 if _COLLAPSE_TRIES['n'] < 3 else None
+
+
 def main():
     # 「分类」下拉（物体属性 → 分类（LWN））：任何 blend 打开都注册一次（2026-10-31 用户要求）
     try:
@@ -214,6 +262,18 @@ def main():
         print('[autoload] ⚠ 无可用视口（-b 后台模式）：只能保持**文件保存态**，测不出启动器画面')
 
     print('[autoload] 提示：默认全图；需要时可在面板点「★ 流式加载」开销更小')
+
+    # Outliner 全部收起（2026-11-04 用户要求：打开时不要 56 个据点文件夹全展开）
+    try:
+        n = collapse_outliner()
+        print('[autoload] Outliner 已收起：%d 个区域' % n)
+    except Exception as e:
+        print('[autoload] Outliner 收起失败:', e)
+    # 再挂一个短定时器补收 3 次：GUI 首次绘制可能把状态重新铺开（见函数注释）
+    try:
+        bpy.app.timers.register(_collapse_timer, first_interval=1.5)
+    except Exception as e:
+        print('[autoload] Outliner 定时收起注册失败:', e)
 
     print('[autoload] 总计 %.1fs' % (time.time() - t0))
     print('-' * 60)

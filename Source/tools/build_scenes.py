@@ -1,0 +1,249 @@
+# -*- coding: utf-8 -*-
+"""批量生成 58 张场景 blend（两层口径）。
+
+    python tools/build_scenes.py --dry-run              # 只打印计划
+    python tools/build_scenes.py                       # 跳过已完成（--resume 默认开）
+    python tools/build_scenes.py --only sdn,bla         # 只跑指定场景
+    python tools/build_scenes.py --force                # 全部重跑
+
+每张：`blender_continent.py --scene <id> --full` → 场景地形（deliverable/terrain）
+     → 装配实体（活动区高清 / 活动区外只 lod）→ 分类 → 两层裁剪 + 平移 → manifest + 报告。
+
+验收（每张自动做）：
+  · 日志里没有 Traceback；
+  · 产物 blend 存在；
+  · manifest 里所有实体的世界包围盒都落在**远景范围**内（0 个超界）。
+
+一次只跑一个 Blender；启动前若已有 Blender 在跑，直接退出（AGENTS：禁止并跑）。
+状态写 `scene_build_status.csv`（与 blend 同目录）。
+"""
+import argparse
+import collections
+import csv
+import datetime
+import json
+import os
+import subprocess
+import sys
+import time
+
+ROOT = r'D:/BrainMaker/大镖客2解包分析'
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.dirname(TOOLS)
+LIB = os.path.join(ROOT, 'assets/lib_native')
+CORR = os.path.join(ROOT, 'deliverable/blender/regions_support/region_corrections.csv')
+CSV_IN = os.path.join(SRC, 'docs', '世界与地编', 'scene_list.csv')
+LOGDIR = os.path.join(ROOT, '_logs')
+OUTDIR = os.path.join(ROOT, 'deliverable/blender/scenes')
+STATUS_CSV = os.path.join(OUTDIR, 'scene_build_status.csv')
+RUNCMD = os.path.join(TOOLS, 'run.cmd')
+UNBUF = os.path.join(TOOLS, '_unbuffer.py')
+CONTINENT = os.path.join(TOOLS, 'blender_continent.py')
+DEFAULT_BLENDER = r'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe'
+DRIVER_LOG = os.path.join(LOGDIR, 'build_scenes.log')
+FIELDS = ['id', 'kind', 'name', 'activity', 'far', 'status', 'seconds', 'objects', 'ring',
+          'blend_mb', 'note']
+
+
+def log(msg):
+    line = '[%s] %s' % (datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), msg)
+    print(line, flush=True)
+    os.makedirs(LOGDIR, exist_ok=True)
+    with open(DRIVER_LOG, 'a', encoding='utf-8') as f:
+        f.write(line + '\n')
+
+
+def read_scenes():
+    rows = []
+    with open(CSV_IN, encoding='utf-8-sig', newline='') as f:
+        for r in csv.DictReader(f):
+            sid = (r.get('id') or '').strip()
+            aw = (r.get('活动区宽_m') or '').strip()
+            if not sid or not aw:
+                continue            # 瓜玛：尺寸待定，先不跑
+            rows.append({
+                'id': sid, 'kind': r.get('kind') or '', 'name': r.get('name') or '',
+                'x': float(r['x']), 'y': float(r['y']),
+                'aw': float(r['活动区宽_m']), 'ah': float(r['活动区高_m']),
+                'w': float(r['每边外扩_m']),
+                'fw': float(r['远景宽_m']), 'fh': float(r['远景高_m']),
+            })
+    return rows
+
+
+def read_status():
+    if not os.path.exists(STATUS_CSV):
+        return {}
+    with open(STATUS_CSV, encoding='utf-8', newline='') as f:
+        return {r['id']: r for r in csv.DictReader(f)}
+
+
+def write_status(rows):
+    os.makedirs(OUTDIR, exist_ok=True)
+    tmp = STATUS_CSV + '.tmp'
+    with open(tmp, 'w', encoding='utf-8', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS, lineterminator='\n')
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, '') for k in FIELDS})
+    os.replace(tmp, STATUS_CSV)
+
+
+def blender_pids():
+    try:
+        out = subprocess.run(['tasklist', '/FO', 'CSV', '/NH'],
+                             capture_output=True, text=True, errors='replace').stdout
+    except Exception:
+        return []
+    pids = []
+    for line in out.splitlines():
+        cols = [c.strip('"') for c in line.split('","')]
+        if cols and cols[0].lower().startswith('blender'):
+            try:
+                pids.append(int(cols[1]))
+            except Exception:
+                pass
+    return pids
+
+
+def run_build(sc, out, blender, timeout):
+    logpath = os.path.join(LOGDIR, 'scene_%s.log' % sc['id'])
+    cmd = ('tools\\run.cmd "%s" "%s" -b --python "%s" -P "%s" -- '
+           '--out "%s" --lib "%s" --scene %s --rails --full --corrections "%s"'
+           % (logpath, blender, UNBUF, CONTINENT, out, LIB, sc['id'], CORR))
+    t0 = time.time()
+    p = subprocess.Popen(cmd, cwd=SRC, shell=True)
+    try:
+        rc = p.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        log('[%s] TIMEOUT %ds -> taskkill /T' % (sc['id'], timeout))
+        subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)], capture_output=True)
+        try:
+            p.wait(timeout=60)
+        except Exception:
+            pass
+        return False, 'timeout', int(time.time() - t0)
+    dt = int(time.time() - t0)
+    if rc != 0:
+        return False, 'rc=%d（日志 %s）' % (rc, logpath), dt
+    if not os.path.exists(out):
+        return False, 'blend 不存在', dt
+    try:
+        txt = open(logpath, encoding='utf-8', errors='replace').read()
+    except Exception:
+        txt = ''
+    if 'Traceback' in txt:
+        return False, '日志里有 Traceback（%s）' % logpath, dt
+    return True, 'ok', dt
+
+
+def verify_scene(sc, manifest):
+    """0 超界 + 至少 1 个对象 → PASS。"""
+    if not os.path.exists(manifest):
+        return False, '缺 manifest', 0, 0
+    fx0, fy0 = sc['x'] - sc['fw'] / 2, sc['y'] - sc['fh'] / 2
+    fx1, fy1 = sc['x'] + sc['fw'] / 2, sc['y'] + sc['fh'] / 2
+    n = ring = bad = 0
+    with open(manifest, encoding='utf-8') as f:
+        for line in f:
+            r = json.loads(line)
+            bb = r.get('bb')
+            if not bb or (r.get('n') or '').startswith('Terrain'):
+                continue
+            n += 1
+            if r.get('ring'):
+                ring += 1
+            if bb[0] < fx0 - 1 or bb[1] < fy0 - 1 or bb[3] > fx1 + 1 or bb[4] > fy1 + 1:
+                bad += 1
+    if n == 0:
+        return False, '0 个对象', n, ring
+    if bad:
+        return False, '%d 个对象超出远景框' % bad, n, ring
+    return True, 'ok', n, ring
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--only', default='', help='只跑这些 id，逗号分隔')
+    ap.add_argument('--force', action='store_true', help='忽略已完成状态，全部重跑')
+    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--timeout', type=int, default=2400, help='单张超时（秒），默认 2400')
+    ap.add_argument('--blender', default=DEFAULT_BLENDER)
+    ap.add_argument('--dir', default=OUTDIR, help='blend 输出目录')
+    ap.add_argument('--allow-concurrent', action='store_true')
+    a = ap.parse_args()
+
+    for p, what in ((CSV_IN, 'scene_list.csv'), (CORR, 'region_corrections.csv'),
+                    (LIB, 'lib_native'), (a.blender, 'blender.exe'), (RUNCMD, 'run.cmd')):
+        if not os.path.exists(p):
+            log('ERROR 找不到 %s：%s' % (what, p))
+            return 2
+
+    scenes = read_scenes()
+    status = read_status()
+    only = set(x.strip() for x in a.only.split(',') if x.strip())
+    todo = []
+    for sc in scenes:
+        sid = sc['id']
+        if only:
+            if sid in only:
+                todo.append(sc)
+        elif a.force or (status.get(sid, {}).get('status') != 'done'):
+            todo.append(sc)
+
+    log('===== build_scenes start：待跑 %d 张 / 共 %d 张 =====' % (len(todo), len(scenes)))
+    if not todo:
+        log('没有待跑的场景。')
+        return 0
+    if a.dry_run:
+        for sc in todo:
+            log('[dry] %-8s %-10s 活动区 %.0f 远景 %.0f×%.0f'
+                % (sc['id'], sc['name'], sc['aw'], sc['fw'], sc['fh']))
+        return 0
+
+    pids = blender_pids()
+    if pids and not a.allow_concurrent:
+        log('ERROR 检测到 Blender 正在运行（PID %s）。先关掉再跑。' % ','.join(map(str, pids)))
+        return 3
+
+    os.makedirs(a.dir, exist_ok=True)
+    os.makedirs(LOGDIR, exist_ok=True)
+    failed = 0
+    t_all = time.time()
+    for i, sc in enumerate(todo, 1):
+        sid = sc['id']
+        out = os.path.join(a.dir, '%s.blend' % sid)
+        manifest = os.path.join(a.dir, 'manifest_%s.jsonl' % sid)
+        log('[%s] (%d/%d) 开始：%s（活动区 %.0f / 远景 %.0f×%.0f）'
+            % (sid, i, len(todo), sc['name'], sc['aw'], sc['fw'], sc['fh']))
+        ok, msg, dt = run_build(sc, out, a.blender, a.timeout)
+        row = {'id': sid, 'kind': sc['kind'], 'name': sc['name'],
+               'activity': '%d' % sc['aw'], 'far': '%dx%d' % (sc['fw'], sc['fh']),
+               'seconds': str(dt),
+               'blend_mb': '%.1f' % (os.path.getsize(out) / 1e6) if os.path.exists(out) else '0'}
+        if not ok:
+            row['status'] = 'failed'; row['note'] = msg
+            status[sid] = row; write_status([status[k] for k in sorted(status)])
+            log('[%s] FAILED：%s（批量停止）' % (sid, msg))
+            failed = 1
+            break
+        vok, vmsg, n, ring = verify_scene(sc, manifest)
+        row.update({'objects': str(n), 'ring': str(ring), 'note': vmsg})
+        if not vok:
+            row['status'] = 'failed'
+            status[sid] = row; write_status([status[k] for k in sorted(status)])
+            log('[%s] FAILED：验收 %s（批量停止）' % (sid, vmsg))
+            failed = 1
+            break
+        row['status'] = 'done'
+        status[sid] = row; write_status([status[k] for k in sorted(status)])
+        log('[%s] -> done：%d 对象（远景 %d）/ %ds / %.1f MB'
+            % (sid, n, ring, dt, float(row['blend_mb'])))
+
+    log('===== build_scenes end：%s，总耗时 %.1f 分钟 ====='
+        % ('FAILED' if failed else '全部完成', (time.time() - t_all) / 60))
+    return 1 if failed else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
