@@ -34,45 +34,16 @@ DEFAULT_TEXDIR = os.path.join(RDR2, "deliverable", "blender", "scenes", "tex")
 
 STEP = 4.0          # 全场统一最高精度（RDR2 原生高度图就是 4 m）
 
+# tools/ 加进 sys.path，保证单独用 -P tools/scene_terrain.py 跑也能 import 到 core
+import sys as _sys  # noqa: E402
+if HERE not in _sys.path:
+    _sys.path.insert(0, HERE)
+
 
 # ------------------------------------------------------------------ 数据
-def load_meta():
-    m = json.load(open(os.path.join(TERRAIN, "meta.json"), encoding="utf-8"))
-    h = m["height"]
-    return {
-        "x0": m["world"]["x0"], "y0": m["world"]["y0"],
-        "x1": m["world"]["x1"], "y1": m["world"]["y1"],
-        "hfile": os.path.join(TERRAIN, h["file"]),
-        "hw": h["px"][0], "hh": h["px"][1], "hres": h["m_per_px"],
-        "zmin": h["zmin"], "zmax": h["zmax"],
-        "cfile": os.path.join(TERRAIN, m["color"]["file"]),
-        "cw": m["color"]["px"][0], "ch": m["color"]["px"][1],
-        "cres": m["color"]["m_per_px"],
-    }
-
-
-_H = None
-
-
-def heights(meta):
-    global _H
-    if _H is None:
-        from PIL import Image
-        im = np.asarray(Image.open(meta["hfile"]), dtype=np.float32)
-        _H = meta["zmin"] + im / 65535.0 * (meta["zmax"] - meta["zmin"])
-    return _H
-
-
-def sample_h(meta, H, x, y):
-    """世界坐标 → 高度（双线性）。行 0 = 北。"""
-    fx = (x - meta["x0"]) / meta["hres"]
-    fy = (meta["y1"] - y) / meta["hres"]
-    x0 = np.clip(np.floor(fx).astype(int), 0, meta["hw"] - 2)
-    y0 = np.clip(np.floor(fy).astype(int), 0, meta["hh"] - 2)
-    tx = np.clip(fx - x0, 0, 1)
-    ty = np.clip(fy - y0, 0, 1)
-    return (H[y0, x0] * (1 - tx) * (1 - ty) + H[y0, x0 + 1] * tx * (1 - ty)
-            + H[y0 + 1, x0] * (1 - tx) * ty + H[y0 + 1, x0 + 1] * tx * ty)
+# 采样口径**只有一份实现**：scene_terrain_core（纯 Python，被 check_scene_terrain.py 共用）。
+# 这里只做转出，禁止在本文件里另写一份（分叉 = 检查失效）。
+from scene_terrain_core import load_meta, heights, sample_h, axis as _core_axis  # noqa: E402
 
 
 def crop_color(meta, fx0, fy0, fx1, fy1, out_png):
@@ -135,8 +106,9 @@ def _mesh(name, verts, faces, uvs, mat):
 
 def _grid(meta, H, x0, y0, x1, y1, step, cx, cy, uv_box):
     """世界矩形 → 网格（局部坐标）+ UV。uv_box = (fx0, fy0, fx1, fy1)。"""
-    xs = np.arange(x0, x1 + 1e-6, step, dtype=np.float64)
-    ys = np.arange(y0, y1 + 1e-6, step, dtype=np.float64)
+    # 顶点吸附全局格点（口径在 core.axis 里，只有一份）
+    xs = _core_axis(x0, x1, step)
+    ys = _core_axis(y0, y1, step)
     if xs[-1] < x1 - 1e-6:
         xs = np.append(xs, x1)
     if ys[-1] < y1 - 1e-6:

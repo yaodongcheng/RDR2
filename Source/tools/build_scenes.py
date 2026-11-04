@@ -192,6 +192,19 @@ def main():
             todo.append(sc)
 
     log('===== build_scenes start：待跑 %d 张 / 共 %d 张 =====' % (len(todo), len(scenes)))
+
+    # 🔴 算法自检（2026-11-04）：地形采样口径（行偏移 -1 / 全局格点 / 最近邻）一旦回归，
+    # 断崖处差 2~3 m 但平地上看不出来 —— 批量开跑前必须过 check_scene_terrain.py。
+    chk = os.path.join(TOOLS, 'check_scene_terrain.py')
+    if os.path.exists(chk):
+        p = subprocess.run([sys.executable, chk], capture_output=True, text=True,
+                           encoding='utf-8', errors='replace')
+        for line in (p.stdout or '').strip().splitlines():
+            log('    ' + line)
+        if p.returncode != 0:
+            log('ERROR 地形算法自检未过（tools/check_scene_terrain.py），先修算法再批量')
+            return 4
+
     if not todo:
         log('没有待跑的场景。')
         return 0

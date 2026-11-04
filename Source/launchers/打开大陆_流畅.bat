@@ -44,6 +44,9 @@ if /i "%ARG%"=="list" (
   echo [衍生版]
   dir /b /o-d "%BLENDDIR%\continent_lod_split_*.blend" 2>nul
   echo.
+  echo [场景]
+  dir /b /o-d "%PROJ%\deliverable\blender\scenes\*.blend" 2>nul
+  echo.
   pause
   exit /b 0
 )
@@ -66,6 +69,8 @@ if not "%ARG%"=="" (
     if /i "%ARG%"=="lod" set "BLEND=%BLENDDIR%\continent_lod_split_v23.blend"
     if exist "%ARG%" set "BLEND=%ARG%"
     if not defined BLEND if exist "%PROJ%\%ARG%" set "BLEND=%PROJ%\%ARG%"
+    rem scene id: deliverable\blender\scenes\<id>.blend  (e.g. "bla")
+    if not defined BLEND if exist "%PROJ%\deliverable\blender\scenes\%ARG%.blend" set "BLEND=%PROJ%\deliverable\blender\scenes\%ARG%.blend"
     if not defined BLEND (
       echo.
       echo [ERROR] 找不到 blend：%ARG%
