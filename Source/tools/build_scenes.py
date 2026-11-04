@@ -219,6 +219,23 @@ def main():
         log('ERROR 检测到 Blender 正在运行（PID %s）。先关掉再跑。' % ','.join(map(str, pids)))
         return 3
 
+    # 分类开关/可见性的合成单测（Blender，约 3 s）。2026-11-04 接进闸门：
+    # 这条测试因为"没人跑"烂了很久（SPECS 缺 terrain_lod/road，一跑就 assert 失败），
+    # 而它管的正是启动器"面板说隐藏、画面还在"那类 bug（cat_show 子串匹配打错目标）。
+    unit = os.path.join(TOOLS, '_check_tour_vis_unit.py')
+    if os.path.exists(unit):
+        ulog = os.path.join(LOGDIR, 'check_tour_vis_unit.log')
+        subprocess.run('tools\\run.cmd "%s" "%s" -b --factory-startup -P "%s"'
+                       % (ulog, a.blender, unit), cwd=SRC, shell=True)
+        try:
+            utxt = open(ulog, encoding='utf-8', errors='replace').read()
+        except Exception:
+            utxt = ''
+        if '=== UNIT OK ===' not in utxt:
+            log('ERROR 分类开关单测未过（tools/_check_tour_vis_unit.py），日志 %s' % ulog)
+            return 4
+        log('    分类开关单测 PASS（=== UNIT OK ===）')
+
     os.makedirs(a.dir, exist_ok=True)
     os.makedirs(LOGDIR, exist_ok=True)
     failed = 0

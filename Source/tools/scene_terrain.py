@@ -43,7 +43,7 @@ if HERE not in _sys.path:
 # ------------------------------------------------------------------ 数据
 # 采样口径**只有一份实现**：scene_terrain_core（纯 Python，被 check_scene_terrain.py 共用）。
 # 这里只做转出，禁止在本文件里另写一份（分叉 = 检查失效）。
-from scene_terrain_core import load_meta, heights, sample_h, axis as _core_axis  # noqa: E402
+from scene_terrain_core import load_meta, heights, sample_h, axis as _core_axis, uv_of
 
 
 def crop_color(meta, fx0, fy0, fx1, fy1, out_png):
@@ -188,8 +188,9 @@ def _grid(meta, H, x0, y0, x1, y1, step, cx, cy, uv_box):
             a = j * nx + i
             faces.append((a, a + 1, a + nx + 1, a + nx))
     fx0, fy0, fx1, fy1 = uv_box
-    u = (gx.ravel() - fx0) / max(1e-6, fx1 - fx0)
-    v = 1.0 - (gy.ravel() - fy0) / max(1e-6, fy1 - fy0)
+    # 🔴 V 轴口径只有一份实现（scene_terrain_core.uv_of）：**v 随 y 增大**。
+    # 写成 1 - (...) 会让整张贴图南北镜像（2026-11-04 黑水镇就是这个 bug）。
+    u, v = uv_of(gx.ravel(), gy.ravel(), uv_box)
     uvs = np.stack([u, v], axis=1)
     return verts, faces, uvs
 

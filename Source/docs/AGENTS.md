@@ -327,6 +327,7 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 | **cmd 把逗号当分隔符（第 N 次）** | `--at 2560,-1450` 传到 argparse 只剩 `2560` → `unrecognized arguments: -1450` | 参数拆成 `--x 2560 --y=-1450`，别拼 `x,y` |
 | **直接双击 `.blend` 打开 = 看到全开的 LOD/地形块/植被** | "默认隐藏"**不在 blend 里**，在启动器调用的 `tools/blender_autoload.py`。绕过它直接打开 → 满屏白色 LOD 地形 + 褐色浮岛 | 验收一律用 **`打开大陆_流畅.bat`**（自动挑最新的 `continent_v*.blend` 并执行 autoload）。2026-10-30 用户在 v16 上踩到这条；当天已把"启动器到底藏不藏得住"的五层根因全部修掉（见交接 §16） |
 | **分类集合名不能盲切**（`split('_', 2)`） | `C_terrain_cell_地形块` 被切成 key=`terrain` → `cat_show('terrain_cell')` 找不到、`DEFAULT_HIDDEN` 判定永不成立 ⇒ **"地形块"这一类从来没被隐藏**（旧版靠中文名 `'地形块'` 匹配才碰巧躲过） | 解析统一走 `blender_tour._parse_cat()`（已知类名最长前缀匹配）；类名表唯一一份在 `tools/class_registry.py` |
+| 🔴 **类名互为子串 → `cat_show` 打错目标**（2026-11-04 实锤） | 老代码 `if key in k` 与全等判据挤在一条 if 里、遍历到谁算谁：`cat_show('lod', False)` 命中的是 **terrain_lod**、`cat_show('decal', False)` 命中 **rail_decal** ⇒ 真正的 `lod`(40) / `decal`(88) 在 `show_all()` 之后**再也没被关掉**。用户看到的正是「面板显示隐藏、画面里还在」，**手点两下按钮才对**（面板自己走精确集合名） | `cat_show` 改成两轮：先全等（key / 中文名 / 集合名），全不中才允许片段。回归用例在 `tools/_check_tour_vis_unit.py`（合成场景里放了 `lod`/`lod_out`/`terrain_lod`、`decal`/`rail_decal` 三组碰撞） |
 | **Collection.hide_viewport ≠ LayerCollection.hide_viewport** | 数据层关了、视层"眼睛"还开着 → 清单写"已隐藏"、画面仍可见 | 两套一起设：`tour._set_eye()`、`cat_show()`、`classify_entities` 默认隐藏都已统一；验收用 `tools/_check_class_visibility.py` |
 | **`show_all()` / `full()` / `only()` 会把默认隐藏类放出来** | 每次"全图/恢复"都把远景碎片、地形块一起打开 | 统一按 `DEFAULT_HIDDEN` 走 `apply_defaults()`（面板「全图」已改）；`only()` 跳过默认隐藏类 |
 | **`-b` 测不出启动器画面** | `blender -b` 没有视口 → autoload 走"保持文件保存态"分支；拿 `-b` 截图当证据会判错（2026-10-29 踩过） | 启动器行为只认 **GUI 双击 bat**；`-b` 只能证明文件保存态 |
@@ -422,17 +423,44 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 
 | 件 | 作用 |
 |---|---|
-| `tools/scene_terrain_core.py` | **采样口径的唯一实现**（纯 Python，无 bpy）：`load_meta / heights / sample_h / axis` |
+| `tools/scene_terrain_core.py` | **采样口径的唯一实现**（纯 Python，无 bpy）：`load_meta / heights / sample_h / axis / uv_of` |
 | `tools/scene_terrain.py` | 只从 core **转出**再建网格 —— **禁止在本文件另写采样逻辑**（分叉 = 检查失效） |
-| `tools/check_scene_terrain.py` | 离线自检：3 个断崖回归点对 H4 + 网格吸附 + **两条负面测试**（"行偏移不修正""半格偏移"必须被抓到，证明检查有分辨力） |
+| `tools/check_scene_terrain.py` | 离线自检：3 个断崖回归点对 H4 + 网格吸附 + **贴图 UV 朝向往返比对** + **三条负面测试**（"行偏移不修正""半格偏移""V 翻转"必须被抓到，证明检查有分辨力） |
 | `tools/build_scenes.py` | 批量开跑**前先调自检**，不过就 `return 4` 停止，一张都不跑 |
+| `tools/_check_tour_vis_unit.py` | **分类开关/可见性的合成单测**（Blender，2 秒）：类名解析、`show_all` / `apply_defaults` / `cat_show` **精确匹配** / `only` / `full`。**改过 `blender_tour` / `class_rules` / `rdr2_cat_ui` / `blender_autoload` 必跑** —— 2026-11-04 发现它缺 `terrain_lod`/`road` 一直 FAIL，因为没人跑（闸门不接进流程 = 没有闸门） |
 
 复现：
 
 ```powershell
 Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
 python -X utf8 tools\check_scene_terrain.py -v
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --factory-startup -P tools\_check_tour_vis_unit.py
 ```
 
-预期输出末尾 `[check] 结论：PASS`，且两条负面测试都显示"被抓到"。
+预期：前一条末尾 `[check] 结论：PASS` 且三条负面测试都"被抓到"；后一条末尾 `=== UNIT OK ===`
+（⚠️ Blender 的 Python 异常**退出码也是 0**，只认这行文字）。
+
+### 6.7 地形贴图 UV 的 V 轴：**必须随 y 增大，禁止写 `1 - (...)`**（2026-11-04 实锤）
+
+**症状**：黑水镇 bla.blend 正交顶视下，彩图里的**街道/黑条整体跑到建筑群南边约 250 m**，
+用户第一眼判断是"地面 UV 整体系向南偏移"。南北方向像平移，其实是**整张贴图上下镜像**。
+
+**根因**：贴图 PNG 是**行 0 = 北**，而 Blender 的 `v=0` 在**图像底边**（南）
+⇒ 北 = 图顶 = `v=1`，正确公式是 `v = (y - fy0) / (fy1 - fy0)`。
+`scene_terrain.py` 写成了 `v = 1 - (y - fy0) / span`，整张图南北翻。
+`blender_continent.terrain()` 用的是正确写法（`V = (Y - Y0)/W`）——
+**所以 region 18 一直是对的、场景 blend 一直是错的**，两套构建器口径不一致才是根子。
+
+**实测证据（bla.blend 自身）**：局部 (82, 123)（= 世界 −800, −1316）UV **V = 0.4657**；
+同列北端 (82, 512) `V=0.3571` < 南端 (82, −513) `V=0.6431` —— V 随 y **递减**，铁证。
+
+**为什么之前的检查没抓到**：只验了"UV 与裁剪公式一致"（拿同一个错公式当标尺），
+从没验"UV 取到的颜色 = 该世界坐标的颜色"。⇒ 判据必须能分辨两种朝向：
+`check_scene_terrain.py` 的 UV 检查就是**世界→像素** 与 **世界→UV→按 Blender 规则取图**
+两条路往返比对（32×32 点，正确时逐点相等），并把 V 翻转当负面测试（实测超差 92.8%）。
+
+**修法**：V 口径只留一份实现 = `scene_terrain_core.uv_of()`；`scene_terrain._grid` 只调它。
+
+**已受影响的产物**：`bla.blend`、`sod.blend`（都是这个脚本建的）⇒ 修完必须**重跑**这两张；
+其余 55 张未建的不受影响。
 

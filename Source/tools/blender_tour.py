@@ -322,26 +322,47 @@ def _layer_col(name, root=None):
     return None
 
 
+def _match_cat(key):
+    """把 key（或中文名 / 集合名）解析成唯一的 (key, 中文名, collection)。
+
+    🔴 **精确匹配优先，禁止子串优先**（2026-11-04 实锤）：类名互为子串 ——
+    `lod` ⊂ `terrain_lod`/`lod_out`、`decal` ⊂ `rail_decal`。
+    老写法把 `key in k` 放在同一条 if 里，遍历到谁就返回谁：
+      · `cat_show('lod', False)` 命中的是 **terrain_lod**，真正的 lod 没被关掉；
+      · `cat_show('decal', False)` 命中的是 **rail_decal**，88 个贴花照样显示。
+    用户看到的现象就是「面板显示隐藏、画面里还在」。子串只做兜底。
+    """
+    cs = cats()
+    for k, zh, c in cs:                       # 第一轮：key / 中文名 / 集合名，全等
+        if key == k or key == zh or key == c.name:
+            return k, zh, c
+    for k, zh, c in cs:                       # 第二轮：才允许片段
+        if key in zh or key in k:
+            return k, zh, c
+    return None
+
+
 def cat_show(key, on):
-    """开关某一类（支持中文名或 key）。"""
-    for k, zh, c in cats():
-        if key == k or key == zh or key == c.name or key in zh or key in k:
-            c.hide_viewport = not on
-            c.hide_render = not on
-            lc = _layer_col(c.name)
-            if lc is not None:
-                lc.hide_viewport = not on
-            # 同步右侧面板的勾选状态（否则面板会显示"开"但实际是隐藏）
-            try:
-                pg = getattr(bpy.context.scene, 'rdr2_cats', None)
-                if pg is not None and hasattr(pg, 'cat_' + k):
-                    setattr(pg, 'cat_' + k, bool(on))
-            except Exception:
-                pass
-            print('cat %s(%s) -> %s（collection+眼睛）' % (zh, k, '显示' if on else '隐藏'))
-            return True
-    print('没找到分类:', key)
-    return False
+    """开关某一类（支持中文名或 key；精确匹配优先，见 `_match_cat`）。"""
+    hit = _match_cat(key)
+    if hit is None:
+        print('没找到分类:', key)
+        return False
+    k, zh, c = hit
+    c.hide_viewport = not on
+    c.hide_render = not on
+    lc = _layer_col(c.name)
+    if lc is not None:
+        lc.hide_viewport = not on
+    # 同步右侧面板的勾选状态（否则面板会显示"开"但实际是隐藏）
+    try:
+        pg = getattr(bpy.context.scene, 'rdr2_cats', None)
+        if pg is not None and hasattr(pg, 'cat_' + k):
+            setattr(pg, 'cat_' + k, bool(on))
+    except Exception:
+        pass
+    print('cat %s(%s) -> %s（collection+眼睛）' % (zh, k, '显示' if on else '隐藏'))
+    return True
 
 
 def tileify():
