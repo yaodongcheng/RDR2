@@ -103,8 +103,13 @@ RULES = [
     ('road', '道路', ROAD),
     ('ruin', '废墟', RUIN),
     ('decal', '地面贴花', re.compile(
-        r'decal|grndec|ground_dec|puddle|dirt|dust|gravel|skid|stain|mudstain|trackmark|rut|patch|mud_|'
-        r'oil(slick)?|blood|gore|road_?mark|sidewalk|roadway|_road|path_|trail_|'
+        r'decal|grndec|ground_dec|puddle|dirt|dust|gravel|skid|stain|mudstain|trackmark|'
+        # 🔴 2026-11-05：`oil` / `rut` 原来是**裸子串** —— `boiler`(锅炉)、`oildrum`(油桶)、
+        #    `strut`(支撑) 全被扫成"地面贴花"（用户实测整栋 `ann_boilerhse` 成了地面贴花）。
+        #    现在只认油污/油渍语境，rut 只认独立词。实测全库 279 个名字因此改类。
+        r'(?<![a-z])rut(?![a-z])|patch|mud_|'
+        r'oil_?(slick|spill|stain|puddle)|oilslick|'
+        r'blood|gore|road_?mark|sidewalk|roadway|_road|path_|trail_|'
         r'ground_?decal|grounddecal|shadow|shad_|_decl\d|codemarkings', re.I)),
     ('veg', '植被', VEG),
     ('stone', '石块', re.compile(
@@ -126,6 +131,9 @@ RULES = [
     ('bldg_decal', '建筑贴花', re.compile(r'_dcls?(?=\d|_|$)', re.I)),
     ('bldg', '建筑', re.compile(
         r'(?<!arch)_ext(?=_|$)|bldg|building|church|chapel|saloon|store|shop|bank|hotel|barn|shed|cabin|'
+        # 2026-11-05：`boilerhse`（锅炉房，hse = house 缩写）原来谁都不认，
+        #   被 decal 的裸 `oil` 子串抓走 ⇒ 整栋房子成了"地面贴花"（用户实测）。
+        r'boilerhse|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
         r'postoffice|storefront|res_?\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
@@ -154,6 +162,9 @@ RULES = [
         r'scaf+old|ladder|fencepen|pen\d|hitching|trough|gutter|shutter|chimney|'
         r'foundation|support|brace|joist|stud|veranda|canopy|pergola|trellis|woodboard|board\d|'
         r'buildsite|backrail|_awn\d|_hoist|hoist_|_pipes$|_tarp$|walkway|ctwalk|_winclosed|'  # 2026-11-01 用户样本
+        # 2026-11-05：`conv<N>` = 矿场输送带（安尼斯堡 ann_05_conv06b 等 14 个），原来谁都不认 → unknown。
+        #   `struct` 按 2026-10-31 裁定只放桥，所以归「建筑部件」。
+        r'conv\d|conveyor|'
         r'glue|_outerwall|_shell$|_shell_|parklights|arch_?ext', re.I)),   # 2026-11-04：scaf+old 兼容数据里的拼写 scafold
     ('junk', '杂物堆', re.compile(
         r'debris|debirs|rubble|trash|garbage|junk|scrap|cloth|cotton|bale|bundle|sugarcane|cane_|'

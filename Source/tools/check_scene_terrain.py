@@ -29,9 +29,14 @@ UV_MAX_BAD = 0.02         # 允许的超差点比例
 
 
 def _sample_shift0(meta, H, x, y):
-    """错误口径 A：行偏移不修正。"""
+    """错误口径 A：行偏移**错一格**。
+
+    🔴 2026-11-05：口径改成「交付图 row_shift=1 / 原生图 row_shift=0」之后，
+    原来"把偏移改成 0"对原生图恰好等于正确做法 ⇒ 负面测试失去分辨力。
+    改成**在正确值上再偏一格**，两种数据源都能被抓到。
+    """
     fx = (x - meta["x0"]) / meta["hres"]
-    fy = (meta["y1"] - y) / meta["hres"]
+    fy = (meta["y1"] - y) / meta["hres"] - (meta.get("row_shift", core.ROW_SHIFT) + 1.0)
     ix = np.clip(np.rint(fx).astype(int), 0, meta["hw"] - 1)
     iy = np.clip(np.rint(fy).astype(int), 0, meta["hh"] - 1)
     return H[iy, ix]

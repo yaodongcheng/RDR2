@@ -28,6 +28,45 @@
 
 ---
 
+## 0.1 资产早已解包完 —— 缺模型 = **未入库 / 未构建**，禁止提议重新从 RPF 抽取（用户 2026-11-05 第三次纠正）
+
+🔴 **`D:\BrainMaker\大镖客2解包分析\raw\all_packs\<包名>\` 是全量解包产物**（约 45 GB / 4,021 个包），
+`.ydr` 按**资产名**平铺在里面。实测：307 个「模型库缺失的 LOD 模型」，**307 / 307 都在 raw 里**。
+
+**「模型缺失」只有两种含义，两种都不需要重抽**：
+
+| 现象 | 真实含义 | 正确处置 |
+|---|---|---|
+| `assets/lib_native/index.json` 查不到 | **未入库** | `tools/add_missing_models.py --apply`（读 raw，增量合并 index，不覆盖已有条目） |
+| `continent_v23.blend` / 场景里没有 | **没被构建**（构建时模型库没有 ⇒ `models.get()` 返回空 ⇒ 静默 `continue`） | 先解决「未入库」，再决定要不要重建 |
+
+**强制前置检查**（下任何「缺模型」结论前必跑）：
+
+```python
+h = joaat('<资产名>')
+any(joaat(os.path.splitext(os.path.basename(p))[0]) == h
+    for p in glob.glob(r'D:/BrainMaker/大镖客2解包分析/raw/all_packs/*/*.ydr'))
+```
+
+- 命中 ⇒ **入库/构建**问题，别提抽取；
+- 未命中 ⇒ 才谈从 RPF 抽，且**先问用户**。
+
+**同类陷阱**：`add_missing_models.py` 的 `SKIP` 正则里带着 `slod|_lod|shadow|reflection|prox`，
+它**故意不补** LOD/代理类模型（当初的目的是只补"可见"模型）。所以「LOD 模型缺失」≠「数据没解包」，
+正确动作是**给它加 `--include-lod` 再跑**。
+
+🔴 **补之前先验 shader**：`export_sdn_gltf.load_model()` 对「所有 geom 的 shader 都是 `default`」的模型
+**故意返回 None**（占位/代理网格，游戏自己也不渲染）。实测 2026-11-05：安尼斯堡「缺模型的 307 个 LOD」
+**307/307 全是 `default` 占位** ⇒ 真模型的 LOD 一个不缺，**没有要补的东西**。
+判据：`Y.parse_shader_hashes` 取出该 ydr 的 shader 名，全等于 `default` 就是占位。
+`add_missing_models.py --apply` 对这类是 0 新增（实测 index.json 内容逐字段不变）。
+
+**为什么写死这条**：同一天里我（AI）三次提议「重新从 RPF 抽取」，每次都是重复劳动，用户每次都纠正过。
+第三次被当面点出来后立此条。
+
+---
+
+
 ## 1. 先读最高原则
 
 **`docs/最高原则_单一管线与分块即裁剪.md`**（优先级高于 README 与所有专项文档）
@@ -869,5 +908,83 @@ return all(DECAL_TEX.search(n) for n in names)
 （136~190 顶点）；那张床回到 `part`。
 
 > ⚠️ `val` / `bla` / `sdn` 是在这条修之前建的，它们的 `int_decal` 计数（34 / 22 / 64）会一起下降。
+
+### 6.20 🔴🔴 场景地形读的是「给骑砍2 大地图改过」的高度图（2026-11-05，安尼斯堡半城泡水里）
+
+**症状**：`ann.blend` 里半个城泡在水里，而区域 blend `13_wild2000_05_01.blend` 同一位置正常。
+
+**根因**：两条链读的**不是同一份地形数据**：
+
+| 链 | 数据源 |
+|---|---|
+| 区域 / 大陆（`blender_continent`） | **原生** `work/terrain/H4.npy` ✅ |
+| **场景（`scene_terrain`）** | `deliverable/terrain/final/height_4m_16bit.png` ❌ |
+
+而那只 PNG 来自 `build_final_map_heightmap.py` —— **它是给骑乘2 大地图用的，会主动改地形**：
+抬西北高原（+150 m）、压南边平原、**把内陆水系挖平到固定深度**（河 12~35 / 塘 8~18 / 湖 25~60 / 海 90~300）。
+
+实测安尼斯堡 y=1348 往东剖面：x≥2960 之后**恒定 z=7.1**（= 水位 40.5 − 33.4，正好在"河 12~35"区间），
+原生 H4 那里是 43 → 19 的正常河床。水位 40.5 一盖 ⇒ 整段河被淹。
+
+违反最高原则 §6.2「地形只用 RDR2 原生高度，不做压平/拟合/局部拉伸」。
+
+**修法**（不动大地图那张，另出一张给场景用）：
+
+| 件 | 做什么 |
+|---|---|
+| `tools/build_scene_heightmap_native.py`（新增） | 从 `H4.npy` 生成 `height_4m_16bit_native.png`：**同一世界框、同一 zmin/zmax 编码**，只换数据源 ⇒ 坐标口径不变 |
+| `tools/scene_terrain_core.py` | 这张图存在就优先用，`row_shift` 从 1 改 **0**（原生图不需要补偿） |
+| `tools/check_scene_terrain.py` | 负面测试从「把行偏移改成 0」改为「**在正确值上再偏一格**」—— 否则对原生图失去分辨力 |
+
+> 🔴 **生成时两个坑**：① H4 **行 0 = 南**（`r=(y-Y0)/res`），交付图**行 0 = 北**，按反了整张图上下翻转；
+> ② 像素要**左上角对齐**（不加 0.5），加半像素 = 全图偏半格，回归点差 **0.64 m**，被闸门当场抓到。
+
+**影响面（P 内 \\|差\\|>5 m 的面积占比）**：`sis` 62.7% · `dewclm` 49.8% · `wild_07` 47.9% ·
+`lag` 42.3% · `van` 38.1% · **`sdn` 34.0%** · `ann` 20.2% · `bla` 12.5% · `roc` 4.7% · `val` 2.0%。
+**56 张里 23 张的 P 内超过 5% 面积受影响** ⇒ 必须全量重跑。
+
+### 6.21 分类词表里的**裸子串**会误伤（2026-11-05，锅炉房被判成地面贴花）
+
+**症状**：`ann_boilerhse`（整栋锅炉房）被归成「地面贴花」整类隐藏。
+
+**根因**：`decal` 规则里 `oil(slick)?` 是裸子串 —— `b`**`oil`**`erhse` 里的 "oil" 命中。
+同族隐患：`rut` 会命中 `strut`（支撑）。
+
+**修法**（`class_rules.py`）：
+
+| 词 | 改成 |
+|---|---|
+| `oil(slick)?` | `oil_?(slick\|spill\|stain\|puddle)\|oilslick`（只认油污语境） |
+| `rut` | `(?<![a-z])rut(?![a-z])`（只认独立词） |
+| `bldg` 词表 | 补 `boilerhse`（hse = house 缩写，原来谁都不认，修完会掉 unknown） |
+| `part` 词表 | 补 `conv\d\|conveyor`（矿场输送带，14 个；`struct` 按 2026-10-31 裁定只放桥） |
+
+**效果**：全库 **279 个名字**改类（prop 103 / unknown 77 / veh 51 / bldg 17 / part 16 …）；
+`ann` 的 `地面贴花` **88 → 33**、`bldg` 101 → 125、`unknown` 53 → 46。
+
+> **写词表铁律**：加词之前先想「它会不会是别的词的子串」。宁可写 `_oil_` / `(?<![a-z])x(?![a-z])`，
+> 不要写裸词。教训与 §6.19（任意一个子网格命中就算贴花）同源：**判据越短，误伤越大**。
+
+### 6.22 量位置别读**隐藏集合**里的 `matrix_world`（2026-11-05，我自己错了两次）
+
+**症状**：探针量出来"安尼斯堡的 LOD 碎片全堆在原点"，差点当成 bug 报出去。
+
+**真相**：`matrix_basis` 是 (57.7, 9.8, 44.2)（正确），`matrix_world` 是 (0,0,0)。
+因为 `C_lod_远景碎片` / `C_int_decal_*` 这类集合**默认隐藏**，而**隐藏集合里的对象不被 depsgraph 求值**
+⇒ `matrix_world` 停在单位阵。
+
+**正确做法**（探针里先做这两步再量）：
+
+```python
+for c in bpy.data.collections:
+    c.hide_viewport = False; c.hide_render = False
+stack = [bpy.context.view_layer.layer_collection]
+while stack:
+    nd = stack.pop(); nd.hide_viewport = False; nd.exclude = False; stack.extend(nd.children)
+bpy.context.view_layer.update()
+```
+
+同族坑：新建对象（`scene_interiors.build`）在 `view_layer.update()` 之前也是单位阵（AGENTS §6.9 第 1 条）。
+**报"位置不对"之前，先确认量的是求值后的世界矩阵，或直接读 `matrix_basis`。**
 
 

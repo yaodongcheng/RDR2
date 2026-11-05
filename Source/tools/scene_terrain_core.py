@@ -23,12 +23,16 @@ H4 = os.path.join(RDR2, "work", "terrain", "H4.npy")
 
 STEP = 4.0
 ROW_SHIFT = 1.0     # 见上：dy = -1 格
+# 由 `build_scene_heightmap_native.py` 从原生 H4 生成（同一世界框、同一编码）。
+# 存在它就优先用：交付的那张是给骑砍2 大地图改过的（挖平水系 / 抬高原 / 压平南边），
+# 拿来当场景地形会让河道变平板、被水淹（见该脚本文档）。
+NATIVE_HFILE = 'height_4m_16bit_native.png'
 
 
 def load_meta(path=None):
     m = json.load(open(path or os.path.join(TERRAIN, "meta.json"), encoding="utf-8"))
     h = m["height"]
-    return {
+    meta = {
         "x0": m["world"]["x0"], "y0": m["world"]["y0"],
         "x1": m["world"]["x1"], "y1": m["world"]["y1"],
         "hfile": os.path.join(TERRAIN, h["file"]),
@@ -37,7 +41,19 @@ def load_meta(path=None):
         "cfile": os.path.join(TERRAIN, m["color"]["file"]),
         "cw": m["color"]["px"][0], "ch": m["color"]["px"][1],
         "cres": m["color"]["m_per_px"],
+        "row_shift": ROW_SHIFT,
+        "source": "delivered",
     }
+    # 🔴 2026-11-05：优先用**原生 H4** 版本（`build_scene_heightmap_native.py` 生成）。
+    # 交付那张 `height_4m_16bit.png` 是**给骑砍2 大地图**用的，里面把内陆水系挖平到固定深度
+    # （安尼斯堡 x≥2960 恒为 z=7.1，水位 40.5 ⇒ 整段河被淹），与区域 blend 读的原生 H4 不一致。
+    # 新图与交付图**同一世界框、同一编码**，只是数据来自 H4 ⇒ 坐标口径不变，行偏移不需要补偿。
+    native = os.path.join(TERRAIN, NATIVE_HFILE)
+    if os.path.exists(native):
+        meta["hfile"] = native
+        meta["row_shift"] = 0.0
+        meta["source"] = "native"
+    return meta
 
 
 def heights(meta):
@@ -46,9 +62,9 @@ def heights(meta):
 
 
 def sample_h(meta, H, x, y):
-    """世界坐标 → 高度：**最近邻 + 行偏移一格**（与大陆同口径）。"""
+    """世界坐标 → 高度：**最近邻 + 行偏移**（与大陆同口径）。"""
     fx = (x - meta["x0"]) / meta["hres"]
-    fy = (meta["y1"] - y) / meta["hres"] - ROW_SHIFT
+    fy = (meta["y1"] - y) / meta["hres"] - meta.get("row_shift", ROW_SHIFT)
     ix = np.clip(np.rint(fx).astype(int), 0, meta["hw"] - 1)
     iy = np.clip(np.rint(fy).astype(int), 0, meta["hh"] - 1)
     return H[iy, ix]
