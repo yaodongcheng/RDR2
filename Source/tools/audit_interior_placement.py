@@ -112,8 +112,16 @@ def main():
         R = quat_mat((inst[4], inst[5], inst[6], inst[7]))
         mn = np.array([1e18]*3); mx = np.array([-1e18]*3)
         used = 0
-        for e in ents:
-            m = lib.get(hex(e['h']))
+        # 🔴 2026-11-05：判「室内是否在这栋楼里」要用**房间壳**，不是全部件 ——
+        # 道具/外挂件/阴影代理会把包围盒撑大。实测 `roc_house_int`：全件盒子 18.4×27.3 m
+        # 判成「超 11.15 m」，而壳体实测四边 +2.33/+0.76/+0.41/+1.40，完全放得下（夏洛蒂家）。
+        # 壳体命名有 `_shell` / `_shell_main` 两种；没有壳的包退回全部件（老行为）。
+        _SHELL = re.compile(r'_shell(_main)?$', re.I)
+        _shells = [e for e in ents
+                   if _SHELL.search((names.get(e['h']) or '').split('/')[-1])]
+        for e in (_shells if _shells else ents):
+            # 🔴 必须补零：库的键是 8 位，hex() 会丢前导零 ⇒ 查不到 ⇒ 漏算（与 scene_interiors 同一 bug）
+            m = lib.get('0x%08x' % e['h'])
             if not m:
                 continue
             b = m['b']
@@ -149,9 +157,11 @@ def main():
                 continue
             nm_hit = bool(n) and (base in n)
             area = float((hx[0]-hm[0]) * (hx[1]-hm[1]))
-            # 宿主不能是"整片合并块"：面积超过室内的 4 倍（且 >600 m²）就不算包住
+            # 宿主不能是"整片合并块"：面积超过室内的 4 倍（且 >600 m²）就不算包住。
+            # 🔴 2026-11-05：用**壳体**量的时候这条不生效 —— 房间壳小、楼大是正常情况
+            #（实例：`rho_train_int` 整个落在 `rho_station` 里，四边都是正的，却因面积比被否）。
             int_area = max(1.0, float((mx[0]-mn[0]) * (mx[1]-mn[1])))
-            fits = area <= max(600.0, 4.0 * int_area)
+            fits = True if _shells else (area <= max(600.0, 4.0 * int_area))
             if all(g >= 0 for g in gaps) and fits:
                 tier, w = 0, area                  # 真正包住 → 取最贴合（面积最小）的
             elif all(g >= -1.5 for g in gaps) and fits:

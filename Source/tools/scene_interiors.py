@@ -174,7 +174,16 @@ def _mat_textures(m, texmeta):
 
 
 def _is_decal(m, texmeta):
-    return any(DECAL_TEX.search(n) for n in _mat_textures(m, texmeta))
+    # 🔴 2026-11-05：必须**全部**子网格的贴图都是贴花类，才算地面贴花。
+    # 原来是「任意一个命中就算」—— 一件家具只要混进一张 `drip`/`stain` 图就被扫进来。
+    # 实测威拉德之息：床 `roc_hse_bed01_logs`（23,256 顶点，8 个子网格）里只有 1 个是
+    # `roc_int_drip01`，却被归成「室内地面贴花」整类隐藏。
+    # 全量分布：911 个有命中的模型里，全部子网格都命中的 205 个（真贴花），
+    # 命中比例 ≤0.5 的 594 个（基本都是误判）。
+    names = _mat_textures(m, texmeta)
+    if not names:
+        return False
+    return all(DECAL_TEX.search(n) for n in names)
 
 
 def build(scene, save=True, verbose=True):

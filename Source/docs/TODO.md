@@ -21,6 +21,7 @@
 | 🔴 **哈希没补零 ⇒ 室内件被静默丢掉** | `scene_interiors.py` / `instantiate_interiors.py` 改 `hx = '0x%08x' % e['h']` | 全量 **2,495 个模型**因此从未出现（占室内件 5.4%）；瓦伦丁 **+73 件** |
 | 🔴 **名字查不到的 LOD 分身压在 HD 上** | `class_rules.apply_texture_lod()` + `classify_entities.py` 一行 | 瓦伦丁 `unknown` **607 → 85**；屋顶暗斑消失（谷仓 `e_f005a86d` 归 `lod`） |
 | **建筑贴花单独成类 `bldg_decal`** | `class_rules.py`（规则排在 `bldg` 之前）+ 四处类登记 | 瓦伦丁 **27 件**默认隐藏（`bldg` 123→113）；银行屋顶"花斑"消失（`val_bank_dcl01`） |
+| 🔴 **室内宿主改用房间壳量 + 审计补零** | `audit_interior_placement.py` | `inside=True` **179 → 210**；威拉德之息 `roc_house_int` 归位（原先 0 个室内包） |
 
 > 🔴 **顺带否掉一个旧方向**：README §0.8.3 / 本文件旧版说"缺一层 CMloArchetypeDef rooms/portals 变换"——
 > **不存在**。CodeWalker 的 `CMloArchetypeDef` 只有 flags + 数组，room 只有 bbox，没有任何变换字段。
@@ -29,6 +30,10 @@
 **已验收**（`val.blend` 17:50 重跑）：室内壳 3° vs 外壳 4°；四边间隙 W+0.67 E+0.99 S+0.81 N+5.66 全为正；
 室内 **12 包 / 1,632 件**（旧 1,559，补零修复 +73）· `int_decal` 34 · **`int_proxy` 20**；
 `i_a6cc1063` = `val_saloon_int_shadowproxy` 已归 `int_proxy`、视层隐藏；`scene_build_status.csv` = `done/ok`。
+
+**用户验收通过（2026-11-05）**：`val`（瓦伦丁）、`roc`（威拉德之息 = 夏洛蒂家）。
+`roc` 现为 **1 包 / 447 件**、四边间隙 **+2.16/+0.23/+0.59/+1.54**、`int_decal` 3 件（`roc_dirt_stains` 系列）。
+`bla` 11/1,763 · `sdn` 22/4,136 已按新表重建，但**建在"严格贴花"修之前**，`int_decal` 计数会下降。
 
 **要做**：
 ```powershell
