@@ -26,6 +26,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 
 import bpy
@@ -45,6 +46,12 @@ AUDIT = os.path.join(ROOT, 'export/world/interior_placement_audit.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 PACKS = os.path.join(ROOT, 'raw/all_packs')
 COL = 'C_int_室内'
+# 2026-11-05 用户裁定：室内地面贴花单独一类（与室外 `decal` 分开）。
+# 室内件的对象名一律是 `i_<hash>`，名字规则判不出 —— 只能看**模型的贴图名**：
+# `_dc_` / `decal` / `holepatch` / `drip` / `stain`（实测 vall_dc_sal_holepatch_ab、
+# val_dc_floordecal01_nm、val_dc_drip01_al、bla_dr_stain03_ab）。
+COL_DECAL = 'C_int_decal_室内地面贴花'
+DECAL_TEX = re.compile(r'(_dc_|decal|holepatch|drip|stain)', re.I)
 
 _NAMES = None
 _TILES = None
@@ -53,13 +60,19 @@ _TILES = None
 def _names():
     global _NAMES
     if _NAMES is None:
-        _NAMES = {}
-        p = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
-        with open(p, encoding='latin1', errors='ignore') as f:
-            for line in f:
-                n = line.strip()
-                if n:
-                    _NAMES.setdefault(PM.joaat(n), n.lower())
+        # 2026-11-05：走 name_source（原表 + 从 `*_children` 反推的父名），
+        # 与 blender_continent / classify_entities 同一口径。
+        try:
+            from name_source import load_names_lower
+            _NAMES = load_names_lower()
+        except Exception:
+            _NAMES = {}
+            p = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
+            with open(p, encoding='latin1', errors='ignore') as f:
+                for line in f:
+                    n = line.strip()
+                    if n:
+                        _NAMES.setdefault(PM.joaat(n), n.lower())
     return _NAMES
 
 
@@ -97,13 +110,55 @@ def _ytyp(pkg):
 
 
 def _col():
+    return _col_named(COL)
+
+
+def _col_decal():
+    """室内地面贴花集合（默认隐藏：贴图 alpha 还没接，会画成实心片；N 面板可单独勾开）。"""
+    return _col_named(COL_DECAL, hide=True)
+
+
+def _col_named(name, hide=False):
     ent = bpy.data.collections.get('ENTITIES')
     parent = ent if ent is not None else bpy.context.scene.collection
-    c = bpy.data.collections.get(COL)
+    c = bpy.data.collections.get(name)
     if c is None:
-        c = bpy.data.collections.new(COL)
+        c = bpy.data.collections.new(name)
         parent.children.link(c)
+        if hide:
+            _hide_col(c)
     return c
+
+
+def _hide_col(col):
+    """整类默认隐藏：数据层 + 视层眼睛两套一起设（与 classify_entities 同口径）。"""
+    col.hide_viewport = True
+    col.hide_render = True
+    root = bpy.context.view_layer.layer_collection
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        if node.name == col.name:
+            node.hide_viewport = True
+            return
+        stack.extend(node.children)
+
+
+def _mat_textures(m, texmeta):
+    """模型索引条目 → 它的贴图名列表（`s[0]` 是 texId）。"""
+    out = []
+    for s in (m.get('s') or []):
+        tid = s[0] if s else -1
+        if 0 <= tid < len(texmeta):
+            e = texmeta[tid] or {}
+            n = e.get('n') or ''
+            if n:
+                out.append(n)
+    return out
+
+
+def _is_decal(m, texmeta):
+    return any(DECAL_TEX.search(n) for n in _mat_textures(m, texmeta))
 
 
 def build(scene, save=True, verbose=True):
@@ -134,7 +189,7 @@ def build(scene, save=True, verbose=True):
 
     col = _col()
     matcache, meshcache = {}, {}
-    placed = made = 0
+    placed = made = decals = 0
     skipped_out = 0          # P 外（= 远景区域）的包：一律不摆
     for rec in ok:
         pkg = rec['pkg']
@@ -176,17 +231,22 @@ def build(scene, save=True, verbose=True):
             ob.rotation_mode = 'QUATERNION'
             lq = Quaternion((e['q'][3], -e['q'][0], -e['q'][1], -e['q'][2]))
             ob.rotation_quaternion = q @ lq
-            ob['cls_key'] = 'part'
+            is_dec = _is_decal(m, texmeta)
+            key = 'int_decal' if is_dec else 'part'
+            ob['cls_key'] = key
             ob['int_pkg'] = pkg
             # 子集合按地块分（与世界坐标一致，重建/裁剪时对数方便）
             tid = tour._tile_of(ob.location.x + cx, ob.location.y + cy)
-            sub = next((s for s in col.children if s.get('tile') == tid), None)
+            parent = _col_decal() if is_dec else col
+            sub = next((s for s in parent.children if s.get('tile') == tid), None)
             if sub is None:
-                sub = bpy.data.collections.new('int|%s' % tid)
+                sub = bpy.data.collections.new('%s|%s' % ('int_decal' if is_dec else 'int', tid))
                 sub['tile'] = tid
-                sub['cat'] = 'int'
-                col.children.link(sub)
+                sub['cat'] = key
+                parent.children.link(sub)
             sub.objects.link(ob)
+            if is_dec:
+                decals += 1
             n_pkg += 1
         if n_pkg:
             placed += 1
@@ -196,6 +256,7 @@ def build(scene, save=True, verbose=True):
 
     print('[int] 室内：%d 个包 / %d 个对象（活动区 %.0f×%.0f）'
           % (placed, made, scene['aw'], scene['ah']))
+    print('[int] 其中地面贴花 %d 件 → 「室内地面贴花」类（默认隐藏）' % decals)
     print('[int] 远景圈跳过 %d 个包（活动区 P 外，一律不放室内）' % skipped_out)
     if save and made:
         # 🔴 必须 compress=True：`scene_trim` 存出来的是 zstd 压缩的（187 MB），

@@ -136,13 +136,20 @@ def joaat(s):
 
 
 def load_names():
-    d = {}
-    with open(NAMES, encoding='latin1', errors='ignore') as f:
-        for l in f:
-            n = l.strip()
-            if n:
-                d.setdefault(joaat(n), n.lower())
-    return d
+    # 2026-11-05：走 name_source（原表 + 从 `*_children` 反推的父名）。
+    # 老场景里的对象名是 `e_<hash>`；这里配上补充名后，重分类能把它们认回来
+    # （`n = names.get(hx, '') or o.name` 那条兜底会用上）。
+    try:
+        from name_source import load_names_lower as _load
+        return _load()
+    except Exception:
+        d = {}
+        with open(NAMES, encoding='latin1', errors='ignore') as f:
+            for l in f:
+                n = l.strip()
+                if n:
+                    d.setdefault(joaat(n), n.lower())
+        return d
 
 
 def main():

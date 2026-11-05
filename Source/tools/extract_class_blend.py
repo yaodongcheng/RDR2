@@ -46,6 +46,25 @@ print('[cls_blend] 保留类：%s' % keys)
 sys.path.insert(0, TOOLS)
 from class_rules import classify_name, apply_hard_rules, ALL_CLASSES  # noqa: E402
 
+# 2026-11-05：v23 里有一批对象名是 `e_<hash>`（构建期 names.txt 缺父名）。
+# 它们其实是 `val_02_slod` / `bla_blk01_slod` 这类**街区 LOD**，模型在库、实例在场景，
+# 只是名字丢了 ⇒ 按 `e_xxx` 判不成 lod ⇒ 抽不进远景包。这里按 hash 反查补充名再判定。
+_NAMES = {}
+try:
+    from name_source import load_names as _load_names
+    _NAMES = _load_names()
+except Exception:
+    pass
+_E_NAME = _re.compile(r'^e_([0-9a-f]{8})$', _re.I)
+
+
+def resolve_name(n):
+    m = _E_NAME.match(n or '')
+    if not m:
+        return n
+    return _NAMES.get(int(m.group(1), 16), n)
+
+
 ZH = dict(ALL_CLASSES)
 print('[cls_blend] 文件：%s' % bpy.data.filepath)
 print('[cls_blend] 原始：对象 %d / 集合 %d' % (len(bpy.data.objects), len(bpy.data.collections)))
@@ -54,7 +73,8 @@ print('[cls_blend] 原始：对象 %d / 集合 %d' % (len(bpy.data.objects), len
 groups = {k: [] for k in keys}
 for ob in bpy.data.objects:
     try:
-        k = apply_hard_rules(classify_name(ob.name), ob.name)
+        nm = resolve_name(ob.name)
+        k = apply_hard_rules(classify_name(nm), nm)
     except Exception:
         continue
     if k in groups:

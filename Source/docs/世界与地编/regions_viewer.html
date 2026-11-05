@@ -84,6 +84,7 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
 .dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
 .rowbtn .name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rowbtn .meta { margin-left:auto; flex:0 0 auto; color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; max-width:165px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.82em; font-weight:600; letter-spacing:.02em; color:var(--muted); }
 .main { position:relative; min-width:0; overflow:hidden; background:#cbc2b1; }
 #map { width:100%; height:100%; display:block; cursor:default; }
 .map-controls { position:absolute; top:12px; left:12px; display:flex; gap:6px; flex-wrap:wrap; max-width:calc(100% - 24px); }
@@ -560,7 +561,7 @@ function renderDetail() {
     const wCell = state.edit
       ? `<input class="editnum" id="inW" type="number" step="128" value="${p.W}">`
       : `<b>${fmt(p.W)} m</b>`;
-    d.innerHTML = `<h2>${p.name} <span style="font-size:12px;color:var(--muted)">${tierName}</span></h2>
+    d.innerHTML = `<h2>${p.name} <b class="code">${p.code}</b> <span style="font-size:12px;color:var(--muted)">${tierName}</span></h2>
       <div class="row"><span>玩家活动区</span>${tCell}</div>
       <div class="row"><span>能走面积 P</span><b id="pArea">${rectArea(p).toFixed(3)} km²</b></div>
       <div class="row"><span>P 最宽</span><b>${fmt(p.P_max_m)} m</b></div>
@@ -597,7 +598,7 @@ function renderDetail() {
   const wCell = state.edit
     ? `<input class="editnum" id="inW" type="number" step="128" value="${w.W}">`
     : `<b>${fmt(w.W)} m</b>`;
-  d.innerHTML = `<h2>${w.id.replace("wild_", "W")} <span style="font-size:12px;color:var(--muted)">野地</span></h2>
+  d.innerHTML = `<h2>${w.id.replace("wild_", "W")} <b class="code">${w.id}</b> <span style="font-size:12px;color:var(--muted)">野地</span></h2>
     <div class="row"><span>玩家活动区</span><b>${fmt(act.aw)} × ${fmt(act.ah)} m</b></div>
     <div class="row"><span>形状</span><b>${w.isRect ? "矩形" : "多边形"}</b></div>
     <div class="row"><span>能走面积 P</span><b id="pArea">${polyArea(w.P[0]).toFixed(3)} km²</b></div>
@@ -684,7 +685,7 @@ function renderList() {
     for (const w of WILDS) {
       const b = document.createElement("button");
       b.className = "rowbtn" + (state.sel && state.sel.kind === "wild" && state.sel.id === w.id ? " active" : "");
-      b.innerHTML = `<i class="dot" style="background:var(--wild)"></i><span class="name">${w.id.replace("wild_", "W")}</span><span class="meta">${Number(w.P_area_km2).toFixed(2)} km² / 活动区 ${fmt(sceneExtent(w).aw)}</span>`;
+      b.innerHTML = `<i class="dot" style="background:var(--wild)"></i><span class="name">${w.id.replace("wild_", "W")} <b class="code">${w.id}</b></span><span class="meta">${Number(w.P_area_km2).toFixed(2)} km² / 活动区 ${fmt(sceneExtent(w).aw)}</span>`;
       b.addEventListener("click", () => select({ kind: "wild", id: w.id }));
       list.appendChild(b);
     }
@@ -699,7 +700,7 @@ function renderList() {
       const b = document.createElement("button");
       b.className = "rowbtn" + (state.sel && state.sel.kind === "settle" && state.sel.id === p.code ? " active" : "");
       const color = kind === "city" ? "var(--city)" : kind === "castle" ? "var(--castle)" : kind === "hideout" ? "var(--hideout)" : "var(--village)";
-      b.innerHTML = `<i class="dot" style="background:${color}"></i><span class="name">${p.name}</span><span class="meta">${Number(p.P_area_km2).toFixed(2)} km² / 活动区 ${fmt(p.AW || p.T)}</span>`;
+      b.innerHTML = `<i class="dot" style="background:${color}"></i><span class="name">${p.name} <b class="code">${p.code}</b></span><span class="meta">${Number(p.P_area_km2).toFixed(2)} km² / 活动区 ${fmt(p.AW || p.T)}</span>`;
       b.addEventListener("click", () => select({ kind: "settle", id: p.code }));
       list.appendChild(b);
     }

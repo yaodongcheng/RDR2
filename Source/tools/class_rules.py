@@ -25,13 +25,16 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 # 类表（顺序只影响报告打印；判定优先级看 RULES）
 CLASSES = (
     'lod', 'lod_out', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
-    'rail', 'rail_decal', 'struct', 'road', 'ruin', 'decal', 'veg', 'stone', 'rock',
+    'rail', 'rail_decal', 'struct', 'road', 'ruin', 'decal', 'int_decal', 'veg', 'stone', 'rock',
     'veh', 'bldg', 'part', 'junk', 'prop', 'unknown',
 )
 
 # 默认隐藏（构建时 collection + 眼睛都关）；decal 由启动器额外关
+# int_decal = 室内地面贴花（2026-11-05 用户裁定：和室外 decal 分开）。
+# 判定不走名字（室内件全是 i_<hash>），由 scene_interiors.py 按模型贴图名现场判；
+# 当前贴图 alpha 还没接，会画成实心片 ⇒ 默认隐藏，面板可单独勾开。
 DEFAULT_HIDDEN = ('lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile',
-                  'placeholder', 'veg', 'stone', 'road')
+                  'placeholder', 'veg', 'stone', 'road', 'int_decal')
 
 # 技术类：内容纠错不覆盖（junc 硬规则除外）
 TECHNICAL = ('lod', 'underground')
@@ -172,6 +175,9 @@ for _k, _zh, _rx in RULES:
 # 名字规则永远判不出 lod_out —— 它由场景裁剪按几何（是否在活动区内）改标，
 # 大陆/旧分区里这个类永远为空，不受影响。
 ALL_CLASSES.append(('lod_out', '远景碎片·区外'))
+# 2026-11-05：室内地面贴花。名字规则判不出（室内件全是 i_<hash>），
+# 由 scene_interiors.py 按模型贴图名判定后直接写 cls_key，这里只登记类名。
+ALL_CLASSES.append(('int_decal', '室内地面贴花'))
 ALL_CLASSES.append(('unknown', '未分类'))
 
 
@@ -228,14 +234,26 @@ def load_corrections(path):
 
 
 def apply_corrections(k, name, tex_names, corrections, verbose=True):
-    """纠错层：名字或材质任一命中即生效；lod/underground 技术类豁免。"""
+    """纠错层；lod/underground 技术类豁免。
+
+    🔴 2026-11-05 修正语义：**同时写了 pattern 和 texture_pattern 的行 = 两者都要命中（AND）**；
+    只写一个的行，按那一个判。
+    修之前是「任一命中」（OR），导致第 3 行（`^e_` + `kudz`）把所有 hash 名对象
+    （`e_*`）都判成 veg —— 瓦伦丁 635 个无名对象全中招，城镇街区 LOD 因此被藏起来。
+    全表 339 行里只有这一行同时写了两个字段，改成 AND 是安全的。
+    """
     if not corrections:
         return k
     txs = tex_names or []
     for rx, trx, tgt, cid, reason in corrections:
-        hit = bool(rx and name and rx.search(name))
-        if not hit and trx is not None:
-            hit = any(trx.search(t) for t in txs if t)
+        hit_n = bool(rx is not None and name and rx.search(name))
+        hit_t = bool(trx is not None and any(trx.search(t) for t in txs if t))
+        if rx is not None and trx is not None:
+            hit = hit_n and hit_t
+        elif rx is not None:
+            hit = hit_n
+        else:
+            hit = hit_t
         if hit:
             if k in TECHNICAL:
                 return k

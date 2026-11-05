@@ -15,7 +15,7 @@ SPECS = [('lod', '远景碎片'), ('lod_out', '远景碎片·区外'), ('terrain
          ('terrain_cell', '地形块'), ('underground', '地下停放'),
          ('watertile', '水面块'), ('placeholder', '占位代理'), ('rail_decal', '铁路贴花'),
          ('road', '道路'), ('veg', '植被'), ('stone', '石块'), ('prop', '道具'),
-         ('decal', '地面贴花')]
+         ('decal', '地面贴花'), ('int_decal', '室内地面贴花')]
 
 # 合成场景必须覆盖 DEFAULT_HIDDEN 的全部类；以后加类忘了补这里，要在这里炸掉
 _missing = [k for k in tour.DEFAULT_HIDDEN if k not in [x[0] for x in SPECS]]

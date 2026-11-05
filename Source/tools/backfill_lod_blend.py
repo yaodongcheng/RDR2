@@ -21,6 +21,7 @@ import csv
 import glob
 import json
 import os
+import re
 import sys
 
 import bpy
@@ -37,6 +38,37 @@ a = ap.parse_args(ARGS)
 def key_of(h, x, y, z):
     return (int(h, 16) if isinstance(h, str) else int(h),
             round(float(x), 1), round(float(y), 1), round(float(z), 1))
+
+
+# 2026-11-05：区域 manifest 里有 3221 条对象名是 `e_<hash>`（构建期 names.txt 缺父名），
+# 它们全被判成 unknown；按 hash 反查补充名后才知道哪些其实是 `_slod` 街区 LOD。
+_TOOLS = os.path.dirname(os.path.abspath(__file__))
+if _TOOLS not in sys.path:
+    sys.path.insert(0, _TOOLS)
+try:
+    from name_source import load_names as _load_names
+    _NAMES = _load_names()
+except Exception:
+    _NAMES = {}
+try:
+    from class_rules import classify_name as _classify
+except Exception:
+    _classify = None
+_E_NAME = re.compile(r'^e_([0-9a-f]{8})$', re.I)
+
+
+def resolve_name(n):
+    m = _E_NAME.match(n or '')
+    if not m:
+        return n
+    return _NAMES.get(int(m.group(1), 16), n)
+
+
+def is_lod_record(r):
+    nm = resolve_name(r.get('n'))
+    if r.get('c') == 'lod':
+        return True
+    return bool(_classify and nm and _classify(nm) == 'lod')
 
 
 # ---------------------------------------------------------------- 现有对象
@@ -94,7 +126,7 @@ for tile, items in sorted(by_tile.items()):
     with open(man, encoding='utf-8') as fp:
         for line in fp:
             r = json.loads(line)
-            if r.get('c') != 'lod' or not r.get('h'):
+            if not r.get('h') or not is_lod_record(r):
                 continue
             k = key_of(r['h'], r['p'][0], r['p'][1], r['p'][2])
             if k in want:

@@ -89,7 +89,8 @@ for it in src['items']:
     me.update()
     uvl = me.uv_layers.new(name='UVMap')
     # 逐 loop 写 uv
-    loops = np.zeros(len(me.loops), np.float32)
+    uv = uv.copy()
+    uv[:, 1] = 1.0 - uv[:, 1]        # RDR2 左上原点 → Blender 左下原点（见 tools/rdr2_uv.py）
     vi = np.zeros(len(me.loops), np.int64)
     me.loops.foreach_get('vertex_index', vi)
     uvl.data.foreach_set('uv', uv[vi].reshape(-1))

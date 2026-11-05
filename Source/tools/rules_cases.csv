@@ -33,3 +33,5 @@ bla_arch_ext,,part,拱门归部件，bldg 的 _ext 对它要让路
 bla_codemarkings_003,,decal,墙面/地面涂装
 bla_object012,,prop,无名散件
 dis_grt_horsejumpc,,prop,赛马跳栏
+e_6e394696,val_02_slod1_ab,unknown,无名对象不能只凭 ^e_ 判 veg（第 3 行必须名字+贴图同时命中）
+e_00000000,kudzu01,veg,无名 + 葛藤贴图 → veg（AND 语义仍保留）

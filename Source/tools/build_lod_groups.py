@@ -252,6 +252,37 @@ def load_index():
     return idx['models'], {t['id']: t['n'] for t in idx.get('tex', [])}
 
 
+# ---------------------------------------------------------------------------
+# 名字补充（2026-11-05）
+# v23 manifest 里有一批对象名是 `e_<hash>`（构建期 names.txt 缺父名，见
+# tools/name_source.py）。它们其实是 `val_02_slod` / `bla_blk01_slod` 这类
+# **街区 LOD**：模型在库、实例在场景，只是名字丢了 ⇒ 进不了远景分组。
+# 这里在读取清单时按 hash 反查补充名；查得到就用真名参与判定。
+_E_NAME = re.compile(r'^e_([0-9a-f]{8})$', re.I)
+_NAME_MAP = None
+
+
+def _names():
+    global _NAME_MAP
+    if _NAME_MAP is None:
+        try:
+            import sys as _sys
+            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from name_source import load_names
+            _NAME_MAP = load_names()
+        except Exception:
+            _NAME_MAP = {}
+    return _NAME_MAP
+
+
+def resolve_name(n):
+    """`e_6e394696` → `val_02_slod`（补充表里查不到就原样返回）。"""
+    m = _E_NAME.match(n or '')
+    if not m:
+        return n
+    return _names().get(int(m.group(1), 16), n)
+
+
 def load_inventory():
     """v23 大陆 manifest + 22 个区域 manifest 的「名字判定为 lod」记录（按名字+位置去重）。"""
     inv = {}
@@ -260,12 +291,13 @@ def load_inventory():
             r = json.loads(line)
             if '_meta' in r or not r.get('h'):
                 continue
-            base = base_name(r['n'])
+            nm = resolve_name(r['n'])
+            base = base_name(nm)
             if r.get('c') != 'lod' and not is_lod_name(base):
                 continue
             p = r['p']
-            inv[(r['n'], round(p[0], 1), round(p[1], 1))] = {
-                'n': r['n'], 'h': int(r['h'], 16), 'tid': r.get('tid'), 'p': p, 'src': 'v23'}
+            inv[(nm, round(p[0], 1), round(p[1], 1))] = {
+                'n': nm, 'h': int(r['h'], 16), 'tid': r.get('tid'), 'p': p, 'src': 'v23'}
     extra = 0
     for d in sorted(os.listdir(REG_DIR)):
         sub = os.path.join(REG_DIR, d)
@@ -280,14 +312,15 @@ def load_inventory():
                     r = json.loads(line)
                     if '_meta' in r or not r.get('h'):
                         continue
-                    base = base_name(r['n'])
+                    nm = resolve_name(r['n'])
+                    base = base_name(nm)
                     if r.get('c') != 'lod' and not is_lod_name(base):
                         continue
                     p = r['p']
-                    k = (r['n'], round(p[0], 1), round(p[1], 1))
+                    k = (nm, round(p[0], 1), round(p[1], 1))
                     if k in inv:
                         continue
-                    inv[k] = {'n': r['n'], 'h': int(r['h'], 16), 'tid': tid,
+                    inv[k] = {'n': nm, 'h': int(r['h'], 16), 'tid': tid,
                               'p': p, 'src': 'region'}
                     extra += 1
     return list(inv.values()), extra

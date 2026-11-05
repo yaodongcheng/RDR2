@@ -35,6 +35,8 @@ BUILD_STATS = {}   # build_entities 的统计（遍历/缺模型/落地），给
 USE_PAD = False    # 城区地台压平：只有显式 --pad 才开（地形与 ground_z 共用这个开关）
 VEG_MODE = 'hide'  # 植被处理：hide 隐藏 / delete 真删 / keep 原样
 TWO_LAYER = True   # 两层材质（`standard_2lyr` / `standard_dirt`）：`--lyr off` 关掉
+ALPHA_ON = True    # alpha 接进 BSDF（招牌/贴花/植被卡片）：`--alpha off` 关掉（A/B 用）
+UV_V_FLIP = True   # RDR2 UV 左上原点 → Blender 左下原点，必须翻 V；见 tools/rdr2_uv.py
 
 
 def argv():
@@ -92,6 +94,14 @@ def parse():
   # `--lyr off` 完全回到 2026-11-01 之前的单层行为（A/B 验收用）。
   ap.add_argument('--lyr', default='on', choices=['on', 'off'],
                   help='两层材质开关（默认 on）：on = mix(lyr0, lyr1, control)；off = 只挂第 0 层')
+  # alpha（2026-11-05 新增）：招牌/贴花/植被卡片的透明通道以前从没接进 BSDF，
+  # 结果透明区被当实心画上去（招牌整块变成深红板）。`--alpha off` 回退做 A/B。
+  ap.add_argument('--alpha', default='on', choices=['on', 'off'],
+                  help='alpha 开关（默认 on）：on = Alpha→BSDF + 按材质设 clip/blend；off = 旧行为')
+  # UV 的 V 翻转（2026-11-05）：RDR2 是左上原点、Blender 是左下原点，必须翻。
+  # `--no-uv-flip` 只为复现旧错误，正式构建**不要**用。
+  ap.add_argument('--no-uv-flip', action='store_true',
+                  help='复现用：不翻 UV 的 V（旧错误行为）；正式构建不要加')
   return ap.parse_args(argv())
 
 
@@ -171,17 +181,9 @@ def pad_field():
   # 这里统计 100 m 网格里 ≥2 个非植被建筑，就把该格子纳入。
   import re as _re
   try:
-    _NAMES = {}
-    def _jh(t):
-      h = 0
-      for ch in t.lower().encode():
-        h = (h + ch) & 0xffffffff; h = (h + (h << 10)) & 0xffffffff; h ^= h >> 6
-      h = (h + (h << 3)) & 0xffffffff; h ^= h >> 11
-      return (h + (h << 15)) & 0xffffffff
-    for _ln in open(os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt'), encoding='latin1'):
-      _ln = _ln.strip()
-      if _ln:
-        _NAMES[_jh(_ln)] = _ln
+    # 2026-11-05：走 name_source（原表 + 从 `*_children` 反推的父名）。
+    from name_source import load_names as _load_names
+    _NAMES = _load_names()
   except Exception:
     _NAMES = {}
   _VEG = _re.compile(r'tree|bush|shrub|grass|fern|rock|stone|cliff|log_|stump|reed|weed|foliage|canopy|_veg', _re.I)
@@ -540,10 +542,11 @@ def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None):
   没有 nm/ma 的槽位行为与以前完全一致（`nonalbedo_warmgray` / `alb_<名字>`）。
   2026-11-01：`lyr` = `index.json` 的 `models[h].lyr[i]`（l1/ctrl/dirt/nrm2/ma2），
   没有两层信息或 `--lyr off` 时行为与旧版完全一致。
+  2026-11-05：`alpha` 把 albedo 的 alpha 接进 BSDF（招牌/贴花/植被卡片），`--alpha off` 回退。
   """
   import mat_rdr2
   return mat_rdr2.get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, matcache,
-                              lyr=lyr, two_layer=TWO_LAYER)
+                              lyr=lyr, two_layer=TWO_LAYER, alpha=ALPHA_ON)
 
 
 def load_model_mesh(libdir, entry, texmeta, matcache, cache):
@@ -605,6 +608,12 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   me.update()
 
   # UV：直接按面的顶点索引取值，不回读 loops（回读在某些模型上会串位）
+  # 🔴 2026-11-05：RDR2 顶点 UV 是**左上原点**（v=0 在图片顶端），Blender 是左下原点 ⇒ 必须翻 V。
+  #   不翻的后果：所有文字/海报/贴花上下颠倒（木板砖墙看不出来，所以一直被当成"贴图坏了"）。
+  #   唯一真身与证据见 tools/rdr2_uv.py。
+  if UV_V_FLIP:
+    U = U.copy()
+    U[:, 1] = 1.0 - U[:, 1]
   uvl = me.uv_layers.new(name='UVMap')
   uvl.data.foreach_set('uv', U[F.ravel()].ravel())
 
@@ -736,10 +745,11 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
     return (h + (h << 15)) & 0xffffffff
   _NAMES = {}
   try:
-    for _n in open(os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt'), encoding='latin1'):
-      _n = _n.strip()
-      if _n:
-        _NAMES[_joaat(_n)] = _n
+    # 2026-11-05：走 name_source（原表 + 从 `*_children` 反推的父名）。
+    # 否则 `val_02_slod` 这类街区 LOD 没有名字 → 对象名变成 `e_<hash>` →
+    # 判不成 lod → 每座城的远景都偏稀。
+    from name_source import load_names as _load_names
+    _NAMES = _load_names()
   except Exception:
     pass
   idx = json.load(open(os.path.join(libdir, 'index.json'), encoding='utf-8'))
@@ -1035,10 +1045,14 @@ def render_shots(outdir, res, views):
 
 def main():
   a = parse()
-  global USE_PAD, VEG_MODE, TWO_LAYER
+  global USE_PAD, VEG_MODE, TWO_LAYER, ALPHA_ON, UV_V_FLIP
   USE_PAD = bool(a.pad)
   VEG_MODE = a.veg
   TWO_LAYER = (a.lyr == 'on')
+  ALPHA_ON = (a.alpha == 'on')
+  UV_V_FLIP = not a.no_uv_flip
+  print('MATERIAL two_layer=%s alpha=%s uv_v_flip=%s'
+        % (TWO_LAYER, ALPHA_ON, UV_V_FLIP))
   clear()
   setup_world()
   scene = None

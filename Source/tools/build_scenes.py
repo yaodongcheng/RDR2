@@ -216,6 +216,20 @@ def main():
             log('ERROR 地形算法自检未过（tools/check_scene_terrain.py），先修算法再批量')
             return 4
 
+    # 🔴 UV 的 V 约定闸门（2026-11-05）：RDR2 是左上原点、Blender 是左下原点。
+    # 一旦有人把这行翻转删掉/翻反，全世界的文字与贴花都会上下颠倒，而木板砖墙看不出来
+    # —— 和上面那条地形 UV 是同一类"自洽但错"的坑，所以**开跑前必须过**。
+    uvc = os.path.join(TOOLS, 'check_uv_v_convention.py')
+    if os.path.exists(uvc):
+        p = subprocess.run([sys.executable, '-X', 'utf8', uvc], capture_output=True,
+                           text=True, encoding='utf-8', errors='replace')
+        for line in (p.stdout or '').strip().splitlines():
+            if any(k in line for k in ('模型', '递减', '递增', 'PASS', 'FAIL')):
+                log('    ' + line.strip())
+        if p.returncode != 0:
+            log('ERROR UV V 约定自检未过（tools/check_uv_v_convention.py），先修再批量')
+            return 4
+
     if not todo:
         log('没有待跑的场景。')
         return 0

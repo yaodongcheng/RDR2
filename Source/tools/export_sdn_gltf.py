@@ -35,6 +35,7 @@ from PIL import Image
 import rdr2_ydr as Y
 import rdr2_vdecl as V
 import rdr2_ytd as T
+import rdr2_uv
 from ytd_to_png import decode_one
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
@@ -555,7 +556,9 @@ def write_tile(path, models, insts, texlib, tex_uri, q):
         for g in M['geoms']:
             pos = g['pos']
             nrm = g['nrm']
-            uv = [(u[0], 1.0 - u[1]) for u in g['uv']]      # OpenGL bottom-left → glTF top-left
+            # 🔴 2026-11-05：RDR2 顶点 UV 是左上原点，glTF 也是左上原点 ⇒ **恒等，不要再翻**。
+            #   旧代码这里写 `1 - v`（当时以为源是 OpenGL），属于二次翻转；见 tools/rdr2_uv.py。
+            uv = [rdr2_uv.to_gltf_uv(u[0], u[1]) for u in g['uv']]
             a_pos = add_acc(pos, 3, 'VEC3')
             a_nrm = add_acc(nrm, 3, 'VEC3')
             a_uv = add_acc(uv, 2, 'VEC2', with_minmax=False)

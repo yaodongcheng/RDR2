@@ -1,7 +1,215 @@
-# TODO —— 交接版（2026-11-04）
+# TODO —— 交接版（2026-11-05）
 
-> 交接阅读顺序：1) 本文（最上面是**当前状态**：56 张已建完，只剩 TODO-6 用户预览）2) `docs/格式与资产/分类体系与判定规则.md`（21 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**）4) `docs/交接与状态/README_交接.md`（历史）。
+> 交接阅读顺序：1) 本文（最上面是**当前状态**：56 张已建完，只剩 TODO-6 用户预览）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**）4) `docs/交接与状态/README_交接.md`（历史）。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
+
+---
+
+## 🔴🔴 2026-11-05 · 联合重跑（UV 的 V + 远景 LOD 名字 + 室内贴花）——**执行前先读这一节**
+
+> 两件事必须**同一次跑完**：
+> ① 下一节的 **UV 的 V 翻转**（代码已改好、一次都没跑）；
+> ② **远景 LOD 名字缺口**（`docs/交接与状态/RDR2_远景LOD名字缺口_20261105.md`：names.txt 缺
+> `*_children` 父名 → 全图 158 个街区 LOD 被判成 `e_<hash>` / `veg`，每座城的远景都偏稀）。
+> 分两次跑 = 远景库翻两遍、场景建两遍，白烧 3~5 小时。
+
+### 0. 哪些生成 blend 要重跑（结论）
+
+| 产物 | 含远景碎片？ | 要重跑？ | 说明 |
+|---|---|---|---|
+| `continent/continent_v23.blend` | 是（全部） | ❌ **不动** | **红线**，只当抽 LOD 的源。要修它 = 全量重建 v24（60~90 分钟），本次不做。 |
+| `continent/continent_lod_split_v23.blend` | 是（LOD 库） | ✅ **重建** | 旧库两处都不对：UV 旧 + 缺 158 个街区 LOD。新出 `_v24_raw`（未翻）→ `_v24`（已翻）。 |
+| `scenes/*.blend`（56 张） | 是（每张都 append LOD 库） | ✅ **全部重建** | 高清/室内当场读模型，自动吃新 UV；远景来自 LOD 库，靠 v24。 |
+| `regions/*.blend`（22 张） | 是（每张 1~512 条 LOD） | ⚠️ 不重建 | 只作区域检查 / backfill 源；当成品看的话要单独 `flip_uv_in_blend.py` 补翻（另议）。 |
+| `guarma/guarma.blend`、`willard/*`、`characters/*` | 部分 | ❓ 另议 | 不在 56 场景链路里，本次不动。 |
+
+### 1. 执行顺序（固定，别跳；每步不过就停）
+
+工作目录（下面命令都从这里起算）：
+
+```powershell
+Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+```
+
+**开跑前先关 RDR2**（RPF 锁）。
+
+| # | 做什么 | 命令 | 判据 |
+|---|---|---|---|
+| **1** | UV 闸门 | `python -X utf8 tools\check_uv_v_convention.py --scene val` | 递减 **671** / 递增 98 → **PASS** |
+| **2** | 闸门负面测试 | `python -X utf8 tools\check_uv_v_convention.py --selftest` | **必须 FAIL**（98/671） |
+| **3** | 分类自检 | `python -X utf8 tools\_check_rules.py` | **PASS**（36 条用例） |
+| **4** | 远景分组表（第一遍） | `python -X utf8 tools\build_lod_groups.py` | 清单里出现 `val_02_slod` … `val_07_slod`（158 个街区 LOD 已被补充名认回） |
+| **5** | 从 v23 抽 LOD 库 | 见下方命令块 **⑤** | 日志 `ONLY_lod_远景碎片` 数量应 ≈ **2,320 + 158**，不是 2,261 |
+| **6** | 补区域 57 条 | **⑥** | 追加 57 条左右 |
+| **7** | 切跨据点块 | **⑦** | 5 父块 → 11 件 |
+| **8** | 分组表（第二遍，带部件） | `python -X utf8 tools\build_lod_groups.py` | 与第一遍比多了拆分件 |
+| **9** | 按据点分组 | **⑨** | 55 组；S_val 的数量应含 `val_02_slod` 等 |
+| **10** | 🔴 **补翻 UV** | **⑩** | 日志 `v 均值 前 X → 后 ≈ 1−X`；新文件 ≈ 1.1 GB；场景带 `uv_v_flipped=1` |
+| **11** | 把 `LOD_SPLIT_BLEND` 指到 v24 | 改 `tools\blender_continent.py` 第 23 行 | 不指 = 日志 `[lod] 缺远景库/分组表，跳过` |
+| **12** | 只重建 `val` | `python -X utf8 tools\build_scenes.py --only val --force` | `scene_build_status.csv` 该行 `done`；`placement_val.jsonl` 行数应与旧值核对（UV/改名不改对象数，变了就是别处动了东西） |
+| **13** | 用户目视 `val.blend` | 启动器 `打开大陆_流畅.bat val` | 招牌 `SMITHFIELDS.` 正立；远景里能看到街区 LOD |
+| **14** | 批量 56 张 | `python -X utf8 tools\build_scenes.py --force` | 2~4 小时；一次只跑一个 Blender |
+
+**⑤ 抽 LOD 库（新文件名，不覆盖 v23 库）**
+
+```powershell
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_split_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\extract_class_blend.py -- --keep lod,terrain_lod --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend"'
+```
+
+**⑥ 补区域 57 条**（就地改 `_v24_raw`）
+
+```powershell
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_backfill_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\backfill_lod_blend.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv"'
+```
+
+**⑦ 切跨据点块**（就地改 `_v24_raw`）
+
+```powershell
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_splitblocks_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\split_span_blocks.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv" --spec "D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\scene_specs.json" --out-parts "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_split_parts.json"'
+```
+
+**⑨ 按据点分组**（就地改 `_v24_raw`）
+
+```powershell
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_regroup_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\group_lod_blend.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv" --groups "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_groups.json"'
+```
+
+**⑩ 补翻 UV → 最终 v24**
+
+```powershell
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_uv_flip.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" --python "D:\BrainMaker\大镖客2解包分析\tools\flip_uv_in_blend.py" -- --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24.blend"'
+```
+
+### 2. 本次一并生效的两件事
+
+- **室内地面贴花**：`scene_interiors.py` 现在按模型贴图名判 `int_decal`（第 22 类，默认隐藏）；
+  重建场景后自动出现集合 `ENTITIES/C_int_decal_室内地面贴花/int_decal|<地块>`。
+- **纠错语义**：`class_rules.apply_corrections` 改成「名字+贴图都写 ⇒ 两者都要命中」，
+  不再把所有 `e_*` 判成 `veg`。
+
+### 3. 跑完的验收判据（缺一不可）
+
+1. `lod_groups.json` 里 `S_val_瓦伦丁` 的 `count` 明显变大（应含 `val_02_slod` … `val_07_slod`）；
+2. `val.blend` 里远景能看到成片街区（对照图 `deliverable/blender/continent/shots/val_lod_before_after.png`）；
+3. 招牌文字正立、无深红实心板；
+4. `scene_build_status.csv` 56 行全 `done`；`rooms` 与旧值一致（UV/改名不影响室内件数）；
+5. `_check_rules.py` PASS、UV 闸门 PASS。
+
+---
+
+## 🔴 2026-11-05 · 待执行：**UV 的 V 约定**（已改代码，一张 blend 都还没重跑）
+
+> 🟢 本节是**联合重跑**的一部分：执行顺序已合并到上面「联合重跑」那一节，
+> 本节保留根因与证据（为什么翻、怎么验），**不要按本节末尾的 1~8 步单独跑**。
+
+> 用户现象：`val.blend` 里酒馆招牌「有字但认不出」、街上杂物比游戏里多得多。
+> 第一件事已查清并改好代码；第二件事只查到「数据缺字段」这一层，见本文下一节。
+
+### 1. 根因（一句话）
+
+**RDR2 模型 UV 的 V 原点在图片顶端（DirectX 约定）；Blender 在底端。管线一直按原样塞进去 ⇒ 所有模型的贴图都上下镜像了一次。**
+平铺贴图（木板 / 砖墙 / 瓦片）近似对称，翻了看不出来；**文字、海报、贴花、玻璃一翻就废**。
+这就是"只有墙面基色是对的、招牌全是乱码"的由来。**贴图文件本身没问题，不用重新解包。**
+
+### 2. 证据（都能复算，别再靠推）
+
+| 项 | 实测 |
+|---|---|
+| 招牌左半块 UV | `corr(z, v) = −1.000`，拟合 `v = −0.329·z + 0.627` ⇒ **v 随高度递减** |
+| 同一几何 + 同一张 `tex/11074.png`，按现状采样 | `FIELDS`+`SMITH` 顺序反**且**上下颠倒（= 用户看到的乱码） |
+| 同上，只把 V 翻过来 | **`SMITHFIELDS.` 正立**，与游戏截图一致 |
+| 杂货铺 `val_genstore_ext` 独立复验 | `WORTHS.` / `GENERAL STORE.` / `FRESH BREAD` / `PROP. L. WORTH` / `CLOTH LINEN` / 底部 `GROCERIES DRY GOODS…` **六处文字一次全对** |
+| 闸门 | `python -X utf8 tools\check_uv_v_convention.py --scene val` → 3,066 模型 / **769 个竖立面子网格** / 递减 **671** · 递增 98（**87%**）→ **PASS**；`--selftest` 翻一次后变 98·671 → **FAIL**（分辨力已验） |
+
+> ⚠️ 之前有一版结论说"招牌不能靠顶点 UV0、要改平面投影"——**那是错的**。平面投影只对
+> 正对镜头的平招牌凑巧成立（这块招牌的 UV 对世界 z 严格线性，所以任何近似都"看着对"），
+> 海报 / 贴花 / 玻璃 / 斜招牌一个都修不到。真正的修法只有**翻 V**。
+
+### 3. 已经改好的代码（**没有提交 git，用户自己提交**）
+
+| 文件 | 改了什么 |
+|---|---|
+| `tools/rdr2_uv.py`（**新**） | V 约定的**唯一真身**：`to_blender_uv()` / `to_gltf_uv()` + 证据与三端口径 |
+| `tools/blender_continent.py` | `load_model_mesh()` 写 UV 前 `v = 1 − v`；新增 `--alpha on\|off`、`--no-uv-flip`（复现旧错误用）；启动打 `MATERIAL two_layer=… alpha=… uv_v_flip=…` |
+| `tools/mat_rdr2.py` | 新增 `alpha_mode()`：albedo 的 alpha 接进 BSDF，按判据设 `DITHERED`（镂空）/ `BLENDED`（半透明）；材质上记 `alpha_mode` 自定义属性 |
+| `tools/blender_city_lod.py` | 同上翻 V（城市 LOD 也读同一份 `.mdl`） |
+| `tools/export_sdn_gltf.py` | 🔴 **去掉** `1.0 - u[1]` —— RDR2 与 glTF **同为左上原点**，那行是二次翻转 |
+| `tools/export_weapon_tint.py` | 同上 |
+| `tools/check_uv_v_convention.py`（**新**） | 闸门：判"v 是否随高度递减"；`--selftest` 负面测试必须 FAIL；`--png <mdl> <sub> --out …` 出 A/B 对照图 |
+| `tools/flip_uv_in_blend.py`（**新**，**未跑过**） | 给**预建 blend**（远景库）整体补翻一次 V；幂等标记 `uv_v_flipped`，拒绝翻两遍、拒绝覆盖源文件 |
+| `tools/build_scenes.py` | 把 UV 闸门接进批量开跑前的检查（不过就 `return 4`，不会白跑 4 小时） |
+
+**Alpha 那条的单独证据**：`tex/11074.png` alpha==0 占 **68.2%**、<128 占 **80.6%**，透明区 RGB 均值 **(106, 72, 73)** 深红棕 ⇒ 不接 alpha 就是一块深红实心板（游戏里是"字直接刷在粉墙上"）。`--alpha off` 可回退做 A/B。
+
+### 4. 下一步：要跑的东西（**按顺序，别跳；每步不过就停**）
+
+先设工作目录，下面命令都从这里起算：
+
+```powershell
+Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+```
+
+| # | 做什么 | 谁 | 命令 / 判据 |
+|---|---|---|---|
+| **1** | 过闸门（不开 Blender，约 2 秒） | agent | `python -X utf8 tools\check_uv_v_convention.py --scene val` → **PASS**（递减 671 / 递增 98）；再跑 `--selftest` → **必须 FAIL**（98 / 671）<br>⚠️ `build_scenes.py` 每批开跑前会自动跑这一条，不过就 `return 4` 停批 |
+| **2** | 一张图定案（不开 Blender） | agent | `python -X utf8 tools\check_uv_v_convention.py --png 3a/0x3adbe18d.mdl 10 --out _scratch\uv_ab.png`<br>判据：**下半张读成 `SMITHFIELDS.`**；上半张是乱码（那是旧口径，留作对照）<br>不是这样 ⇒ **停下查管线有没有二次翻转，别往下走** |
+| **3** | 🔴 **远景库补刀**（不做的话，重建完远景碎片仍是反的） | agent | 见下方「3 详解」 |
+| **4** | **只重建 `val` 一张**（约 2~5 分钟） | agent | `python -X utf8 tools\build_scenes.py --only val --force`<br>判据：`scene_build_status.csv` 该行 `done`；重出的 `placement_val.jsonl` 仍是 **7,645** 行（UV 改了不影响对象数，变了就是别处动了东西）；日志里 `[lod] append … 个远景碎片` 有数字、不是"缺远景库" |
+| **5** | 开 `val.blend` 目视 | 用户 | `Start-Process -FilePath "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\launchers\打开大陆_流畅.bat" -ArgumentList "val"`<br>判据：① 酒馆招牌 = `SMITHFIELDS.` **正立**；② 杂货铺 = `WORTHS. GENERAL STORE.`；③ 招牌周围**不再有深红实心板**（alpha 生效）；④ **活动区外**的远景碎片也应当是对的（第 3 步没做就会看到反的） |
+| **6** | 通过才批量 | agent | `python -X utf8 tools\build_scenes.py --force`<br>56 张约 **2~4 小时**；一次只跑一个 Blender；**开跑前先关 RDR2**（RPF 锁） |
+| **7** | glTF 预览重出并复核 | agent | 网页预览若出现文字上下颠倒 ⇒ 预览侧别处还有一次翻转，按 `tools/rdr2_uv.py` 的口径对齐 |
+| **8** | 区域 blend / 大地图 / 其它预建 blend | **先问用户** | `continent_v23.blend` 是**红线不许改**，要修就出 v24；`regions\*.blend`（22 块）、`deliverable\blender\willard\*` 同样是旧口径（都是预建资产，重跑场景改不到，需逐个 `flip_uv_in_blend.py` 或重建） |
+
+**3 详解（远景库）**：场景里的远景碎片不是当场建的，而是
+`blender_continent.append_lod_groups()` 用 `bpy.data.libraries.load(..., link=False)`
+从 `deliverable\blender\continent\continent_lod_split_v23.blend` 整块 append ——
+UV 在 2026-11-01 建库时就烘死了，**重跑场景修不到**。（室内件不受影响：
+`scene_interiors.py` 当场调 `load_model_mesh()`，自动吃到修复。）
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v23.blend" --python "D:\BrainMaker\大镖客2解包分析\tools\flip_uv_in_blend.py" -- --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24.blend"
+```
+
+- 判据：日志 `v 均值 前 X → 后 ≈ 1−X`；新文件约 **1.1 GB**；场景上写入 `uv_v_flipped=1`。
+- 然后把 `tools\blender_continent.py` **第 23 行**的
+  `LOD_SPLIT_BLEND = …continent_lod_split_v23.blend` 改成 **v24**（不指就白翻，
+  日志里 `[lod] 缺远景库/分组表，跳过` 就是漏了这一步的典型症状）。
+- ⚠️ 本脚本**写好了但一次都没跑过**（写的时候 Blender 被占用，不允许并跑）——第一次跑先看日志，
+  再随便挑一个远景碎片确认 UV 是不是 `1 − v`。
+
+**🔴 两条禁令**：① 别用 `--no-uv-flip` 去"对比一下"——它只为复现旧错误存在；
+② 别手改 `tools/rdr2_uv.py` 之外的任何地方去实现翻转，那是唯一真身。
+
+### 5. 未决（**不能靠猜，必须验**）
+
+1. 🔴 **骑砍2 侧（TRF + DDS）的 V 原点在哪** —— D3D 惯例是左上（与 RDR2 同），照理不用再翻；但引擎加载时会不会再翻一次，**只能拿一件带字的网格进游戏看一眼**。这条定了才知道 TRF 导出要不要把 Blender 这次的翻转再翻回去。**批量出 TRF 之前必须先做这个最小实验。**（TRF 走 `Scripts/export_rdr2_trf_from_scenes.py` 从场景 blend 出，所以 blend 修好后 TRF 自动继承。）
+2. `--alpha` 的默认开会不会让某些材质（玻璃 / 铁艺）出现排序闪烁 —— 重建后抽查；要退就 `--alpha off` 重建对比，或把 `mat_rdr2.alpha_mode()` 的 `blend` 判据收紧成只留 `clip`。
+3. 远景库翻完之后，**区域 blend（22 块）和 `continent_lod_split_v23` 的旧文件**要不要一起换 —— 等用户裁定。
+
+---
+
+## 🔴 2026-11-05 · 待查：街上的杂物比游戏里多（数据缺字段，不是渲染问题）
+
+**实测（`deliverable/blender/scenes/placement_val.jsonl`，7,645 个对象）**
+
+| 项 | 数字 |
+|---|---|
+| 小件合计 | **5,320**（`part` 2,608 · `prop` 2,168 · `junk` 398 · `veh` 62 · `decal` 84），占 70%；`bldg` 只有 123 |
+| 名字含 crate / barrel / debris / wagon | 287 / 209 / 196 / 61 |
+| **破损版叠在完好版上** | 名字以 `_dmg` 结尾 **50 件**，其中 **45 件与完好版距离 0.0~0.1 m**（`p_lampexterior01x` 4 件全压在同一点） |
+| 室内包 | 11 个室内包 / 1,499 个室内件（`int_pkg` 非空） |
+
+**根因（已定位到数据层）**：ymap 实体结构 144 B 里 **`+72 u32 flags`、`+76 f32 lodDist`** 是存在的
+（`docs/格式与资产/RDR2_ymap实体变换解析.md` 逐字节核过），但我们的实例表来自
+`export/levels/world/town_data/val.js`，**只有 16 个字段，flags / lodDist / lodLevel / priorityLevel 一个都没存**
+⇒ 现在**没有任何字段**能表达"这件在游戏里默认不显示 / 只在大约 X 米内显示"。
+
+**下一步（只读，先量后修）**
+
+1. 写 `tools/probe_ymap_flags.py`：解析瓦伦丁的 ymap 实体块，导出 `hash → flags / lodDist` 对照表；
+2. 拿**同一坐标的桶 vs 房子**做对照，确认哪个 bit / 哪个距离阈表示"默认不显示"——**光知道字段在哪不等于知道语义**（现有样例 `flags=3`、`lodDist=70.0` 是房子，不是桶）；
+3. 确认后再决定要不要回填进 `town_data` 管线；
+4. **`_dmg` 去重**可以先做，不依赖 flags：同坐标 ±0.5 m 内、`_dmg` 与完好版二选一（默认留完好版）。
 
 ---
 

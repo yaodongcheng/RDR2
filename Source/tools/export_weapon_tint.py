@@ -23,6 +23,7 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rdr2_ydr as Y
 import rdr2_vdecl as V
+import rdr2_uv
 import weapon_tint as WT
 import export_weapon_assembled as ASM
 
@@ -162,7 +163,8 @@ def write_gltf(base, geoms, path):
 
         pos = g["pos"]
         nrm = g["nrm"]
-        uv = [(u[0], 1.0 - u[1]) for u in g["uv"]]
+        # RDR2 与 glTF 同为左上原点 ⇒ 恒等（旧写法 1-v 会二次翻转；见 tools/rdr2_uv.py）
+        uv = [rdr2_uv.to_gltf_uv(u[0], u[1]) for u in g["uv"]]
         a_pos = add_acc(pos, 3, "VEC3")
         a_nrm = add_acc(nrm, 3, "VEC3")
         a_uv = add_acc(uv, 2, "VEC2", with_minmax=False)

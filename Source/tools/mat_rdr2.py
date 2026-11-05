@@ -97,6 +97,41 @@ def avg_color(path):
     return c
 
 
+# 贴图的 alpha 用法。按路径缓存（一张图只解一次）。
+_ALPHA_CACHE = {}
+
+
+def alpha_mode(path):
+    """→ ''（不用 alpha）/ 'clip'（镂空）/ 'blend'（半透明）。
+
+    🔴 为什么要有这个（2026-11-05 定位）：`make()` 一直只把 albedo 接到 Base Color，
+    **alpha 从来没接进 BSDF** —— 于是所有带透明通道的贴图（招牌刷漆、贴花、植被卡片、
+    栅栏网）都被当实心画上去。实测 `val_sn_ext_05a_ab`：alpha==0 占 68.2%、<128 占 80.6%，
+    透明区 RGB 是深红棕 (106,72,73) ⇒ 游戏里"字直接刷在粉墙上"，我们渲染成一块深红实心板。
+
+    判据（保守，宁可少开不可乱开）：
+      · 才算"有 alpha"：alpha < 0.5 的像素占比 ≥ 2%，且最小 alpha < 0.5；
+      · 中间值（0.15~0.85）占比 < 5% ⇒ 二值 = 'clip'（植被/栅栏/铁艺，便宜、无排序问题）；
+      · 否则 'blend'（半透明刷漆/玻璃/贴花，必须真混合）。
+    """
+    if path in _ALPHA_CACHE:
+        return _ALPHA_CACHE[path]
+    mode = ''
+    try:
+        from PIL import Image
+        import numpy as np
+        im = Image.open(path)
+        if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
+            a = np.asarray(im.convert('RGBA'))[..., 3].astype(np.float32) / 255.0
+            if a.size and a.min() < 0.5 and float((a < 0.5).mean()) >= 0.02:
+                mid = float(((a > 0.15) & (a < 0.85)).mean())
+                mode = 'clip' if mid < 0.05 else 'blend'
+    except Exception:
+        mode = ''
+    _ALPHA_CACHE[path] = mode
+    return mode
+
+
 def mat_name(ab, nm, ma, l1=None, ctrl=None):
     """材质名：`alb_<albedo>`，有法线/高光时再挂后缀；超长用短哈希保证唯一。"""
     parts = ['alb_' + _slug(ab)]
@@ -202,7 +237,7 @@ def _layer_weight(m, texmeta, libdir, l1_tid, ctrl_tid, loc):
 
 
 def make(ab_tid, nm_tid, ma_tid, texmeta, libdir, fallback=(0.30, 0.27, 0.23, 1.0),
-         lyr=None, two_layer=True):
+         lyr=None, two_layer=True, alpha=True):
     """照三张图（+ 可选的第二层）建一个材质（调用方负责缓存）。
 
     `lyr` = (l1_tid, ctrl_tid, dirt_tid, nm2_tid, ma2_tid)；None/全 -1 = 单层，行为与旧版一致。
@@ -254,6 +289,30 @@ def make(ab_tid, nm_tid, ma_tid, texmeta, libdir, fallback=(0.30, 0.27, 0.23, 1.
             m['layer_mix'] = how
         nt.links.new(col, bsdf.inputs['Base Color'])
         m['albedo'] = ab
+        # ---- alpha（2026-11-05）：把 albedo 的 alpha 接进 BSDF，否则透明区被当实心画。
+        if alpha:
+            am = alpha_mode(ab_path)
+            if am:
+                nt.links.new(n0.outputs['Alpha'], bsdf.inputs['Alpha'])
+                blended = (am == 'blend')
+                # Blender 4.2+ 用 surface_render_method；老版本用 blend_method。两个都试。
+                try:
+                    m.surface_render_method = 'BLENDED' if blended else 'DITHERED'
+                except Exception:
+                    try:
+                        m.blend_method = 'BLEND' if blended else 'CLIP'
+                    except Exception:
+                        pass
+                try:
+                    m.alpha_threshold = 0.5
+                except Exception:
+                    pass
+                if blended:
+                    try:
+                        m.show_transparent_back = False
+                    except Exception:
+                        pass
+                m['alpha_mode'] = am
         # Solid / Workbench 视图色（不设的话全是默认灰白，容易被误判成"材质没生效"）
         if weight is not None and l1:
             p1 = os.path.join(libdir, _tex_rel(texmeta, l1_tid))
@@ -323,13 +382,15 @@ def make(ab_tid, nm_tid, ma_tid, texmeta, libdir, fallback=(0.30, 0.27, 0.23, 1.
     return m
 
 
-def get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, cache, lyr=None, two_layer=True):
-    """带缓存的版本。缓存键 = (albedo, normal, orm) [+ 第二层五个 id]。"""
+def get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, cache, lyr=None, two_layer=True,
+                alpha=True):
+    """带缓存的版本。缓存键 = (albedo, normal, orm) [+ 第二层五个 id] [+ alpha 开关]。"""
     def _i(x):
         return x if x is not None and x >= 0 else -1
     key = (_i(ab_tid), _i(nm_tid), _i(ma_tid))
     if two_layer and lyr:
         key = key + tuple(_i(x) for x in (list(lyr) + [-1] * 5)[:5])
+    key = key + (bool(alpha),)
     hit = cache.get(key)
     if hit is not None:
         return hit
@@ -347,6 +408,7 @@ def get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, cache, lyr=None, two_la
             m.roughness = 0.85
         cache[key] = m
         return m
-    m = make(key[0], key[1], key[2], texmeta, libdir, lyr=(lyr or None), two_layer=two_layer)
+    m = make(key[0], key[1], key[2], texmeta, libdir, lyr=(lyr or None), two_layer=two_layer,
+             alpha=alpha)
     cache[key] = m
     return m
