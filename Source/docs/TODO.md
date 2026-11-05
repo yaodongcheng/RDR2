@@ -1,11 +1,50 @@
 # TODO —— 交接版（2026-11-05）
 
-> 交接阅读顺序：1) 本文（最上面是**当前状态**：56 张已建完，只剩 TODO-6 用户预览）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**）4) `docs/交接与状态/README_交接.md`（历史）。
+> 交接阅读顺序：1) 本文（最上面是**当前状态**：56 张已建完，但**室内对齐修复之后要再重跑一遍**，见第一节）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**；室内看 **§6.14 / §6.15**）4) `docs/交接与状态/README_交接.md`（历史）。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
 
 ---
 
-## 🔴🔴 2026-11-05 · 联合重跑（UV 的 V + 远景 LOD 名字 + 室内贴花）——**执行前先读这一节**
+## 🔴 2026-11-05 · 待执行：**室内对齐修好了，56 张场景要再重跑一遍**（约 2.5~3 h）
+
+> 13:40 那批 56 张是在**室内摆歪**的状态下建的（见下），修完必须重跑才能吃到。
+
+**结论**：室内墙面与外壳对不上 = **MLO 实例的四元数多取了一次共轭**（件级要取、实例不取）。
+夏洛蒂家当年靠"硬掰 yaw + bbox 居中"糊过去，就是补这个错。**已根因修复**。
+
+| 修了什么 | 位置 | 数字 |
+|---|---|---|
+| 实例四元数不取共轭 | `scene_interiors.py` / `instantiate_interiors.py` / `audit_interior_placement.py` / `merge_interior.py` / `merge_interior_into_willard.py`（5 处） | 室内壳墙向 −6.5° → **3°**（外壳 4°） |
+| willard 脚本去掉"硬掰 yaw + 居中" | `merge_interior_into_willard.py` 末尾改成**只测量不执行** | 根因修了还留着 = 错两次 |
+| 宿主判据：小道具/地形块/电缆不能当宿主 | `audit_interior_placement.py` 新增 `_PROP_NAME` + `_BAD_NAME` 补 `_dcl` | 非建筑宿主 **77 → 6**；`inside=True` 仍 179（覆盖无损） |
+| 阴影/反射代理件单独一类、默认隐藏 | `scene_interiors.py` 新增 `C_int_shadow_室内阴影代理` | 全量 **326 件**（命名有 18 种变体，`_shadowproxy` / `_ref_proxy` / `_shdw_prxy` …）；`i_c8490458` = `val_stable_int_shadow`、`i_a6cc1063` = `val_saloon_int_shadowproxy` 都是用户看到的那块"墙" |
+
+> 🔴 **顺带否掉一个旧方向**：README §0.8.3 / 本文件旧版说"缺一层 CMloArchetypeDef rooms/portals 变换"——
+> **不存在**。CodeWalker 的 `CMloArchetypeDef` 只有 flags + 数组，room 只有 bbox，没有任何变换字段。
+> 别再往那个方向查。细节见 `docs/AGENTS.md` **§6.14 / §6.15**。
+
+**已验收**（`val.blend` 17:25 重跑）：室内壳 3° vs 外壳 4°；四边间隙 W+0.67 E+0.99 S+0.81 N+5.66 全为正；
+日志 `[int] 其阴影代理壳 2 件 →「室内阴影代理」类`；`scene_build_status.csv` = `done/ok`。
+
+**要做**：
+```powershell
+Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+python -X utf8 tools\build_scenes.py --force
+```
+
+**验收判据（缺一不可）**：
+1. 每张日志里都有 `[int] 其阴影代理壳 N 件`（有 shadow 件的包才会 > 0）；
+2. `scene_build_status.csv` 56 行全 `done`；
+3. 抽查 3 张：室内 `*_shell` 与宿主 `*_ext` 墙面平行；机器判据 = `python -X utf8 tools\_check_interior_align.py`
+   （4θ 矢量平均，口径见 `docs/AGENTS.md` §6.14；宿主判据修好后这张表才有意义，之前跑过的不作数）；
+4. `rooms` 列与旧值**允许变**（宿主判据改了 ⇒ 被摆的包会变），但要能对上 `inside=True` 的 179。
+
+---
+
+## 🔴🔴 2026-11-05 · 联合重跑（UV 的 V + 远景 LOD 名字 + 室内贴花）——**历史执行记录**
+
+> ⚠️ 这一节描述的批次**已于 2026-11-05 13:40~14:37 跑完**（56 张）。
+> 但**室内对齐的修复是在它之后才落地的**（见上一节）⇒ 这 56 张还要再重跑一遍。
 
 > 两件事必须**同一次跑完**：
 > ① 下一节的 **UV 的 V 翻转**（代码已改好、一次都没跑）；
@@ -84,7 +123,10 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_regroup_v24
 cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_uv_flip.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" --python "D:\BrainMaker\大镖客2解包分析\tools\flip_uv_in_blend.py" -- --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24.blend"'
 ```
 
-### 2. 本次一并生效的两件事
+### 2. 本次一并生效的三件事
+
+- **室内对齐（2026-11-05 新增，见本文最上面那一节）**：MLO 实例四元数不取共轭 + 宿主判据
+  + 阴影代理壳单独隐藏类。`val.blend` 已验收，**56 张都要靠重跑吃到**。
 
 - **室内地面贴花**：`scene_interiors.py` 现在按模型贴图名判 `int_decal`（第 22 类，默认隐藏）；
   重建场景后自动出现集合 `ENTITIES/C_int_decal_室内地面贴花/int_decal|<地块>`。
@@ -104,6 +146,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_uv_flip.log
 | ⑫ 只重建 val | **6,225 对象**（远景 893）/ 144 s / **220.8 MB**；`placement_val.jsonl` **7,645** 行；`rooms` **11/1499**；`int_decal` **32 件** |
 | UV 招牌 A/B | `Source\_scratch\uv_ab.png`：旧口径乱码 → 翻 V 后 **`SMITHFIELDS`** 正立 |
 | 批 56 张 | 后台运行，日志 `D:\BrainMaker\大镖客2解包分析\_logs\build_all_v24b.log`（2026-11-05 13:40 起，含 alpha 修复 + fragslod 规则） |
+| ⑬ 只重建 val（**室内修复之后**） | 6,225 对象（远景 893）/ 165 s / **222.3 MB**；`rooms` **12/1559**（旧 11/1499，宿主判据变了）；`int_decal` 32 · **`int_proxy` 2**；`done/ok` |
 
 **踩到并已写进上面步骤的两个顺序坑**：
 1. `--keep lod,terrain_lod` 经 `cmd /c` 逗号会被当分隔符 → 用两个 `--keep`；

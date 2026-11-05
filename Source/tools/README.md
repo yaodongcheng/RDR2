@@ -346,6 +346,7 @@
 | `_check_tour_behavior.py` | 检查 | 真 blend 行为检查：逐函数调用并打印 data/eye 两套状态；与 `_check_class_visibility.py`（存盘态）互补 | 控制台 |
 | `_check_bat.py` | 检查 | **bat 交付前必过**：静态规则（GBK/CRLF、echo 转义、引号、pause）+ 干跑（list/19/99） | 控制台 PASS/FAIL |
 | `_check_rules.py` | 检查 | **分类规则自检**：类表合法性、纠错冗余、`rules_cases.csv` 用例回归（改分类后必跑） | 控制台 PASS/FAIL |
+| `_check_interior_align.py` | 检查 | **室内 MLO 落位体检**：室内 `*_shell` 墙向 vs 宿主外壳墙向（纯 Python，不加载 blend；42 个可判包）。判定 MLO 实例四元数必须「不取共轭」，并带负面测试 | 控制台 PASS/FAIL |
 | `rules_cases.csv` | 数据 | 分类回归用例（名字/贴图 → 期望类），新增规则时同步加一行 | — |
 | `_probe_rail_wide.py` | 探针 | 安尼斯堡铁路远景：`top` / `oblique` / `wide` | `_railcheck/{top,oblique,wide}.png` |
 | `_probe_rail_close.py` | 探针 | 断口近景：`close_top` / `close_along` / `close_yard` | `_railcheck/close_*.png` |

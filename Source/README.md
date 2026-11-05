@@ -15,7 +15,10 @@
 > 最后更新：**2026-11-04**（56/56 子场景建成 + TODO-2~5 交付物出齐 + 微缩模型重生成，见 [`docs/TODO.md`](docs/TODO.md)；
 > 分类规则仍是 21 类；主产物仍是 `continent_v23.blend`，大陆 v24 等区域检查完再跑）。
 > **2026-11-05 追加**：① **UV 的 V 约定**（RDR2 左上原点 → Blender 要翻 V）与 ② **贴图 alpha** 两项全局修复已落地，
-> 进度与执行记录见 [`docs/TODO.md`](docs/TODO.md) 顶部；③ **ymap 分层的实测记账**见下面「★ 新知识（2026-11-05）」一节。
+> 进度与执行记录见 [`docs/TODO.md`](docs/TODO.md) 顶部；③ **ymap 分层的实测记账**见下面「★ 新知识（2026-11-05）」一节；
+> ④ 🔴 **室内对齐已根因修复**——MLO 实例的四元数**不取共轭**（件级要取），夏洛蒂家当年是手工糊的；
+> 连带修好宿主判据（非建筑宿主 77→6）与"阴影代理壳被当可见几何"。`val.blend` 已重跑验收，
+> **其余 55 张场景要再跑一遍**（见 [`docs/TODO.md`](docs/TODO.md) 第一节）。细节：`docs/AGENTS.md` §6.14 / §6.15。
 
 ---
 
@@ -743,7 +746,13 @@ A/B 像素差只有 **2%（强差 0%）**——3D 铁路的价值在近景的枕
 
 > 剩余 28% 浮空主要是**设计上就抬高的房子**（草莓镇那种架在柱子上的木屋）+ 4 m 分辨率地形在坡地上的量化误差，不是统一偏移。
 
-#### 0.8.3 室内对齐 —— ❌ 没有全图解决，而且现有做法本身有问题
+#### 0.8.3 室内对齐 —— ✅ 已解决（2026-11-05；下方为 10-27 的历史记录）
+
+> **结论已推翻前面那个"缺一层 rooms/portals 变换"的猜测**：CodeWalker 的权威结构里
+> `CMloArchetypeDef` **没有任何变换字段**（room 只有 bbox），那层东西根本不存在。
+> 真正的原因是 **MLO 实例的四元数不能取共轭**（件级要取、实例不取）——
+> 详见 `docs/AGENTS.md` **§6.14**（根因 + 五处修法）与 **§6.15**（宿主判据 + 阴影代理壳）。
+> 实测：瓦伦丁马厩室内壳墙向修前 −6.5°、修后 **3°**，与外壳 4° 对齐；四边间隙全为正。
 
 | 项 | 实测 |
 |---|---|
@@ -780,8 +789,13 @@ A/B 像素差只有 **2%（强差 0%）**——3D 铁路的价值在近景的枕
 | `tools/merge_interior.py` | 通用装配（原 `merge_interior_into_willard.py` 的泛化版）：`--pkg` 自动查真实例、`--align` 复刻老行为、`--extra-yaw` 试验额外旋转 |
 | `export/world/interior_pkgs.txt` | 144 个室内包清单（从 `levels_3.rpf` 列出） |
 
-**下一步（室内）**：解 `roc_house_int.ytyp` 的 **CMloArchetypeDef rooms / portals 变换**（不是 entity 块），
-用 3 栋已知房子（`roc_house_int` / `val_hotel_int` / `new_com_bank_int`）做三角验证，找那层固定映射。
+~~**下一步（室内）**：解 `roc_house_int.ytyp` 的 **CMloArchetypeDef rooms / portals 变换**（不是 entity 块），
+用 3 栋已知房子（`roc_house_int` / `val_hotel_int` / `new_com_bank_int`）做三角验证，找那层固定映射。~~
+
+**✅ 已终结（2026-11-05）**：上面这条"下一步"是**错的方向**，别再查 rooms/portals —— CodeWalker 的
+`CMloArchetypeDef` 没有变换字段。根因是实例四元数多取了一次共轭，已修（`tools/scene_interiors.py`
+等 5 处）；同时修掉宿主判据（非建筑宿主 77→6）与"阴影代理壳被当可见几何"（新增隐藏类）。
+`val.blend` 已重跑验收，**其余 55 张场景待重跑**（见 `docs/TODO.md` 顶部）。
 
 ---
 

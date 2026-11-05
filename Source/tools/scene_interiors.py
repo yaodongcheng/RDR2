@@ -52,6 +52,17 @@ COL = 'C_int_室内'
 # val_dc_floordecal01_nm、val_dc_drip01_al、bla_dr_stain03_ab）。
 COL_DECAL = 'C_int_decal_室内地面贴花'
 DECAL_TEX = re.compile(r'(_dc_|decal|holepatch|drip|stain)', re.I)
+# 2026-11-05：室内包的**阴影 / 反射代理**只参与投影和镜面，不是可见几何。
+# 实测瓦伦丁马厩 `val_stable_int_shadow`：143 顶点、无 albedo（靠 ntex_wood 兜底配色），
+# 当普通件摆进场景就成了一块盖在屋顶上的空壳 —— 用户目视到的「墙面没对齐」就是它。
+# 🔴 命名有一整族，别只匹配 `_shadow`（第一版就这么漏了 90%）：
+#   `<包>_shadowproxy`(57) · `_ref_proxy`(34) · `_shadow_proxy`(24) · `_shadow`(9) ·
+#   `_shdw_proxy` / `_shd_proxy` / `_shad_proxy` / `_shdw_prxy` / `_shdwprxy` / `_shd_pxy` ·
+#   `_refproxy` · `_reflection_proxy` · `_refln_proxy` · `_refle_proxy` · `rfle_proxy` ·
+#   `_proxy` · `_shadowbox` ……  全量 251 个室内包里共 **326 件**。
+# 判据见 `最高原则` §6.1：`*_proxy*` / 占位代理一律进默认隐藏类。
+COL_PROXY = 'C_int_shadow_室内阴影代理'
+PROXY_NAME = re.compile(r'(proxy|shadow|shdw|shd_|shad_)', re.I)
 
 _NAMES = None
 _TILES = None
@@ -116,6 +127,11 @@ def _col():
 def _col_decal():
     """室内地面贴花集合（默认隐藏：贴图 alpha 还没接，会画成实心片；N 面板可单独勾开）。"""
     return _col_named(COL_DECAL, hide=True)
+
+
+def _col_proxy():
+    """阴影代理壳集合（默认隐藏：只参与投影，摆出来就是一块盖在屋顶上的空壳）。"""
+    return _col_named(COL_PROXY, hide=True)
 
 
 def _col_named(name, hide=False):
@@ -189,7 +205,7 @@ def build(scene, save=True, verbose=True):
 
     col = _col()
     matcache, meshcache = {}, {}
-    placed = made = decals = 0
+    placed = made = decals = proxies = 0
     skipped_out = 0          # P 外（= 远景区域）的包：一律不摆
     for rec in ok:
         pkg = rec['pkg']
@@ -210,9 +226,17 @@ def build(scene, save=True, verbose=True):
         if isinstance(ents, dict):
             ents = ents.get('entities') or []
 
-        # 世界 → 场景局部；四元数取共轭（与 instantiate_interiors / willard 同口径）
+        # 世界 → 场景局部
         P = Vector((inst[1] - cx, inst[2] - cy, inst[3]))
-        q = Quaternion((inst[7], -inst[4], -inst[5], -inst[6]))
+        # 🔴 2026-11-05 实锤：**MLO 实例**的四元数方向与普通 ymap 实体相反 —— 这里**不能**取共轭。
+        #   判据（tools/_check_interior_align.py）：室内 `*_shell` 墙向 = 宿主外壳墙向。
+        #     · 实例取共轭 → 48 个可判包里 |Δ| 中位 29.7°，<2° 只有 2 个；
+        #     · 不取共轭   → 中位 0.34°，<2° 有 46 个。
+        #   件级（下面 ytyp entity 的 q）**恰好相反**：取共轭 93% 落在 5° 内，不取共轭只有 1%
+        #   ⇒ 只有*实例*这一层是反的；件级与大陆外壳仍按原样取共轭。
+        #   瓦伦丁马厩：val_stable_int 的 +5.13° 被取共轭成 -5.13°，与 val_03_stable_ext
+        #   差出 10.2°（用户 2026-11-05 目视到的"墙面没对齐"）。夏洛蒂家同一根因。
+        q = Quaternion((inst[7], inst[4], inst[5], inst[6]))
 
         n_pkg = 0
         for e in ents:
@@ -234,19 +258,24 @@ def build(scene, save=True, verbose=True):
             lq = Quaternion((e['q'][3], -e['q'][0], -e['q'][1], -e['q'][2]))
             ob.rotation_quaternion = q @ lq
             is_dec = _is_decal(m, texmeta)
-            key = 'int_decal' if is_dec else 'part'
+            # 名字规则：`i_<hash>` 判不出是什么件，只能问模型名（`<包>_shadow` 这类）。
+            is_proxy = bool(PROXY_NAME.search(_mn or ''))
+            key = 'int_proxy' if is_proxy else ('int_decal' if is_dec else 'part')
             ob['cls_key'] = key
             ob['int_pkg'] = pkg
             # 子集合按地块分（与世界坐标一致，重建/裁剪时对数方便）
             tid = tour._tile_of(ob.location.x + cx, ob.location.y + cy)
-            parent = _col_decal() if is_dec else col
+            parent = _col_proxy() if is_proxy else (_col_decal() if is_dec else col)
+            tag = 'int_proxy' if is_proxy else ('int_decal' if is_dec else 'int')
             sub = next((s for s in parent.children if s.get('tile') == tid), None)
             if sub is None:
-                sub = bpy.data.collections.new('%s|%s' % ('int_decal' if is_dec else 'int', tid))
+                sub = bpy.data.collections.new('%s|%s' % (tag, tid))
                 sub['tile'] = tid
                 sub['cat'] = key
                 parent.children.link(sub)
             sub.objects.link(ob)
+            if is_proxy:
+                proxies += 1
             if is_dec:
                 decals += 1
             n_pkg += 1
@@ -259,6 +288,7 @@ def build(scene, save=True, verbose=True):
     print('[int] 室内：%d 个包 / %d 个对象（活动区 %.0f×%.0f）'
           % (placed, made, scene['aw'], scene['ah']))
     print('[int] 其中地面贴花 %d 件 → 「室内地面贴花」类（默认隐藏）' % decals)
+    print('[int] 其阴影代理壳 %d 件 → 「室内阴影代理」类（默认隐藏，勾开可看）' % proxies)
     print('[int] 远景圈跳过 %d 个包（活动区 P 外，一律不放室内）' % skipped_out)
     if save and made:
         # 🔴 必须 compress=True：`scene_trim` 存出来的是 zstd 压缩的（187 MB），

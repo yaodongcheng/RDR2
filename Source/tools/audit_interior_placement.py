@@ -13,9 +13,16 @@ import numpy as np
 import parse_interior_mlo as PM
 
 LIB = os.path.join(ROOT, 'assets/lib_native', 'index.json')
-_BAD_NAME = re.compile(r'_(em|decal|dec|d|det)(\.\d+)?$', re.I)
+_BAD_NAME = re.compile(r'_(em|decal|dec|d|det|dcl)(\.\d+)?$', re.I)
 # LOD/合并块不能当宿主：它们的 bbox 是"整片区域"（实测 banker 的宿主选到了 val_02__em_slod）
 _LOD_NAME = re.compile(r'(_slod|_dslod|_lod\d*|_lod_|_area_slod)(\.\d+)?$', re.I)
+# 🔴 2026-11-05：小道具/环境件也不能当宿主。它们的 bbox 会"恰好"包住室内，从而拿到 tier 0
+# 把真建筑挤掉，而名字降级压不过 tier。实测：str_mayorshouse_int 的宿主选成了
+# `str_03_mayorwindow`（一扇窗）、str_dressingroom_int 选成 `str_03_mill01_ext_dcl`（贴花）、
+# str_genst_int 选成 `str_03_debrispile01`（碎石堆）；地形高度块（`j_11__hd_0_-2_3`）与
+# 电缆网格（`cablemesh…_hvlit`）同样会中招。⇒ 直接排除，不是降级。
+_PROP_NAME = re.compile(
+    r'(window|debris|fence|sign|post|lamp|track|road|decal|cablemesh|_hd_0_)|^(out|outg)_', re.I)
 
 # 🔴 2026-11-04：原来 `load_mlo()` 每个包都重读一遍 names.txt + 全部 90 个 tile json
 # （278 个包 = 7 GB 重复解析，跑一次要十几分钟）。改成进程内缓存，一次装好复用。
@@ -101,7 +108,8 @@ def main():
             print('%-22s 无 MLO 实例' % pkg)
             continue
         P = np.array([inst[1], inst[2], inst[3]])
-        R = quat_mat((-inst[4], -inst[5], -inst[6], inst[7]))   # 共轭（与全图装配一致）
+        # MLO 实例：**不取共轭**（2026-11-05 实锤：实例与普通实体的旋向相反；见 scene_interiors.py）
+        R = quat_mat((inst[4], inst[5], inst[6], inst[7]))
         mn = np.array([1e18]*3); mx = np.array([-1e18]*3)
         used = 0
         for e in ents:
@@ -137,7 +145,7 @@ def main():
             hx = np.array([e[1]+b[3], e[2]+b[4], e[3]+b[5]])
             gaps = (mn[0]-hm[0], hx[0]-mx[0], mn[1]-hm[1], hx[1]-mx[1])
             n = (names.get(e[0], '') or '').split('/')[-1]
-            if _LOD_NAME.search(n):
+            if _LOD_NAME.search(n) or _PROP_NAME.search(n):
                 continue
             nm_hit = bool(n) and (base in n)
             area = float((hx[0]-hm[0]) * (hx[1]-hm[1]))

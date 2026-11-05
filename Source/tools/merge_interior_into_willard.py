@@ -17,9 +17,10 @@ OUT = os.path.join(ROOT, 'deliverable/blender/willard/willard_full.blend')
 
 # roc_hse_int_lod 实例（area ymap: roc_01_.ymap）
 MLO_POS = Vector((2990.42, 2188.85, 168.44))
-# ymap 存 (x,y,z,w)=(0,0,-0.574,0.819) → Blender (w,x,y,z)，再取共轭
+# ymap 存 (x,y,z,w)=(0,0,-0.574,0.819) → Blender (w,x,y,z)
+# 🔴 MLO 实例四元数**不取共轭**（CodeWalker YmapFile.cs:2027：CMloInstanceDef 不反转，CEntityDef 才反转）
 _qx, _qy, _qz, _qw = 0.0, 0.0, -0.574, 0.819
-MLO_QUAT = Quaternion((_qw, -_qx, -_qy, -_qz))
+MLO_QUAT = Quaternion((_qw, _qx, _qy, _qz))
 
 bpy.ops.wm.open_mainfile(filepath=WILLARD)
 print('mlo pos', [round(v, 2) for v in MLO_POS], 'quat', [round(v, 3) for v in MLO_QUAT])
@@ -89,7 +90,9 @@ s1, s2 = wb(shell)
 print('HOUSE x[%.2f,%.2f] y[%.2f,%.2f] z[%.2f,%.2f]' % (a[0], b[0], a[1], b[1], a[2], b[2]))
 print('SHELL x[%.2f,%.2f] y[%.2f,%.2f] z[%.2f,%.2f]' % (s1[0], s2[0], s1[1], s2[1], s1[2], s2[2]))
 
-# --- 对齐：室内壳体 yaw = 房子 yaw（墙平行），位置按 bbox 居中，z 贴地形 ---
+# --- 核对（不再强行对齐）---
+# 旧版在这里「旋转到房子 yaw + bbox 居中」兜底 —— 那是在补偿实例四元数多取一次共轭
+# 造成的 2×yaw 错误。根因已修（见上面的 MLO_QUAT），再强行对齐等于错两次，故只测量不执行。
 import math as _M
 
 def _yaw_of(o):
@@ -103,21 +106,15 @@ _yh = _yaw_of(h)
 _shell = [o for o in bpy.data.objects if o.name.startswith('i_cba915be')][0]
 _ys = _yaw_of(_shell)
 _delta = _yh - _ys
-print('shell yaw %.1f° -> house yaw %.1f° (delta %+.1f°)' % (_ys, _yh, _delta))
+print('shell yaw %.1f° vs house yaw %.1f°（残差 %+.1f°；>3° 说明还有别的错，别再手工掰）'
+      % (_ys, _yh, _delta))
 
-_q = Quaternion((0, 0, 1), _M.radians(_delta))
 _inter = [o for o in bpy.data.objects if o.name.startswith('i_')]
-for o in _inter:
-    o.location = _HC + (_q @ (o.location - _HC))
-    o.rotation_quaternion = _q @ o.rotation_quaternion
-bpy.context.view_layer.update()
-
 _vis = [o for o in _inter if not o.hide_render]
 _mn, _mx = wb(_vis)
 _dx = (_ha[0]+_hb[0])/2 - (_mn[0]+_mx[0])/2
 _dy = (_ha[1]+_hb[1])/2 - (_mn[1]+_mx[1])/2
-for o in _inter:
-    o.location.x += _dx; o.location.y += _dy
+print('bbox 中心残差 dx=%+.2f dy=%+.2f（仅报告，不执行平移）' % (_dx, _dy))
 bpy.context.view_layer.update()
 
 # z：贴地形（不是房子 bbox 底）

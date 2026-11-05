@@ -88,7 +88,9 @@ def main():
     name, P, q = find_mlo(a.pkg)
     if P is None:
         raise SystemExit('找不到 %s 的 MLO 实例（见 tools/locate_interior_mlo.py）' % a.pkg)
-    Q = Quaternion((q[3], -q[0], -q[1], -q[2]))   # 共轭（与全图一致）
+    # 🔴 MLO 实例四元数**不取共轭**（与件级相反）。权威依据：CodeWalker
+    #   `YmapFile.cs:2027`「CMloInstanceDef quaternions aren't inverted, but CEntityDef ones are」。
+    Q = Quaternion((q[3], q[0], q[1], q[2]))
     print('[merge] MLO %s pos %s yaw %.1f°' % (name, [round(v, 2) for v in P],
           math.degrees(math.atan2(2 * (q[3] * q[2] + q[0] * q[1]), 1 - 2 * (q[1] ** 2 + q[2] ** 2)))))
 

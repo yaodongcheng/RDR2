@@ -111,7 +111,8 @@ def main():
         if not inst:
             continue
         P = Vector((inst[1], inst[2], inst[3]))
-        q = Quaternion((inst[7], -inst[4], -inst[5], -inst[6]))   # 共轭
+        # MLO 实例四元数**不取共轭**（2026-11-05 实锤；件级 q 仍取共轭）—— 见 scene_interiors.py
+        q = Quaternion((inst[7], inst[4], inst[5], inst[6]))
         try:
             lay = PM.parse_ytyp(yp)
         except Exception:

@@ -622,3 +622,106 @@ x[3097.4,3414.6] y[−731.1,−487.9]；未拆整块 `new_area_slod4` 不再存�
 **动作**：写"补数据/补资产"工具前，先 `grep` 一下 README §6 / TODO / `tools/` 里的相关名字
 （`miniature` / `relink` / `extract_*` / `audit_*`），确认没有现成管线；有就**跑它**，没有才新写。
 
+### 6.14 MLO 实例四元数：**不取共轭**（2026-11-05 实锤；件级与外壳恰好相反）
+
+**症状**：`val.blend` 里选中 `val_03_stable_ext`，室内墙面与外壳墙向差 **~10°**，
+室内壳 / 影子代理从屋顶、墙面穿出来（`i_c8490458` = `val_stable_int_shadow`，就是那个
+15.5×15.2×8 m 的无贴图影子盒）。夏洛蒂家（`willard`）早前也撞过同一现象，当时是靠
+`merge_interior_into_willard.py` 末尾「把室内 yaw 硬掰成房子 yaw + bbox 居中」收掉的 —— 那是补丁，不是根因。
+
+**根因**：`scene_interiors.py` 把 **MLO 实例**的四元数按普通 ymap 实体一样取了共轭。
+实例四元数的旋向其实是**反的**：`val_stable_int` 实例 yaw = **+5.13°**，取共轭后变 **−5.13°**，
+而室内壳局部墙向 −1.64°、外壳墙向 +3.44° ⇒ 装配后 **−6.76°**，与外壳差 **10.2°**。
+
+**判据（机器闸门）**：`tools/_check_interior_align.py`（纯 Python，不加载 blend）
+—— 每个 `*_int` 包：室内 `*_shell` 墙向（4θ 矢量平均）应当等于宿主外壳墙向。
+
+| 口径 | 可判样本 | \|Δ\| 中位 | ≤2° 占比 |
+|---|---:|---:|---:|
+| 实例**取共轭**（旧） | 48 | **29.7°** | 2/48 |
+| 实例**不取共轭**（现） | 48 | **0.34°** | 46/48 |
+
+**件级相反**：ytyp entity 自己的 `q` 取共轭后 93% 落在 5° 内，不取共轭只有 1%
+⇒ 只有**实例**这一层是反的；件级 `lq` 与大陆外壳 `e[4:8]` **继续取共轭**，别一起改。
+
+**修法（三处，同一行）**：
+
+| 文件 | 改成 |
+|---|---|
+| `tools/scene_interiors.py` | `q = Quaternion((inst[7], inst[4], inst[5], inst[6]))` |
+| `tools/instantiate_interiors.py` | 同上（大陆装配） |
+| `tools/audit_interior_placement.py` | `R = quat_mat((inst[4], inst[5], inst[6], inst[7]))` |
+
+**验收**：`python tools/_check_interior_align.py` → `结论：PASS`（负面测试必须掉到 <20%）；
+重跑场景后，室内应完全落进外壳内（前后对比图留在 `_scratch/val_stable/stable_{top,iso}_{before,after}.png`）。
+
+**补完（2026-11-05 同日）**：上面三处之外，旧写法还留在两个文件里 —— 正是夏洛蒂家那条链：
+`tools/merge_interior.py`（`Q = Quaternion((q[3], -q[0], -q[1], -q[2]))`）与
+`tools/merge_interior_into_willard.py`（`MLO_QUAT = Quaternion((_qw, -_qx, -_qy, -_qz))`）。
+已改成不取共轭，并把 willard 脚本末尾那段「硬掰 yaw + bbox 居中」**删成只测量不执行**（根因修了还留着，
+等于错两次）。另：夏洛蒂家当年还有**第二个**毛病 —— 用的是替身实例 `roc_hse_int_lod` 而非真实例
+`roc_house_int`（差 100°），别把整口锅都算在共轭上。
+
+### 6.15 室内宿主判据 + 阴影代理壳（2026-11-05）
+
+两个独立的坑，都在「室内明明摆了却不对/多一块」这条线上。
+
+**① 宿主判据会配到窗、贴花、碎石堆、地形块、电缆网格上**
+
+`audit_interior_placement.py` 的 `_BAD_NAME` 只做**降级**（`q`），而排序键是 `(tier, q, w, d)`
+—— **tier 压过一切**。小道具的 bbox 只要"恰好"包住室内就拿到 tier 0，真建筑反而被挤掉。
+实测：`str_mayorshouse_int` 的宿主是 `str_03_mayorwindow`（一扇窗）、`str_dressingroom_int`
+是 `str_03_mill01_ext_dcl`（贴花）、`str_genst_int` 是 `str_03_debrispile01`（碎石堆），
+还有一批配到地形高度块 `j_11__hd_0_-2_3` / 电缆 `cablemesh…_hvlit`。
+
+**修法**：`_BAD_NAME` 补 `dcl`；新增 `_PROP_NAME`（window/debris/fence/sign/post/lamp/track/road/
+decal/cablemesh/`_hd_0_`/`out_`/`outg_`）并在候选循环里**直接 skip**（不是降级 —— 压不过 tier）。
+
+| 指标 | 改前 | 改后 |
+|---|---:|---:|
+| 非建筑类宿主 | 77 | **6**（剩下的都是 `_dcl`，只是名字不雅，bbox 仍是建筑） |
+| 结果条目 | 251 | 247 |
+| `inside=True`（真正会被摆的） | 179 | **179**（不变） |
+
+掉出的 4 个（`bac_tunnel_int` / `bac_tunnelcurve_int` / `dis_grz_statue_int` / `gua_boat_int`）
+原本就是 `inside=False`、宿主是地形块，**从来就没被摆过** ⇒ 覆盖无损。
+
+> ⚠️ §6.14 那张「48 个可判样本 / 46 个 ≤2°」的表是**在宿主判据修好之前**跑出来的。
+> 宿主可能配到窗/地形块上 ⇒ 建议用修好的审计表重跑一次确认，别直接引用。
+
+**② 阴影代理壳被当可见几何摆进场景**
+
+室内包里 `<包>_shadow` 是**只参与投影**的低模壳（瓦伦丁马厩 `val_stable_int_shadow`：143 顶点、
+无 albedo、靠 `ntex_wood` 兜底配色）。`scene_interiors.py` 原来只分「贴花 / 普通件」两类，
+于是它按 `cls_key='part'` 进了可见集合 → 屋顶上多一块空壳。**用户报的"墙面没对齐"就是它**
+（旋转修好后它基本缩回楼里，但仍是多余一块）。
+
+**修法**：照抄贴花类的写法加一类
+`C_int_shadow_室内阴影代理`（`COL_PROXY`，`hide_viewport/hide_render=True`，N 面板可单独勾开）。
+
+🔴 **正则别只写 `_shadow$`（第一版就这么漏了 90%）**：命名有一整族 ——
+`_shadowproxy` · `_ref_proxy` · `_shadow_proxy` · `_shadow` · `_shdw_proxy` · `_shd_proxy` ·
+`_shad_proxy` · `_shdw_prxy` · `_shdwprxy` · `_shd_pxy` · `_shdw` · `_refproxy` ·
+`_reflection_proxy` · `_refln_proxy` · `_refle_proxy` · `rfle_proxy` · `_proxy` · `_shadowbox`。
+最终口径 = `PROXY_NAME = re.compile(r'(proxy|shadow|shdw|shd_|shad_)', re.I)`，
+全量 251 个室内包里共 **326 件**（不是 15 件）。瓦伦丁 12 个包占 **20 件**
+（`i_a6cc1063` = `val_saloon_int_shadowproxy` 就在其中）。
+负面样例（不该命中）：`*_shell` / `*_shell_dec` / `*_ref` / `*_ground` / `p_barrel04b`。
+
+> `_ref`（84 包 / 87 件）**暂不动** —— 还没验证它是反射代理还是低模 LOD，没证据不擅自隐藏。
+> 验法：单独显示 `_ref` 与 `_shell`，若几乎重面且更糙 ⇒ 是 LOD，同样该隐藏。
+
+**③ 附带修**：`build_scenes.py` 顶部显式 `sys.path.insert(0, TOOLS)` ——
+从别的 cwd 用绝对路径调用时，末尾 `import export_scene_terrain_maps` 会报
+`No module named`，场景其实已经建好却把 `scene_build_status.csv` 记成 failed。
+
+**验收（瓦伦丁重跑后实测）**：
+
+| 项 | 值 |
+|---|---|
+| `val_stable_int_shell` 墙向 | **3°**（宿主 `val_03_stable_ext` = 4°；修前是 −6.5°） |
+| 四边间隙 W/E/S/N | **+0.67 / +0.99 / +0.81 / +5.66**（全为正） |
+| 日志 | `[int] 其阴影代理壳 2 件 → 「室内阴影代理」类（默认隐藏，勾开可看）` |
+| 对照图 | `_scratch/int_align/shots/final_{A_shipped,B_proxy_shown}.png` |
+
+

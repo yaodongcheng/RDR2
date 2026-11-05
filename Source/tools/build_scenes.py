@@ -31,6 +31,10 @@ import time
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.dirname(TOOLS)
+# 后面 `import export_scene_terrain_maps` 等在同目录；显式补进 sys.path，
+# 免得从别的 cwd 用绝对路径调用时脚本目录没进搜索路径（实测会报 No module named）。
+if TOOLS not in sys.path:
+    sys.path.insert(0, TOOLS)
 LIB = os.path.join(ROOT, 'assets/lib_native')
 CORR = os.path.join(ROOT, 'deliverable/blender/regions_support/region_corrections.csv')
 CSV_IN = os.path.join(SRC, 'docs', '世界与地编', 'scene_list.csv')
