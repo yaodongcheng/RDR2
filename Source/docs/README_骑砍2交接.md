@@ -3,6 +3,13 @@
 > 本文是**数据契约**：告诉你每个东西在哪、字段什么含义、哪些坑已经踩过。
 > 生成时间 2026-10-22；对应高度图 v2 + 材质权重图 v2（两者同源，见 §3/§4）。
 > 机读版索引：`deliverable/handoff/`（`model_manifest.csv` / `settlements_world.csv` / `handoff_meta.json`）
+>
+> 🔴 **2026-11-05 状态（先看这条）**：
+> - **56/56 子场景已全部建成**（每张 0 超界、地形图全 PASS）；全量资产清单已出：
+>   `deliverable/handoff/asset_inventory_*` / `asset_import_*`；
+> - **旧 sdn 实验作废**（`rdr2_sanit_denis` / 5,211 个 FBX / 旧 tpac），圣丹尼斯城要按新素材重做；
+> - **模型走 TRF**（7 槽位 LOD，场景 blend 直出已验证）；**贴图走 DDS**（源更小，落地 DXT5 与 PNG 一致）；
+> - **骑砍2 侧的落地计划 = `Modules/LivingWorldNpcs/plans/大镖客2还原/00-总纲.md`**（本文只做数据契约）。
 
 ---
 
@@ -24,8 +31,8 @@
 
 | 类别 | 现有产物 | 骑砍2 用途 | 状态 |
 |---|---|---|---|
-| ① **世界与地编** | `docs/世界与地编/scene_list.csv`（58 行）+ `scene_specs.json`（P 多边形）+ 高度图/彩图 | 建 58 张场景、接入口、扎营落点 | 🟡 **数据就绪；场景 blend 还没按 58 张重跑**（旧的是 2,000 m 瓦片切法，见 `TODO.md`「按新的 58 张划分重跑 blend」）。**这步验收通过后才轮到骑砍2** |
-| ② **建筑/道具模型** | `Modules/RDR2/AssetSources/ImortReady/rdr2_bld_fbx`（FBX）+ `rdr2_tex_albedo/normal/orm`；已发包 `AssetPackages/rdr2_city_test.tpac`、`rdr2_sdn_city_test.tpac` | 场景里的房子/码头/街具 | ✅ 已提取导入（按区域推进） |
+| ① **世界与地编** | `docs/世界与地编/scene_list.csv`（58 行）+ `scene_specs.json`（P 多边形）+ 高度图/彩图 + `deliverable/blender/scenes/`（56 张 blend） | 建 56 张场景、接入口、扎营落点 | ✅ **56/56 已建成**（2026-11-04，0 超界、地形图全 PASS）；**等用户验收（TODO-6）**，验完就轮到骑砍2 建场景 |
+| ② **建筑/道具模型** | 全量清单 `deliverable/handoff/asset_import_models.csv`（**24,424 个模型**）+ `asset_import_textures.csv`（**22,504 张贴图**） | 场景里的房子/道具/铁路/植被… | 🔴 **旧 FBX 路径作废**（`rdr2_bld_fbx` / `rdr2_sanit_denis`）；新口径 = **场景 blend 直出 TRF + 贴图 DDS**（§0.5.3） |
 | ③ **角色外观/服饰/人头** | `docs/角色与物品/RDR2_服饰全清单与换装修复.md`、`RDR2_角色眼睛与服饰贴图修复.md`、`docs/格式与资产/RDR2骨架_yft格式.md` | 让 NPC / 主角长得像大镖客 | 🟡 已研究 + 修复方案，**未成包** |
 | ④ **武器/道具/载具** | `docs/角色与物品/RDR2_武器道具模型与剧本对白.md`、`RDR2_武器金属材质修正.md`、`RDR2_载具与UI与兵种覆盖审计.md`、`RDR2_模型图标与综合查看器.md` | 武器、道具、载具、图标 | 🟡 已研究 + 提取管线，**未成包** |
 | ⑤ **NPC 名单与组织** | `docs/世界与地编/RDR2_NPC名单与环境人群表.md`、`RDR2_NPC生成与行为机制.md`、`docs/格式与资产/RDR2_本地化文本与NPC池.md`、`docs/角色与物品/RDR2_骑砍2落地_势力与NPC.md` | 每个城镇有哪些 NPC / 身份职业 / 势力归属 / 生成规则 | 🟡 **研究完成**，未做成数据表 |
@@ -80,6 +87,33 @@
 - `gx,gy,gz` = 相对组锚点的局部坐标，**拼 prefab 直接用这三个数**（锚点 z 是地面高程）。
 - 世界坐标 = RDR2 的 Z-up；进骑砍2 前仍要按 §2.3 做轴映射。
 - **野地场景**取碎片按 `wild_scene` 列（含据点那 1,212 个），不要只取 `group_type=wild`。
+
+### 0.5.3 全量资产清单与导入口径（2026-11-05）
+
+**清单（大地图 ∪ 56 张子场景）**
+
+| 文件 | 内容 |
+|---|---|
+| `deliverable/handoff/asset_inventory_models.csv` | 全量 **39,990 个模型**：hash / 名称 / 面数 / 贴图 / 场景用量 / 大地图用量 / 分类 / 是否需 LOD |
+| `deliverable/handoff/asset_import_models.csv` | **导入子集 24,424 个模型**（按 21 类筛，见下；其中 9,265 个 ≥2,000 面要做 LOD） |
+| `deliverable/handoff/asset_inventory_textures.csv` / `asset_import_textures.csv` | 全量 **23,328 张** / 导入 **22,504 张贴图**（类型、文件、大小、模型/实例用量） |
+| `deliverable/handoff/asset_inventory_scenes.csv` | 每场景：对象 / 唯一模型 / 三角面 / **导入面数** |
+| `deliverable/handoff/asset_inventory_summary.json` | 汇总（含大地图碎片 / 微缩模型） |
+
+**导入范围（21 类，2026-11-05 用户裁定）**
+
+- **导（16 类）**：`bldg / part / prop / junk / veg / rock / stone / struct / ruin / veh /
+  rail / rail_decal / road / decal / unknown / lod_out`；
+- **不导（6 类）**：`terrain_cell / terrain_lod / underground / watertile / placeholder / lod`。
+
+**导入口径**
+
+- 模型 = **TRF**：7 个 LOD 槽位（0~6，骑砍2 严格按距离映射）；LOD5/6 复用 LOD4 的 12% 网格；
+  命名 `<名>.<i>` / `<名>.lodN.<i>`；
+- **来源 = 场景 blend 直出**（`Scripts/export_rdr2_trf_from_scenes.py` 已在 sdn 样本验证，
+  不经 FBX、不读 lib_native；按 hash 去重、优先取活动区完整实例）；
+- 贴图 = **DDS**（落地 DXT5，与 PNG 一致；源文件更小，无负向作用）；
+- 🔴 **旧 FBX 路径（`rdr2_bld_fbx` / `rdr2_sanit_denis` / 旧 tpac）作废**，不要再按它导。
 
 ---
 

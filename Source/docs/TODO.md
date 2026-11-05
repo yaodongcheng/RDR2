@@ -23,6 +23,21 @@
 
 ---
 
+## ✅ 2026-11-05 · 全量资产清单 + LOD 验证（骑砍2 导入准备）
+
+| 项 | 结果 |
+|---|---|
+| 全量清单 | `deliverable/handoff/asset_inventory_*`：**39,990 个模型**（大地图 ∪ 56 场景）· **23,328 张贴图**（5.75 GB，缺失 0）· 大地图 2,238 碎片（2,324 实例）+ 46 微缩 |
+| **导入子集** | `asset_import_models.csv` / `asset_import_textures.csv`：**24,424 个模型**（9,265 个 ≥2,000 面要做 LOD）· **22,504 张贴图** · 160,193 个对象 · 277M 实例三角面 |
+| 导入范围 | 导 16 类（bldg/part/prop/junk/veg/rock/stone/struct/ruin/veh/rail/rail_decal/road/decal/unknown/lod_out）；不导 6 类（terrain_cell/terrain_lod/underground/watertile/placeholder/lod） |
+| LOD | **7 槽位**（0~6，LOD5/6 复用 LOD4 的 12%）；`Scripts/export_rdr2_trf_from_scenes.py` **直接从场景 blend 出 TRF**，sdn 样本验证通过（木栈桥/站台/木屋结构保持；薄钢水塔 12% 有屋顶折面，用户已接受） |
+| 贴图格式 | **DDS**（落地 DXT5 与 PNG 一致；源文件更小） |
+| 旧资产 | 🔴 **作废**：`rdr2_sanit_denis` / 5,211 个 FBX / 旧 tpac（用户裁定圣丹尼斯旧城是实验，要重做） |
+
+> **骑砍2 侧的落地计划** = `Modules/LivingWorldNpcs/plans/大镖客2还原/00-总纲.md`（本文只做数据契约，两边不复制全文）。
+
+---
+
 ## ✅ 2026-11-04 · 圣丹尼斯（sdn）已建 —— 全量开工前先看这条
 
 > 🔴 **口径变更（2026-11-04 用户裁定）**：**能走范围 P 就是活动区边界，P 外一律按远景处理**
