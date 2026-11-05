@@ -382,11 +382,175 @@ def make(ab_tid, nm_tid, ma_tid, texmeta, libdir, fallback=(0.30, 0.27, 0.23, 1.
     return m
 
 
+def make_height_decal(ab_tid, texmeta, libdir, ab_name):
+    """高度图贴花：**alpha 通道是脚印/车辙遮罩**，不能把 RGB 当颜色（那是 (R,255,255) 青色）。
+
+    2026-11-05 用户指出：直接当 albedo 渲染是青色；直接隐藏又把真实脚印弄没了。
+    做法 = 深泥色底 + 贴图 alpha 当透明度 + R 通道做明暗起伏。
+    """
+    import bpy
+    import os
+    name = 'heightdecal_' + _slug(ab_name, 40)
+    m = bpy.data.materials.get(name)
+    if m is not None:
+        return m
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = _bsdf(m)
+    b.inputs['Base Color'].default_value = (0.24, 0.17, 0.11, 1.0)
+    b.inputs['Roughness'].default_value = 0.95
+    m.diffuse_color = (0.24, 0.17, 0.11, 1.0)
+    m.roughness = 0.95
+
+    path = os.path.join(libdir, _tex_rel(texmeta, ab_tid))
+    if os.path.exists(path):
+        img = bpy.data.images.load(path, check_existing=True)
+        t = nt.nodes.new('ShaderNodeTexImage')
+        t.image = img
+        try:
+            t.image.colorspace_settings.name = 'Non-Color'
+        except Exception:
+            pass
+        # alpha = 脚印遮罩；掩码本身很淡（均值 ~3/255），放大后才有实感
+        mul = nt.nodes.new('ShaderNodeMath')
+        mul.operation = 'MULTIPLY'
+        mul.inputs[1].default_value = 4.0
+        mul.use_clamp = True
+        nt.links.new(t.outputs['Alpha'], mul.inputs[0])
+        nt.links.new(mul.outputs['Value'], b.inputs['Alpha'])
+        # R = 高度：低处更暗，让脚印有起伏
+        sep = nt.nodes.new('ShaderNodeSeparateColor')
+        ramp = nt.nodes.new('ShaderNodeValToRGB')
+        ramp.color_ramp.elements[0].position = 0.25
+        ramp.color_ramp.elements[0].color = (0.03, 0.022, 0.015, 1.0)
+        ramp.color_ramp.elements[1].position = 0.95
+        ramp.color_ramp.elements[1].color = (0.14, 0.10, 0.07, 1.0)
+        nt.links.new(t.outputs['Color'], sep.inputs['Color'])
+        nt.links.new(sep.outputs['Red'], ramp.inputs['Fac'])
+        nt.links.new(ramp.outputs['Color'], b.inputs['Base Color'])
+
+    try:
+        m.surface_render_method = 'BLENDED'
+    except Exception:
+        pass
+    try:
+        m.blend_method = 'BLEND'
+    except Exception:
+        pass
+    try:
+        m.alpha_threshold = 0.05
+    except Exception:
+        pass
+    m['alpha_mode'] = 'blend'
+    return m
+
+
+_MUD_CACHE = {}
+
+
+def _is_light_mud(ab_name, ab_tid, texmeta, libdir):
+    """`muddyroad` 这类**近白路面贴花**：RGB 是浅砂土（均值 ~218），alpha 才是覆盖范围。
+
+    当普通 albedo 渲染会变成白色条带（2026-11-05 用户指出 `val_03_road_d_19` 白得不真实）。
+    """
+    n = (ab_name or '').lower()
+    if 'muddyroad' not in n:
+        return False
+    key = ab_tid
+    if key in _MUD_CACHE:
+        return _MUD_CACHE[key]
+    ok = False
+    try:
+        from PIL import Image
+        import numpy as np
+        p = os.path.join(libdir, _tex_rel(texmeta, ab_tid))
+        a = np.asarray(Image.open(p).convert('RGBA'))
+        ok = float(a[..., :3].mean()) >= 190 and int(a[..., 3].max()) > 20
+    except Exception:
+        ok = False
+    _MUD_CACHE[key] = ok
+    return ok
+
+
+def make_mud_decal(ab_tid, texmeta, libdir, ab_name):
+    """近白路面贴花：**alpha 当覆盖、亮度调制泥色**，不再画成白条。"""
+    import bpy
+    name = 'muddecal_' + _slug(ab_name, 40)
+    m = bpy.data.materials.get(name)
+    if m is not None:
+        return m
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = _bsdf(m)
+    b.inputs['Base Color'].default_value = (0.24, 0.18, 0.12, 1.0)
+    b.inputs['Roughness'].default_value = 0.95
+    m.diffuse_color = (0.24, 0.18, 0.12, 1.0)
+    m.roughness = 0.95
+
+    path = os.path.join(libdir, _tex_rel(texmeta, ab_tid))
+    if os.path.exists(path):
+        img = bpy.data.images.load(path, check_existing=True)
+        t = nt.nodes.new('ShaderNodeTexImage')
+        t.image = img
+        try:
+            t.image.colorspace_settings.name = 'Non-Color'
+        except Exception:
+            pass
+        bw = nt.nodes.new('ShaderNodeRGBToBW')
+        ramp = nt.nodes.new('ShaderNodeValToRGB')
+        ramp.color_ramp.elements[0].position = 0.55
+        ramp.color_ramp.elements[0].color = (0.05, 0.038, 0.026, 1.0)
+        ramp.color_ramp.elements[1].position = 0.95
+        ramp.color_ramp.elements[1].color = (0.16, 0.12, 0.08, 1.0)
+        nt.links.new(t.outputs['Color'], bw.inputs['Color'])
+        nt.links.new(bw.outputs['Val'], ramp.inputs['Fac'])
+        nt.links.new(ramp.outputs['Color'], b.inputs['Base Color'])
+        # alpha 再压一点，避免整片覆盖把地面盖住
+        mul = nt.nodes.new('ShaderNodeMath')
+        mul.operation = 'MULTIPLY'
+        mul.inputs[1].default_value = 0.7
+        mul.use_clamp = True
+        nt.links.new(t.outputs['Alpha'], mul.inputs[0])
+        nt.links.new(mul.outputs['Value'], b.inputs['Alpha'])
+
+    try:
+        m.surface_render_method = 'BLENDED'
+    except Exception:
+        pass
+    try:
+        m.blend_method = 'BLEND'
+    except Exception:
+        pass
+    m['alpha_mode'] = 'blend'
+    return m
+
+
 def get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, cache, lyr=None, two_layer=True,
                 alpha=True):
     """带缓存的版本。缓存键 = (albedo, normal, orm) [+ 第二层五个 id] [+ alpha 开关]。"""
     def _i(x):
         return x if x is not None and x >= 0 else -1
+    # 高度图贴花：单独一套材质（不能当颜色）
+    ab_name = tex_name(texmeta, ab_tid) if (ab_tid is not None and ab_tid >= 0) else ''
+    if ab_name and '_height_' in ab_name.lower():
+        key = ('heightdecal', _i(ab_tid))
+        hit = cache.get(key)
+        if hit is not None:
+            return hit
+        m = make_height_decal(ab_tid, texmeta, libdir, ab_name)
+        cache[key] = m
+        return m
+    # 近白路面贴花（muddyroad 等）：alpha 当覆盖、亮度调泥色，避免白色条带
+    if ab_name and _is_light_mud(ab_name, ab_tid, texmeta, libdir):
+        key = ('muddecal', _i(ab_tid))
+        hit = cache.get(key)
+        if hit is not None:
+            return hit
+        m = make_mud_decal(ab_tid, texmeta, libdir, ab_name)
+        cache[key] = m
+        return m
     key = (_i(ab_tid), _i(nm_tid), _i(ma_tid))
     if two_layer and lyr:
         key = key + tuple(_i(x) for x in (list(lyr) + [-1] * 5)[:5])

@@ -221,7 +221,9 @@ def build(scene, save=True, verbose=True):
             if not m:
                 continue
             try:
-                me = BC.load_model_mesh(LIB, m, texmeta, matcache, meshcache)
+                # 2026-11-05：传模型名 → 无 albedo 的件按名字自动配色（ntex_palette）。
+                _mn = _names().get(int(hx, 16), '')
+                me = BC.load_model_mesh(LIB, m, texmeta, matcache, meshcache, name_hint=_mn)
             except Exception:
                 continue
             if not me:

@@ -55,7 +55,7 @@ def main():
     if sc.get('uv_v_flipped'):
         raise SystemExit('这个 blend 已经翻过 V（uv_v_flipped=1），再翻会翻回去 —— 拒绝执行')
 
-    n_mesh = n_layer = 0
+    n_mesh = n_layer = n_v = 0
     v_before = v_after = 0.0
     samples = []
     for me in bpy.data.meshes:
@@ -69,6 +69,7 @@ def main():
             uvs = np.empty(n * 2, dtype=np.float32)
             uvl.data.foreach_get('uv', uvs)
             v_before += float(uvs[1::2].sum())
+            n_v += n
             uvs[1::2] = 1.0 - uvs[1::2]      # 只翻 V，不动 U
             v_after += float(uvs[1::2].sum())
             uvl.data.foreach_set('uv', uvs)
@@ -78,8 +79,9 @@ def main():
 
     print('[flip_uv] 网格 %d 个 / UV 层 %d 个 / 顶点合计 %d'
           % (n_mesh, n_layer, sum(m[2] for m in samples)))
-    print('[flip_uv] v 均值 前 %.4f → 后 %.4f（应当 ≈ 1 − 前）'
-          % (v_before, v_after))
+    if n_v:
+        print('[flip_uv] v 均值 前 %.4f → 后 %.4f（1−前 = %.4f，应相等）'
+              % (v_before / n_v, v_after / n_v, 1.0 - v_before / n_v))
     for nm, nl, nv in samples:
         print('[flip_uv]   样例 %-40s 层 %d 顶点 %d' % (nm, nl, nv))
     if n_layer == 0:

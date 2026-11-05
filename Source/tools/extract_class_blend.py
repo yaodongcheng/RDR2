@@ -2,7 +2,7 @@
 r"""从大陆 blend 里**只留下指定分类**（按名字重新判定，不看 blend 里的旧集合），另存一个新 blend。
 
     blender -b "D:\...\continent_v23.blend" -P tools\_unbuffer.py -P tools\extract_class_blend.py -- \
-        --keep lod,terrain_lod --out "...\deliverable\blender\continent\continent_lod_split_v23.blend"
+        --keep lod --keep terrain_lod --out "...\deliverable\blender\continent\continent_lod_split_v23.blend"
 
 为什么按名字判定：v23 是**旧规则**建出来的，里面的集合把「地形远景块」混在 `lod` 里；
 按当前 `class_rules.classify_name()` 重新分类，才能立刻看到拆分效果（不用重跑大陆）。

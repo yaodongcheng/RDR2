@@ -20,7 +20,8 @@ import numpy as np
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 # 2026-11-04：场景的远景碎片改从「打散分组」的远景库按需 append（合并块已按据点 P 切开）。
 LOD_GROUPS_JSON = os.path.join(ROOT, 'deliverable/handoff/lod_groups.json')
-LOD_SPLIT_BLEND = os.path.join(ROOT, 'deliverable/blender/continent/continent_lod_split_v23.blend')
+# 2026-11-05 v24：补进 158 个街区 LOD + 整体翻过 UV（V 约定）。旧 v23 库别再用。
+LOD_SPLIT_BLEND = os.path.join(ROOT, 'deliverable/blender/continent/continent_lod_split_v24.blend')
 # Blender 用 -P 跑脚本时不一定把 tools/ 放进 sys.path；材质模块（mat_rdr2）要能 import。
 if os.path.join(ROOT, 'tools') not in sys.path:
     sys.path.insert(0, os.path.join(ROOT, 'tools'))
@@ -534,7 +535,8 @@ def _bsdf(mat):
   return nt.nodes.new('ShaderNodeBsdfPrincipled')
 
 
-def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None):
+def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None, name_hint='',
+             textured_model=False):
   """一个槽位一张材质：漫反射 + 法线 + 材质(高光→ORM) [+ 第 1 层 + 控制图]。
 
   2026-10-30：法线/高光补全。三张图的节点图统一在 `tools/mat_rdr2.py`，
@@ -543,15 +545,35 @@ def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None):
   2026-11-01：`lyr` = `index.json` 的 `models[h].lyr[i]`（l1/ctrl/dirt/nrm2/ma2），
   没有两层信息或 `--lyr off` 时行为与旧版完全一致。
   2026-11-05：`alpha` 把 albedo 的 alpha 接进 BSDF（招牌/贴花/植被卡片），`--alpha off` 回退。
+  2026-11-05：三张图全缺的槽位按**模型名**自动配色（`ntex_palette`），不再一律暖灰。
+  2026-11-05：模型里其它子网格有贴图 ⇒ 缺贴图的那块是外壳/背板 → **正确混合模式的透明**。
   """
+  # 🔴 `.mdl` 的 texId 按 **u32** 存：缺失是 0xFFFFFFFF，不是 -1。
+  # 只判 `<0` 会漏掉全部缺失件（2026-11-05 实测：自动配色没生效就是这个）。
+  _NONE = 0xFFFFFFFF
+
+  def _missing(t):
+    return t is None or t == _NONE or t < 0
+
+  if _missing(ab_tid) and _missing(nm_tid) and _missing(ma_tid):
+    if textured_model:
+      return _invisible_mat()
+    return _ntex_generic(name_hint, texmeta, libdir)
+  ab_tid = -1 if _missing(ab_tid) else ab_tid
+  nm_tid = -1 if _missing(nm_tid) else nm_tid
+  ma_tid = -1 if _missing(ma_tid) else ma_tid
   import mat_rdr2
   return mat_rdr2.get_or_make(ab_tid, nm_tid, ma_tid, texmeta, libdir, matcache,
                               lyr=lyr, two_layer=TWO_LAYER, alpha=ALPHA_ON)
 
 
-def load_model_mesh(libdir, entry, texmeta, matcache, cache):
+def load_model_mesh(libdir, entry, texmeta, matcache, cache, name_hint=''):
   """把一个 .mdl 建成 Blender mesh（顶点/索引一次 foreach_set 灌进去）。"""
   key = entry['f']
+  # 无贴图模型的材质取决于 name_hint（自动配色），缓存键必须带上它，
+  # 否则同名模型先后用不同 hint 加载会互相串色。
+  if name_hint and all((t < 0) for t, _, _ in (entry.get('s') or [])):
+    key = key + '|' + name_hint
   if key in cache:
     return cache[key]
   buf = open(os.path.join(libdir, entry['f']), 'rb').read()
@@ -571,6 +593,7 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   uv_all = []
   faces = []
   valid_subs = []
+  sub_bbox = []
   base = 0
   for si, (tid, vc, ic, po, no, uo, io_) in enumerate(subs):
     pos = np.frombuffer(buf, dtype=np.float32, count=vc * 3, offset=po).reshape(-1, 3)
@@ -580,6 +603,7 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
     if ic == 0 or vc == 0 or int(idx.max()) >= vc:
       continue            # 索引越界/空段：丢掉这一段，别让整个模型崩
     valid_subs.append((tid, vc, ic, si))
+    sub_bbox.append((pos.min(0), pos.max(0)))
     verts_all.append(pos)
     nrm_all.append(nrm)
     uv_all.append(uv)
@@ -625,13 +649,23 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache):
   # 2026-11-01：每个槽再带两层信息（`lyr` = [l1, ctrl, dirt, nrm2, ma2]，与 `s` 等长同序）。
   st = entry.get('st') or []
   ly = entry.get('lyr') or []
+  _NONE32 = 0xFFFFFFFF
+
+  def _no_tex(t):
+    return t is None or t == _NONE32 or t < 0
+
+  # 这个模型有没有「至少一个有贴图」的子网格：有 ⇒ 缺贴图那块是外壳/背板 → 透明
+  textured_model = any(
+      (t is not None and t != _NONE32 and t >= 0) for (t, _vc, _ic, _si) in valid_subs)
   mats = []
   for (tid, vc, ic, si) in valid_subs:
     pair = st[si] if 0 <= si < len(st) else None
     ntid = pair[0] if pair else -1
     mtid = pair[1] if pair else -1
-    lyr = ly[si] if 0 <= si < len(ly) else None
-    mats.append(_mat_for(tid, ntid, mtid, texmeta, matcache, libdir, lyr))
+    lyr_i = ly[si] if 0 <= si < len(ly) else None
+    mats.append(_mat_for(tid, ntid, mtid, texmeta, matcache, libdir, lyr_i, name_hint,
+                         textured_model=textured_model))
+
   for m in mats:
     me.materials.append(m)
 
@@ -658,6 +692,13 @@ _NTEX_RULES = [
 ]
 
 def _ntex_cat(name):
+  # 2026-11-05：优先用 `ntex_palette`（覆盖木/金属/布/纸/玻璃/食物/绳/皮革/陶/石/土/水/植被）；
+  # 导入失败才退回旧的 5 类表。
+  try:
+    from ntex_palette import color_for
+    return color_for(name)
+  except Exception:
+    pass
   import re as _re
   n = name or ''
   for pat, col in _NTEX_RULES:
@@ -678,6 +719,59 @@ def _ntex_mat(col):
   m.diffuse_color = col          # Workbench / Solid 用这个色，不设就变默认灰白
   m.roughness = 0.95
   _NTEX_MATS[key] = m
+  return m
+
+
+def _ntex_generic(name_hint, texmeta, libdir):
+  """无贴图模型 → 按类别给通用材质（真实库贴图 + 金属度/粗糙度）。
+
+  旧版只给一个 RGB（平涂）；2026-11-05 用户指出"不能偷懒给纯色"，
+  改成 `ntex_materials.get_material()`：木纹/金属/布/石等用库里的真实贴图 Box 投影。
+  取不到贴图才退回纯色。
+  """
+  try:
+    from ntex_palette import category_info
+    from ntex_materials import get_material
+    key, col, metal, rough, scale, pat = category_info(name_hint)
+    return get_material(key, col, metal, rough, scale, pat, libdir, texmeta)
+  except Exception:
+    return _ntex_mat(_ntex_cat(name_hint))
+
+
+_INVIS_MAT = None
+
+
+def _invisible_mat():
+  """外壳/背板专用的**真透明**材质。
+
+  🔴 2026-11-05 踩坑：光挂 Transparent BSDF、不设混合模式，EEVEE 会按不透明渲染成**纯黑**
+  （用户实机看到屋顶黑块就是这个，不是洞）。必须 `surface_render_method='BLENDED'`
+  （5.x）/ `blend_method='BLEND'`（旧版）两套都设。
+  """
+  global _INVIS_MAT
+  if _INVIS_MAT is not None:
+    return _INVIS_MAT
+  m = bpy.data.materials.get('invisible_shell')
+  if m is None:
+    m = bpy.data.materials.new('invisible_shell')
+    m.use_nodes = True
+    nt = m.node_tree
+    for n in list(nt.nodes):
+      nt.nodes.remove(n)
+    out = nt.nodes.new('ShaderNodeOutputMaterial')
+    tr = nt.nodes.new('ShaderNodeBsdfTransparent')
+    nt.links.new(tr.outputs['BSDF'], out.inputs['Surface'])
+    m.diffuse_color = (0.0, 0.0, 0.0, 0.0)
+  for attr, val in (('surface_render_method', 'BLENDED'), ('blend_method', 'BLEND')):
+    try:
+      setattr(m, attr, val)
+    except Exception:
+      pass
+  try:
+    m.use_backface_culling = False
+  except Exception:
+    pass
+  _INVIS_MAT = m
   return m
 
 
@@ -877,7 +971,8 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
         # 只做标记，不再丢弃（大跨度建筑如车站 45.4m 曾被误剔）
         if (not in_town(e[1], e[2])) or abs(e[3] - ground_z(e[1], e[2])) > 3.0:
           hide_tag = hide_tag or 'flat_piece'; skipped_flat += 1
-      me = load_model_mesh(libdir, ent, texmeta, matcache, meshcache)
+      me = load_model_mesh(libdir, ent, texmeta, matcache, meshcache,
+                           name_hint=_NAMES.get(e[0], ''))
       if not me:
         no_mesh += 1
         continue
@@ -891,14 +986,32 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
       # 实体存的是 (qx,qy,qz,qw)，Blender 的 rotation_quaternion 是 (w,x,y,z)
       ob.rotation_quaternion = (e[7], -e[4], -e[5], -e[6]) if conj else (e[7], e[4], e[5], e[6])
       ob.scale = (e[8], e[8], e[9])
+      # 扁平贴花（高度图脚印 / muddyroad 路面贴花）：数据 z 来自游戏、和 H4 地形差 1~2 m。
+      # 只把中心点贴地还不够 —— 平面在起伏地形上会浮起/穿进路边物体。
+      # 2026-11-05 用户要求"真正贴地"：**逐顶点**按 terrain 高度重写 z（只处理没有 x/y 倾斜的平面）。
+      if ent.get('s'):
+        _tn = [((texmeta[t[0]] or {}).get('n') or '') if 0 <= t[0] < len(texmeta) else ''
+               for t in ent['s']]
+        _flat_decal = bool(_tn) and (
+            all('_height_' in n.lower() for n in _tn)
+            or any('muddyroad' in n.lower() for n in _tn))
+        if _flat_decal and abs(e[4]) < 1e-4 and abs(e[5]) < 1e-4:
+          try:
+            _me2 = me.copy()
+            ob.data = _me2
+            _sx = max(1e-6, e[8])
+            _sz = max(1e-6, e[9])
+            for _v in _me2.vertices:
+              _g = ground_z(e[1] + _v.co.x * _sx, e[2] + _v.co.y * _sx)
+              if _g is not None:
+                _v.co.z = (float(_g) + 0.05 - e[3]) / _sz
+            _me2.update()
+          except Exception:
+            pass
       if hide_tag:
         ob['hide_tag'] = hide_tag
-      if ent.get('s') and all((t < 0) for t, _, _ in ent['s']):
-        try:
-          ob.data.materials.clear()
-          ob.data.materials.append(_ntex_mat(_ntex_cat(_NAMES.get(e[0], ''))))
-        except Exception:
-          pass
+      # 2026-11-05：三张图全缺的槽位已在 `_mat_for` 里按模型名自动配色，
+      # 这里不再整只覆盖成一个材质（会丢掉子网格槽位对应）。
       ent_col.objects.link(ob)
       made += 1
       total += 1

@@ -119,7 +119,7 @@
 
 ### 1.8 分类规则唯一入口：`docs/格式与资产/分类体系与判定规则.md`
 
-**改任何分类前先读它**（22 类 / 默认隐藏表 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单语义 / 已验证的坑 / 标准改法）。**规则值唯一真身 = `tools/class_rules.py`**；`classify_entities.py` 只是 Blender 驱动、`class_registry.py` 只是转出口，`veg_rules.py` 放植被词表。改完跑 `python tools/_check_rules.py`（合法性 + 冗余 + `tools/rules_cases.csv` 用例回归）。
+**改任何分类前先读它**（23 类 / 默认隐藏表 / 判定顺序 / 名字·几何·贴图三种来源 / 纠错清单语义 / 已验证的坑 / 标准改法）。**规则值唯一真身 = `tools/class_rules.py`**；`classify_entities.py` 只是 Blender 驱动、`class_registry.py` 只是转出口，`veg_rules.py` 放植被词表。改完跑 `python tools/_check_rules.py`（合法性 + 冗余 + `tools/rules_cases.csv` 用例回归）。
 
 ### 1.9 D:\BrainMaker 目录纪律（2026-10-31 立；起因：区域裁剪产物散到根目录被用户抓包）
 

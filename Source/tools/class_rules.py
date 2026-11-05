@@ -25,7 +25,8 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 # 类表（顺序只影响报告打印；判定优先级看 RULES）
 CLASSES = (
     'lod', 'lod_out', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
-    'rail', 'rail_decal', 'struct', 'road', 'ruin', 'decal', 'int_decal', 'veg', 'stone', 'rock',
+    'rail', 'rail_decal', 'struct', 'road', 'track_decal', 'ruin', 'decal', 'int_decal',
+    'veg', 'stone', 'rock',
     'veh', 'bldg', 'part', 'junk', 'prop', 'unknown',
 )
 
@@ -33,8 +34,9 @@ CLASSES = (
 # int_decal = 室内地面贴花（2026-11-05 用户裁定：和室外 decal 分开）。
 # 判定不走名字（室内件全是 i_<hash>），由 scene_interiors.py 按模型贴图名现场判；
 # 当前贴图 alpha 还没接，会画成实心片 ⇒ 默认隐藏，面板可单独勾开。
+# track_decal = 脚印车辙（高度图贴花，2026-11-05 用户裁定：和 road 路面贴花分开）。
 DEFAULT_HIDDEN = ('lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile',
-                  'placeholder', 'veg', 'stone', 'road', 'int_decal')
+                  'placeholder', 'veg', 'stone', 'road', 'track_decal', 'int_decal')
 
 # 技术类：内容纠错不覆盖（junc 硬规则除外）
 TECHNICAL = ('lod', 'underground')
@@ -178,6 +180,9 @@ ALL_CLASSES.append(('lod_out', '远景碎片·区外'))
 # 2026-11-05：室内地面贴花。名字规则判不出（室内件全是 i_<hash>），
 # 由 scene_interiors.py 按模型贴图名判定后直接写 cls_key，这里只登记类名。
 ALL_CLASSES.append(('int_decal', '室内地面贴花'))
+# 2026-11-05：泥地脚印/车辙（高度图贴花）。由纠错表按「名字 + _height_ 贴图」判定，
+# 和 road（路面贴花，如 val_03_road_d_19）分开开关。
+ALL_CLASSES.append(('track_decal', '脚印车辙'))
 ALL_CLASSES.append(('unknown', '未分类'))
 
 

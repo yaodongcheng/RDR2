@@ -38,13 +38,13 @@ Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modul
 | **1** | UV 闸门 | `python -X utf8 tools\check_uv_v_convention.py --scene val` | 递减 **671** / 递增 98 → **PASS** |
 | **2** | 闸门负面测试 | `python -X utf8 tools\check_uv_v_convention.py --selftest` | **必须 FAIL**（98/671） |
 | **3** | 分类自检 | `python -X utf8 tools\_check_rules.py` | **PASS**（36 条用例） |
-| **4** | 远景分组表（第一遍） | `python -X utf8 tools\build_lod_groups.py` | 清单里出现 `val_02_slod` … `val_07_slod`（158 个街区 LOD 已被补充名认回） |
+| **4** | 远景分组表（第一遍，**必须先抛开旧部件表**） | `python -X utf8 tools\build_lod_groups.py --parts ""` | CSV 里出现 **5 条 `assign_via=span`**（`new_area_slod4` / `nopq_07_10_area_slod4` 等）；同时清单出现 `val_02_slod` … `val_07_slod`（158 个街区 LOD 已被补充名认回） |
 | **5** | 从 v23 抽 LOD 库 | 见下方命令块 **⑤** | 日志 `ONLY_lod_远景碎片` 数量应 ≈ **2,320 + 158**，不是 2,261 |
 | **6** | 补区域 57 条 | **⑥** | 追加 57 条左右 |
 | **7** | 切跨据点块 | **⑦** | 5 父块 → 11 件 |
-| **8** | 分组表（第二遍，带部件） | `python -X utf8 tools\build_lod_groups.py` | 与第一遍比多了拆分件 |
+| **8** | 分组表（第二遍，带部件） | `python -X utf8 tools\build_lod_groups.py` | 5 父块 → 11 个拆分件（日志 `拆分件替换：5 个跨据点整块 → 11 个部件`） |
 | **9** | 按据点分组 | **⑨** | 55 组；S_val 的数量应含 `val_02_slod` 等 |
-| **10** | 🔴 **补翻 UV** | **⑩** | 日志 `v 均值 前 X → 后 ≈ 1−X`；新文件 ≈ 1.1 GB；场景带 `uv_v_flipped=1` |
+| **10** | 🔴 **补翻 UV** | **⑩** | 日志 `v 均值 前 X → 后 = 1−X`；新文件约 **0.36 GB**（compress=True，比未压缩的 1.13 GB 小是正常的）；场景带 `uv_v_flipped=1` |
 | **11** | 把 `LOD_SPLIT_BLEND` 指到 v24 | 改 `tools\blender_continent.py` 第 23 行 | 不指 = 日志 `[lod] 缺远景库/分组表，跳过` |
 | **12** | 只重建 `val` | `python -X utf8 tools\build_scenes.py --only val --force` | `scene_build_status.csv` 该行 `done`；`placement_val.jsonl` 行数应与旧值核对（UV/改名不改对象数，变了就是别处动了东西） |
 | **13** | 用户目视 `val.blend` | 启动器 `打开大陆_流畅.bat val` | 招牌 `SMITHFIELDS.` 正立；远景里能看到街区 LOD |
@@ -53,7 +53,11 @@ Set-Location "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modul
 **⑤ 抽 LOD 库（新文件名，不覆盖 v23 库）**
 
 ```powershell
-cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_split_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\extract_class_blend.py -- --keep lod,terrain_lod --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_split_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_v23.blend" -P tools\_unbuffer.py -P tools\extract_class_blend.py -- --keep lod --keep terrain_lod --out "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend"'
+```
+
+> 🔴 **别写 `--keep lod,terrain_lod`**：经 `cmd /c` 时逗号会被 cmd 当参数分隔符，`terrain_lod` 掉出来变成裸参数
+> （2026-11-05 实测 `error: unrecognized arguments: terrain_lod`，exit=2）。两个 `--keep` 最稳。
 ```
 
 **⑥ 补区域 57 条**（就地改 `_v24_raw`）
@@ -87,7 +91,100 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_uv_flip.log
 - **纠错语义**：`class_rules.apply_corrections` 改成「名字+贴图都写 ⇒ 两者都要命中」，
   不再把所有 `e_*` 判成 `veg`。
 
-### 3. 跑完的验收判据（缺一不可）
+### 3. 本次执行记录（2026-11-05，边跑边记）
+
+| 步 | 结果 |
+|---|---|
+| ⑤ 抽 LOD 库 | `lod` **2,418**（旧 2,261，**+157**）· `terrain_lod` 32 · `_v24_raw` **1.13 GB** |
+| ⑥ 补区域 | **+57**（`wild2000_03_02` 15 + `wild2000_04_02` 42）· 父集合 2,475 · PASS |
+| ⑦ 切跨据点块 | 5 父块 → **11 拆分件** · PASS |
+| ⑧ 分组表第二遍 | **2,481 片** · PASS |
+| ⑨ 按据点分组 | `S_val_瓦伦丁` **87**（旧 66）· 全库归位 2,481 · **0 未匹配** · PASS |
+| ⑩ 补翻 UV | `continent_lod_split_v24.blend` **360 MB**（压缩后）· `uv_v_flipped=1` · 翻转数学核对通过 |
+| ⑫ 只重建 val | **6,225 对象**（远景 893）/ 144 s / **220.8 MB**；`placement_val.jsonl` **7,645** 行；`rooms` **11/1499**；`int_decal` **32 件** |
+| UV 招牌 A/B | `Source\_scratch\uv_ab.png`：旧口径乱码 → 翻 V 后 **`SMITHFIELDS`** 正立 |
+| 批 56 张 | 后台运行，日志 `D:\BrainMaker\大镖客2解包分析\_logs\build_all_v24b.log`（2026-11-05 13:40 起，含 alpha 修复 + fragslod 规则） |
+
+**踩到并已写进上面步骤的两个顺序坑**：
+1. `--keep lod,terrain_lod` 经 `cmd /c` 逗号会被当分隔符 → 用两个 `--keep`；
+2. 旧 `lod_split_parts.json` 还在时先跑第一遍 `build_lod_groups`，会把 5 个父块直接替换成部件，
+   ⑦ 就 `待拆整块 0 个` → 第一遍必须 `--parts ""`。
+
+### 4. 2026-11-05 · 贴图 alpha 全量修复（UV 之后的第二个全局问题）
+
+**根因**：模型库是 2026-10-28 建的，当时贴图池/索引与现在不同 → 一批「源格式 DXT5/BC7（有 alpha）」
+的贴图被导出成了 **RGB**。材质在创建时按 PNG 判断 alpha，于是透明背景被画成实心片
+（招牌上的灰方块、树冠卡片、道路污渍片）。
+
+**全量普查（39,827 张库贴图）**：
+
+| 状态 | 数量 |
+|---|---:|
+| RGBA 正常 | 21,193 |
+| RGB + 源格式无 alpha（正常） | 16,023 |
+| **RGB + 源可带 alpha（丢了）** | **2,611** |
+| └ 解出来确实有透明、已补写 | **1,782** |
+
+**使用面（56 张场景 / 206,790 个对象）**：**12,668 个对象**用到过丢 alpha 的贴图。
+按类：`road 350/781 = 44.8%` · `veg 3,863/11,820 = 32.7%` · `underground 2,205/7,776` ·
+`bldg 1,319/4,814` · `decal 469/2,882 = 16.3%` · `rail_decal 47/490`。
+
+**已做**：
+
+1. `tools/refill_lib_tex_alpha.py`（新）—— 逐张重解码、补写 1,782 张；幂等，`--dry` 可统计。
+2. `continent_lod_split_v24.blend` 重挂材质（2,512 网格 / 3,225 槽），远景碎片也吃 alpha。
+3. `relink_materials.py` 补 `i_<hash>` 兜底（室内件原来没有 `hash` 属性，重挂不到）。
+4. `region_corrections.csv` 第 341 行：`^e_` + `_slod|fragslod|_dslod` 贴图 → `lod`。
+   （AND 修正后暴露的副作用：以前所有 `e_*` 被误判 veg 隐藏，修正后无真名的那批落回 unknown 可见；
+   这条把其中「碎片 LOD」重新收进隐藏类。v23 名字上命中 3,740 / 改变 3,478。）
+
+**val 验证（2026-11-05 13:30 重建）**：招牌 `SALOON`/`MEALS`/`CLOSED` 清晰、灰方块消失；
+decal/road/rail_decal 里「丢 alpha」的对象 **归零**；碎片 LOD 灰块消失。
+
+**仍是已知缺口（不是 alpha）**：少数道具模型本身没有 albedo（`models[h].s[0][0] == -1`，
+如 `p_group_valcrates02` 的 `p_group_valcrates02_ab` 没被抽出）→ 暖灰材质。属「缺贴图」清单。
+
+### 4b. 2026-11-05 · 无贴图模型通用材质 + 高度图贴花（alpha 之后的第三/第四件事）
+
+**① 无贴图模型：按类别给「通用材质」，不再是纯色平涂**
+
+- 规模：全 56 场景 **19,872 个对象 / 1,999 个模型**整个模型没有 albedo（室内 4,765 对象 / 724 模型）。
+- 做法：
+  - `tools/ntex_palette.py` 判定**类别**（木/金属/布/纸/玻璃/食物/绳/皮革/陶/石/土/水/植被）+ 金属度/粗糙度/贴图尺度；
+  - `tools/ntex_materials.py`（新）给每类挑一张**库内真实贴图**（木类 = `abe_woodbeam01_ab` 等），
+    用 **Box 投影**（Object 坐标）铺开；金属类 metallic=0.85；取不到贴图才退回纯色；
+  - `blender_continent._ntex_generic()` 在 `_mat_for()` 三张图全缺时调用；
+    `load_model_mesh(..., name_hint=模型名)` 传名，室内（`scene_interiors.py`）也传。
+- 🔴 **关键坑**：`.mdl` 的 texId 是 **u32**，缺失值是 **`0xFFFFFFFF` 不是 -1**。
+  原来只判 `< 0` → 全部缺失件都被当成"有效 texId"，通用材质根本没生效（2026-11-05 实测）。
+  已在 `_mat_for` 里把 `0xFFFFFFFF` 归一成 -1。
+- 验证：val 里 `i_28bbc12d`（`p_table_cs34_sml` 桌子）材质 = `ntex_wood`，带真实木纹（不是平涂）。
+
+**② 高度图贴花：alpha 是脚印遮罩，不能当颜色、也不能一藏了之**
+
+- `l_09_heighttracks_decals01/02/03`、`p_14_02_track_dec_01/02/03`（val 3 / cal 3 / sdn 1）的 albedo 槽
+  放的是**高度图**（`*_height_*`，RGB = (R,255,255)）：
+  - RGB 当颜色 = **青色脚印**；
+  - **alpha 通道才是脚印遮罩**（黑底 + 灰色脚印，实测均值 3/255、最大 137/255）；
+  - R 通道是高度（背景恒定值，脚印处凹陷）。
+- 做法：`mat_rdr2.make_height_decal()`（`get_or_make` 里按贴图名 `_height_` 分流）：
+  深泥色底 + **alpha×4 当透明度** + R 经 ColorRamp 做明暗起伏 → 深色泥脚印，不再是青色。
+- 🔴 另一个坑：这些贴花的数据 z 来自游戏，和 H4 地形差 1~2 m——不贴地会**浮在地面上被阳光照亮**
+  （看成浅色印子）。`blender_continent.build_entities()` 里对高度图贴花 + muddyroad 贴花
+  **逐顶点**贴到 `ground_z(x,y)+0.05`（抬 5 cm 防 z-fighting），不再只是中心点贴地。
+- 验证：val 路面出现**深色泥脚印**，无青色；`_check_rules.py` PASS（纠错表里原先那条
+  `height→placeholder` 已删除，不再隐藏）。
+
+**③ 模型里「部分子网格没贴图」= 外壳/背板 → 真透明**
+
+- 典型：`val_03_jail_ext` 第 15 槽（1,988 面，盖住砖墙）、`val_freightstn` 第 16 槽（3,336 面，屋顶外壳）。
+- 做法：`_mat_for()` 发现「模型里其它子网格有贴图、唯独这块没有」→ 用 `invisible_shell`（Transparent BSDF）。
+- 🔴 **必须设混合模式**：`surface_render_method='BLENDED'` + `blend_method='BLEND'`。
+  只挂 Transparent BSDF 不设混合模式，EEVEE 按不透明渲染 = **纯黑**（用户 2026-11-05 看到屋顶黑块，
+  误以为"透明会漏"，实际是黑材质；改正后屋顶完整、监狱外壳透明露出砖墙）。
+- 整模型全缺贴图才走通用材质（`ntex_palette`/`ntex_materials`），部分缺不套通用色。
+
+### 5. 跑完的验收判据（缺一不可）
 
 1. `lod_groups.json` 里 `S_val_瓦伦丁` 的 `count` 明显变大（应含 `val_02_slod` … `val_07_slod`）；
 2. `val.blend` 里远景能看到成片街区（对照图 `deliverable/blender/continent/shots/val_lod_before_after.png`）；
@@ -188,28 +285,64 @@ UV 在 2026-11-01 建库时就烘死了，**重跑场景修不到**。（室内�
 
 ---
 
-## 🔴 2026-11-05 · 待查：街上的杂物比游戏里多（数据缺字段，不是渲染问题）
+## 🔴 2026-11-05 · 待查：街上的杂物比游戏里多（**已定位到"多的是哪一层"**）
 
-**实测（`deliverable/blender/scenes/placement_val.jsonl`，7,645 个对象）**
+> 用户点名的样本：`p_barrel_cor01x` 在 blend 里出现在瓦伦丁酒馆前，但游戏里走过去看不到。
 
-| 项 | 数字 |
+### 1. 先排除"数据造假"：我们的实例表是忠实拷贝
+
+| 对账 | 结果 |
 |---|---|
-| 小件合计 | **5,320**（`part` 2,608 · `prop` 2,168 · `junk` 398 · `veh` 62 · `decal` 84），占 70%；`bldg` 只有 123 |
-| 名字含 crate / barrel / debris / wagon | 287 / 209 / 196 / 61 |
-| **破损版叠在完好版上** | 名字以 `_dmg` 结尾 **50 件**，其中 **45 件与完好版距离 0.0~0.1 m**（`p_lampexterior01x` 4 件全压在同一点） |
-| 室内包 | 11 个室内包 / 1,499 个室内件（`int_pkg` 非空） |
+| `town_data/val.js` vs `jklm_7_10_area_lod_combine_metadata/val_*.ymap` | **2,263 : 2,263**，同名同位置 **<0.5 m 的 1,832 条、对不上 0 条**（另 431 条是 names.txt 查不到的哈希） |
 
-**根因（已定位到数据层）**：ymap 实体结构 144 B 里 **`+72 u32 flags`、`+76 f32 lodDist`** 是存在的
-（`docs/格式与资产/RDR2_ymap实体变换解析.md` 逐字节核过），但我们的实例表来自
-`export/levels/world/town_data/val.js`，**只有 16 个字段，flags / lodDist / lodLevel / priorityLevel 一个都没存**
-⇒ 现在**没有任何字段**能表达"这件在游戏里默认不显示 / 只在大约 X 米内显示"。
+⇒ 不存在"我们多编了实体"。
 
-**下一步（只读，先量后修）**
+### 2. 真正多出来的是**另一层 ymap**
 
-1. 写 `tools/probe_ymap_flags.py`：解析瓦伦丁的 ymap 实体块，导出 `hash → flags / lodDist` 对照表；
-2. 拿**同一坐标的桶 vs 房子**做对照，确认哪个 bit / 哪个距离阈表示"默认不显示"——**光知道字段在哪不等于知道语义**（现有样例 `flags=3`、`lodDist=70.0` 是房子，不是桶）；
-3. 确认后再决定要不要回填进 `town_data` 管线；
-4. **`_dmg` 去重**可以先做，不依赖 flags：同坐标 ±0.5 m 内、`_dmg` 与完好版二选一（默认留完好版）。
+瓦伦丁能走范围 P 内，按来源拆开：
+
+| 来源 | 实体 | 文件 |
+|---|---:|---:|
+| `val_*.ymap`（城镇常驻层，= `val.js` 的全部来源） | **2,263** | 43 |
+| **哈希命名 ymap**（`0x3B8F523D.ymap` 这种） | **1,617** | 110 |
+
+- 那 110 个文件里 **87 个文件 ≤10 个实体**（合计 240 个）——是**小规模布景/条件加载**的样子；
+- 我们的 `build_continent_index.py` 把 `town_data/*.js`（`_misc.js` 等）**全量平铺合并**，游戏是**按 ymap 为单位加载**的。
+
+### 3. 用户点名的那个桶，出处已查实
+
+- `0x3B8F523D.ymap` **整个文件只有 6 个实体**：`p_cart01x` ×1 + `p_barrel_cor01x` ×4（+1），
+  坐标 `(-310.0, 792.8)` 与我们的实例**逐位相同**；
+- 同簇还有 `p_woodramp01x` / `p_dollynbx01x` / `p_cask01x` / `p_cratecover07x`（来自 `0x79A4CBF8` / `0x7CE0F18D`）；
+- 位置关系：**酒馆 `val_03_saloon_ext` 在它正北 14.8 m**，周围 3~4 m 内还有 3 台 `p_cart01x`
+  ⇒ 这是一个**装卸角/后院布景**，不是街面散件。
+- 结论：桶在游戏数据里**确实存在**（不是我们摆错），但它在**独立的小 ymap** 里，
+  与我们当常驻画出来是两回事。**"游戏里看不看得到"取决于这层 ymap 是否被加载**，这一条需实机对照才能定论。
+
+### 4. 🔴 更正旧说法：`+72` **不是 flags**
+
+| 字段 | 实测 |
+|---|---|
+| `+72` u32 | 同一个 `0x7CE0F18D.ymap` 里是 **1,2,3,…,11 的连续编号**，其余大量 `0xFFFFFFFF`；names.txt 里 **0/1305** 查得到 ⇒ 更像 **GUID / 序号**，不是可见性真值位 |
+| `+76` f32 | **`lodDist` 是真的**：瓦伦丁 1,593 条里 `-1`（不限）321 条，其余 19/30/40/50/60/70/80/90/114/120/200 各有几十上百 |
+
+⇒ `docs/格式与资产/RDR2_ymap实体变换解析.md` 里「+72 u32 flags」需按此更正
+（那篇的样例 `flags=3` 也是同一类小整数）。
+**"隐藏 visible 属性"这个假设目前没有证据**——别再按它写代码。
+
+### 5. 下一步（只读先量，别急着改管线）
+
+1. 统计 56 张场景各有多少实体来自「哈希命名 ymap」——定量它对"杂物感"的贡献；
+2. 判据：这些小 ymap 是不是**条件加载**（剧情态/场景布置）。可选证据 = 实机对照同坐标是否常驻，
+   或从 `.ymf`/脚本里找加载引用；**在拿到证据之前不要按"隐藏"逻辑删东西**；
+3. **`lodDist` 可以直接接进管线**（每实体一个丢弃距离）——它不依赖任何未验证假设，
+   而且顺带省面数；
+4. **`_dmg` 去重**可以先做：名字以 `_dmg` 结尾的 **50 件里有 45 件与完好版距离 0.0~0.1 m**
+   （`p_lampexterior01x` 4 件全压在同一点），同坐标二选一（默认留完好版）。
+
+**既有实测（`placement_val.jsonl`，7,645 个对象）**：小件合计 **5,320**
+（`part` 2,608 · `prop` 2,168 · `junk` 398 · `veh` 62 · `decal` 84），占 70%，`bldg` 仅 123；
+名字含 crate / barrel / debris / wagon = 287 / 209 / 196 / 61；室内 11 包 / 1,499 件。
 
 ---
 

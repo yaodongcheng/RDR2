@@ -78,6 +78,15 @@ def main():
       continue
     hx = ob.get('hash')
     if not hx:
+      # 室内件没有 hash 属性，名字是 `i_<8位hex>`（scene_interiors.py 建的）。
+      # 2026-11-05：补这条兜底，否则室内贴花/贴图永远重挂不到（alpha 修复会漏掉它们）。
+      nm = ob.name or ''
+      if nm.startswith('i_') and len(nm) >= 10:
+        try:
+          hx = '0x%08x' % int(nm[2:10], 16)
+        except ValueError:
+          hx = None
+    if not hx:
       miss_hash += 1
       continue
     e = models.get(hx)
