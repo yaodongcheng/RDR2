@@ -120,7 +120,10 @@ def main():
         ents = lay['entities'] if isinstance(lay, dict) else lay
         n_pkg = 0
         for e in ents:
-            hx = hex(e['h'])
+            # 🔴 必须补零成 0x%08x（模型库的键是 8 位）；用 hex() 会把 0x00418731 写成
+            # `0x418731` 查不到 ⇒ 静默丢掉。实测室内 2,597/47,791 件哈希带前导零、
+            # 其中 2,495 个模型在库里（最高原则 §6.4）。
+            hx = '0x%08x' % e['h']
             m = models.get(hx)
             if not m:
                 continue

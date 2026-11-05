@@ -58,6 +58,7 @@ GEOM_SKIP = re.compile(
 from class_rules import (  # noqa: E402
     RULES, LEFTOVER, PLANT, ALL_CLASSES,
     classify_name, apply_hard_rules, load_corrections, apply_corrections,
+    apply_texture_lod,
 )
 
 # 默认隐藏的类（对应"归类不搬走、整类藏起来"的规范）
@@ -278,6 +279,9 @@ def main():
             if ab:
                 tex_names.append(ab)
         k = apply_corrections(k, n, tex_names, overrides)
+        # 🔴 名字表查不到名字 ⇒ unknown，但贴图名带 `_lod` ⇒ 其实是远景 LOD 分身
+        #（瓦伦丁 `e_f005a86d` 压在 `val_01_aucbarns_barn3` 屋顶上，就是那块污渍）
+        k = apply_texture_lod(k, tex_names)
         k = apply_hard_rules(k, n)
         buckets[k].append(o)
         if k == 'unknown':

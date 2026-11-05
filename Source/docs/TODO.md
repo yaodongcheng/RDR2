@@ -17,14 +17,18 @@
 | 实例四元数不取共轭 | `scene_interiors.py` / `instantiate_interiors.py` / `audit_interior_placement.py` / `merge_interior.py` / `merge_interior_into_willard.py`（5 处） | 室内壳墙向 −6.5° → **3°**（外壳 4°） |
 | willard 脚本去掉"硬掰 yaw + 居中" | `merge_interior_into_willard.py` 末尾改成**只测量不执行** | 根因修了还留着 = 错两次 |
 | 宿主判据：小道具/地形块/电缆不能当宿主 | `audit_interior_placement.py` 新增 `_PROP_NAME` + `_BAD_NAME` 补 `_dcl` | 非建筑宿主 **77 → 6**；`inside=True` 仍 179（覆盖无损） |
-| 阴影/反射代理件单独一类、默认隐藏 | `scene_interiors.py` 新增 `C_int_shadow_室内阴影代理` | 全量 **326 件**（命名有 18 种变体，`_shadowproxy` / `_ref_proxy` / `_shdw_prxy` …）；`i_c8490458` = `val_stable_int_shadow`、`i_a6cc1063` = `val_saloon_int_shadowproxy` 都是用户看到的那块"墙" |
+| 阴影/反射代理件单独成类 `int_proxy`、默认隐藏 | `class_rules.py`（登记类）+ `scene_interiors.py`（判定） | 全量 **326 件**（命名 18 种变体：`_shadowproxy` / `_ref_proxy` / `_shdw_prxy` …）；面板里是独立一栏「室内阴影代理」 |
+| 🔴 **哈希没补零 ⇒ 室内件被静默丢掉** | `scene_interiors.py` / `instantiate_interiors.py` 改 `hx = '0x%08x' % e['h']` | 全量 **2,495 个模型**因此从未出现（占室内件 5.4%）；瓦伦丁 **+73 件** |
+| 🔴 **名字查不到的 LOD 分身压在 HD 上** | `class_rules.apply_texture_lod()` + `classify_entities.py` 一行 | 瓦伦丁 `unknown` **607 → 85**；屋顶暗斑消失（谷仓 `e_f005a86d` 归 `lod`） |
+| **建筑贴花单独成类 `bldg_decal`** | `class_rules.py`（规则排在 `bldg` 之前）+ 四处类登记 | 瓦伦丁 **27 件**默认隐藏（`bldg` 123→113）；银行屋顶"花斑"消失（`val_bank_dcl01`） |
 
 > 🔴 **顺带否掉一个旧方向**：README §0.8.3 / 本文件旧版说"缺一层 CMloArchetypeDef rooms/portals 变换"——
 > **不存在**。CodeWalker 的 `CMloArchetypeDef` 只有 flags + 数组，room 只有 bbox，没有任何变换字段。
 > 别再往那个方向查。细节见 `docs/AGENTS.md` **§6.14 / §6.15**。
 
-**已验收**（`val.blend` 17:25 重跑）：室内壳 3° vs 外壳 4°；四边间隙 W+0.67 E+0.99 S+0.81 N+5.66 全为正；
-日志 `[int] 其阴影代理壳 2 件 →「室内阴影代理」类`；`scene_build_status.csv` = `done/ok`。
+**已验收**（`val.blend` 17:50 重跑）：室内壳 3° vs 外壳 4°；四边间隙 W+0.67 E+0.99 S+0.81 N+5.66 全为正；
+室内 **12 包 / 1,632 件**（旧 1,559，补零修复 +73）· `int_decal` 34 · **`int_proxy` 20**；
+`i_a6cc1063` = `val_saloon_int_shadowproxy` 已归 `int_proxy`、视层隐藏；`scene_build_status.csv` = `done/ok`。
 
 **要做**：
 ```powershell
@@ -146,7 +150,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_uv_flip.log
 | ⑫ 只重建 val | **6,225 对象**（远景 893）/ 144 s / **220.8 MB**；`placement_val.jsonl` **7,645** 行；`rooms` **11/1499**；`int_decal` **32 件** |
 | UV 招牌 A/B | `Source\_scratch\uv_ab.png`：旧口径乱码 → 翻 V 后 **`SMITHFIELDS`** 正立 |
 | 批 56 张 | 后台运行，日志 `D:\BrainMaker\大镖客2解包分析\_logs\build_all_v24b.log`（2026-11-05 13:40 起，含 alpha 修复 + fragslod 规则） |
-| ⑬ 只重建 val（**室内修复之后**） | 6,225 对象（远景 893）/ 165 s / **222.3 MB**；`rooms` **12/1559**（旧 11/1499，宿主判据变了）；`int_decal` 32 · **`int_proxy` 2**；`done/ok` |
+| ⑬ 只重建 val（**室内修复之后**） | 6,225 对象（远景 893）/ 156 s / **224.7 MB**；`rooms` **12/1632**（旧 11/1499）；`int_decal` 34 · **`int_proxy` 20**；`done/ok` |
 
 **踩到并已写进上面步骤的两个顺序坑**：
 1. `--keep lod,terrain_lod` 经 `cmd /c` 逗号会被当分隔符 → 用两个 `--keep`；

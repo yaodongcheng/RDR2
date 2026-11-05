@@ -61,7 +61,7 @@ DECAL_TEX = re.compile(r'(_dc_|decal|holepatch|drip|stain)', re.I)
 #   `_refproxy` · `_reflection_proxy` · `_refln_proxy` · `_refle_proxy` · `rfle_proxy` ·
 #   `_proxy` · `_shadowbox` ……  全量 251 个室内包里共 **326 件**。
 # 判据见 `最高原则` §6.1：`*_proxy*` / 占位代理一律进默认隐藏类。
-COL_PROXY = 'C_int_shadow_室内阴影代理'
+COL_PROXY = 'C_int_proxy_室内阴影代理'
 PROXY_NAME = re.compile(r'(proxy|shadow|shdw|shd_|shad_)', re.I)
 
 _NAMES = None
@@ -240,7 +240,10 @@ def build(scene, save=True, verbose=True):
 
         n_pkg = 0
         for e in ents:
-            hx = hex(e['h'])
+            # 🔴 必须补零成 0x%08x：模型库的键是 8 位。用 hex() 时 0x00418731 会变成
+            # `0x418731`，查不到 ⇒ 静默丢掉。实测室内件里 **2,597 / 47,791** 的哈希有前导零，
+            # 其中 **2,495 个模型其实在库里**（家具/门/碎石堆…），一直被吞（最高原则 §6.4）。
+            hx = '0x%08x' % e['h']
             m = models.get(hx)
             if not m:
                 continue

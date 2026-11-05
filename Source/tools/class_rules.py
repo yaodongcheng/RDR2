@@ -25,7 +25,8 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 # 类表（顺序只影响报告打印；判定优先级看 RULES）
 CLASSES = (
     'lod', 'lod_out', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
-    'rail', 'rail_decal', 'struct', 'road', 'track_decal', 'ruin', 'decal', 'int_decal',
+    'rail', 'rail_decal', 'struct', 'road', 'track_decal', 'ruin', 'decal', 'bldg_decal',
+    'int_decal', 'int_proxy',
     'veg', 'stone', 'rock',
     'veh', 'bldg', 'part', 'junk', 'prop', 'unknown',
 )
@@ -34,9 +35,13 @@ CLASSES = (
 # int_decal = 室内地面贴花（2026-11-05 用户裁定：和室外 decal 分开）。
 # 判定不走名字（室内件全是 i_<hash>），由 scene_interiors.py 按模型贴图名现场判；
 # 当前贴图 alpha 还没接，会画成实心片 ⇒ 默认隐藏，面板可单独勾开。
+# int_proxy = 室内阴影 / 反射代理（2026-11-05 用户裁定：单独成类，别混进「室内」）。
+# 同样判不出名字，由 scene_interiors.py 按**模型名**判（proxy/shadow/shdw/shd_/shad_ 一整族，
+# 全量 326 件）；它们只参与投影与镜面，摆出来就是盖在屋顶/墙上的一块空壳。
 # track_decal = 脚印车辙（高度图贴花，2026-11-05 用户裁定：和 road 路面贴花分开）。
 DEFAULT_HIDDEN = ('lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile',
-                  'placeholder', 'veg', 'stone', 'road', 'track_decal', 'int_decal')
+                  'placeholder', 'veg', 'stone', 'road', 'track_decal', 'int_decal', 'int_proxy',
+                  'bldg_decal')
 
 # 技术类：内容纠错不覆盖（junc 硬规则除外）
 TECHNICAL = ('lod', 'underground')
@@ -49,6 +54,10 @@ RUIN = re.compile(r'ruin', re.I)
 
 # 盆栽/花艺：跳过 veg 与 bldg/part（它们是道具）
 PLANT = re.compile(r'plantpot|p_pot_|flowerarng|planter', re.I)
+
+# 建筑贴花里混着**地面**类写法（车辙 `_mudtrack_dcl` / 踏板 `_footboards_dcl` / 路面）：
+# 这些仍归「地面贴花」。命中此表的 `_dcl` 跳过 bldg_decal，落回 LEFTOVER 的 decal。
+BLDG_DECAL_GROUND = re.compile(r'mud|track|foot|road|street|path|ground|puddle|skid|sidewalk', re.I)
 
 # ── 主规则表（书写顺序 = 优先级）─────────────────────────────────────
 RULES = [
@@ -108,6 +117,13 @@ RULES = [
         r'p_train_|trolley|handcar|barge|raft|stagecoach|hull(?!.*_doors)|canetrain|coupler', re.I)),
     # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
     ('prop', '道具', re.compile(r'_em$', re.I)),
+    # 2026-11-05 用户裁定：**建筑贴花**单独成类，和「地面贴花」分开。
+    # `<名>_dcl` / `_dcls` = 贴在建筑**墙面/屋顶**上的污垢层（实测瓦伦丁银行
+    # `val_bank_dcl01`：材质 mud_floor / mudgrime / grimewall / dirt_grunge_drip，包住整栋 13.8×25.9×6.4 m）。
+    # 原先 `_dcl` 只在 LEFTOVER 兜底里认 ⇒ 名字带 bank / shed / stable 的会先被 `bldg` 抢走，
+    # 结果污垢层跟着建筑一起显示（屋顶"花斑"）。
+    # 地面类的（车辙/踏板/路面）仍归「地面贴花」—— 守卫见 classify_name 里的 BLDG_DECAL_GROUND。
+    ('bldg_decal', '建筑贴花', re.compile(r'_dcls?(?=\d|_|$)', re.I)),
     ('bldg', '建筑', re.compile(
         r'(?<!arch)_ext(?=_|$)|bldg|building|church|chapel|saloon|store|shop|bank|hotel|barn|shed|cabin|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
@@ -180,6 +196,10 @@ ALL_CLASSES.append(('lod_out', '远景碎片·区外'))
 # 2026-11-05：室内地面贴花。名字规则判不出（室内件全是 i_<hash>），
 # 由 scene_interiors.py 按模型贴图名判定后直接写 cls_key，这里只登记类名。
 ALL_CLASSES.append(('int_decal', '室内地面贴花'))
+# 2026-11-05：建筑贴花（墙面/屋顶的污垢层）。名字规则能判（`_dcl`），但必须排在 bldg 之前。
+ALL_CLASSES.append(('bldg_decal', '建筑贴花'))
+# 2026-11-05：室内阴影 / 反射代理。同样名字规则判不出，由 scene_interiors.py 按模型名直接写 cls_key。
+ALL_CLASSES.append(('int_proxy', '室内阴影代理'))
 # 2026-11-05：泥地脚印/车辙（高度图贴花）。由纠错表按「名字 + _height_ 贴图」判定，
 # 和 road（路面贴花，如 val_03_road_d_19）分开开关。
 ALL_CLASSES.append(('track_decal', '脚印车辙'))
@@ -195,6 +215,8 @@ def classify_name(name):
         if key == 'veg' and VEG_EXCLUDE.search(b):
             continue
         if key in ('bldg', 'part') and PLANT.search(b):
+            continue
+        if key == 'bldg_decal' and BLDG_DECAL_GROUND.search(b):
             continue
         if rx.search(b):
             return key
@@ -236,6 +258,24 @@ def load_corrections(path):
                     (row.get('reason') or '').strip()))
     print('[rules] 纠错清单 %d 条：%s' % (len(out), p))
     return out
+
+
+# 🔴 2026-11-05：远景 LOD 的**贴图兜底**。名字表（names.txt）里查不到名字的实例会被判成
+# `unknown` ⇒ 可见 ⇒ 压在 HD 本体上。实测瓦伦丁谷仓：`e_f005a86d`（0xf005a86d 不在名字表里）
+# 的包围盒与 `val_01_aucbarns_barn3` 几乎完全重合，屋顶因此多一块深色斑；
+# 而它的材质名 `alb_val_barn3_lod_ab` 是铁证。全量：瓦伦丁 607 个 unknown 里 **517 个**材质名带 `_lod`。
+# 复用 `lod` 那条名字正则去匹配贴图名，**只在已经判成 unknown 时才兜**（不覆盖已正确分类的件）。
+LOD_RX = next(rx for _k, _zh, rx in RULES if _k == 'lod')
+
+
+def apply_texture_lod(k, tex_names):
+    """已经是 `unknown` 的件，再看贴图名像不像远景 LOD；像就归 `lod`（默认隐藏）。"""
+    if k != 'unknown':
+        return k
+    for t in (tex_names or ()):
+        if t and LOD_RX.search(t):
+            return 'lod'
+    return k
 
 
 def apply_corrections(k, name, tex_names, corrections, verbose=True):
