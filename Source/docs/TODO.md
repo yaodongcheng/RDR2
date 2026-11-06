@@ -1,7 +1,53 @@
 # TODO —— 交接版（2026-11-05）
 
-> 交接阅读顺序：1) 本文（最上面是**当前状态**：2026-11-06 分类修复已落地，**逐张重建验收中**（不跑全量）；其下是 2026-11-05 全量执行结果）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**；室内看 **§6.14 / §6.15**，地形看 **§6.20**）4) `docs/交接与状态/README_交接.md`（历史）。
+> 交接阅读顺序：1) 本文（**先读最上面「2026-11-06 本轮总结：坑点清单 + 场景状态 + 待办」**；其下是历史记录）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**；室内看 **§6.14 / §6.14b / §6.15 / §6.23**，地形看 **§6.20**）4) `docs/交接与状态/README_交接.md`（历史）。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
+
+---
+
+## 🔴 2026-11-06 · 本轮总结：坑点清单 + 场景状态 + 待办
+
+> **交接先读这一节。** 细则在 `docs/AGENTS.md` §6.14b / §6.23 与 `docs/格式与资产/分类体系与判定规则.md`。
+
+### 一、必读坑点（按"再犯就白干"排序）
+
+1. **室内定位不要用模型库 bbox** —— 库 bbox 与真实网格差 1.4 m（`rho_04_bkdoorshut` 库 10.8×10.5 vs 实际 7.4×7.3）。一律用场景对象的**真实网格顶点**（`matrix_basis @ v.co`）；`bound_box` / `matrix_world` 在隐藏集合里是陈旧的。
+2. **L 形墙带不能用 bbox 居中** —— 用**面积重合率最大**的网格搜索（真实点掩膜；墙权重 10、建筑 1）。实现 `scene_interiors._overlap_shift()`。
+3. **竖直不要用 bbox z / 墙的 z** —— 用 **z 直方图主水平面（固定 1~1.5 m 窗口）**：房间**地板面** ↔ 建筑**地板面**；顶超屋顶主平面只打 WARNING，**禁止"顶对齐"硬压**（会陷地，实测差 0.77 m）。
+4. **只有 `_lod` 的 MLO 包，朝向/高度/位置全不可信** —— 朝向用下半截墙向（排除外扩屋檐），位置用覆盖面积最优，竖直用主水平面；全量仅 2 个包（`rho_fenceshop_int` 已修，`cor_factb_int` 无外壳保持原样）。
+5. **实例查找唯一口径** —— `parse_interior_mlo.find_mlo_instance()`（精确 → `_main` → `_lod`），构建/审计/体检三处共调；闸门 `_check_mlo_lookup.py` 已接进 `build_scenes.py`（含反向测试）。
+6. **街面/地面贴花也要逐顶点贴地** —— 类 ∈ road/decal/track_decal + 薄 ≤2.5 m + 水平 + 离地 ≤2 m；采样用**双线性** `ground_z_surface`（不是最近邻）且**带对象实际旋转**（`ob.rotation_quaternion`，含 conj 口径）。实测 `bla_street_a` 21.8% 顶点埋地。
+7. **分类后缀 ≠ 类** —— `_dc` / `_dec` / `_det_dec` 必须「后缀 + 贴图证据（albedo 半数以上是污渍）」；`_dcl` 才走纯名字。反向例 `her_01_shack_01_dc` 是真建筑。
+8. **裸词/宽前缀会抢建筑** —— `p_`（地形补片 `p_08_ftr_*`）、`post`（tradingpost）、`wagon`（wagonhse）、`hse` 缩写、`apartment` / `residence` / `townhall` / `boiler` 缺词。补词必须带守卫 + 反向用例。
+9. **ALL_CLASSES 重复登记 → 面板 `.001` 两栏** —— 手工登类走 `_append_class()`；`_check_rules` 查重复；建树再兜底。
+10. **用户裁定：不准删网格** —— layout 白模、灯光占位、反射代理一律「归类 + 默认隐藏」。`layout` 单独成类；灯光与裸 `_ref` 并入 `int_proxy`（不新开分类）。
+11. **坐标系**：宿主 bbox 是世界坐标、场景对象是局部坐标（x/y 减场景中心）；混用会差出 +1217 m。
+12. **渲染探针**：workbench 不吃 `film_transparent`（背景是 196 灰）；两遍渲染必须隐藏**其他所有物体**；俯视 camera rotation(0,0,0) ⇒ **屏幕右 = +X、屏幕上 = +Y**（用户说"左上" = −X / +Y）。跟用户沟通**一律用轴名**，不用"左右"。
+13. **判据不收敛就换判据** —— 本轮在 bbox → 真实网格 → 面积重合 → 主水平面之间换了 4 次；连续两轮微调仍不对，说明判据本身错了，停下换判据，别再打补丁。
+
+### 二、场景状态（blend 时间戳，2026-11-06 16:10）
+
+| 场景 | 最后重建 | 已吃到 | 还缺 |
+|---|---|---|---|
+| `rho` | 16:06 | **全部**（面积重合 + 主水平面 + `_ref` 代理） | — |
+| `sdn` | 13:05 | 布局/贴花/街面/锅炉 | 灯光代理、裸 `_ref`、主水平面竖直 |
+| `van` | 12:38 | 新分类词（apartment/tradingpost/wagonhse/townhall/hse） | 灯光代理、裸 `_ref`、主水平面 |
+| `ann` | 11:23 | 布局/贴花/街面/ftr | apartment/hse/townhall/boiler、灯光、`_ref`、主水平面 |
+| `bla` | 11:22 | 同上 | 同上 |
+| `val` | 10:39 | 布局/贴花/MLO 修复 | **街面贴地**、ftr、新分类词、灯光、`_ref`、主水平面 |
+| 其余 50 张 | **11-05 23:24** | 旧规则 | **今天全部修复** |
+
+### 三、待办
+
+1. **重建**：按「逐张验」走法建议顺序 = `val`（补街面贴地）→ `bla` / `ann`（补 `_ref` / 新分类）→ `sdn` / `van`（补 `_ref` / 灯光 / 主水平面）→ 其余 50 张。
+   或直接全量 `python -X utf8 tools\build_scenes.py --force`（56 张 ≈ 1 小时），跑完用 `scene_build_status.csv` + 对账表抽查。
+2. **未覆盖**：`cor_factb_int` 找不到外壳（保持原样）；`str` / `wild_03` 的 `residence` / `abtradingpost` 只有重建才生效。
+3. **闸门**（构建自动跑）：`check_scene_terrain` / `check_uv_v_convention` / `_check_mlo_lookup`（含反向）/ 分类开关单测 / 远景裁剪单测；改规则后另跑 `_check_rules.py`（97 条用例）。
+4. **可选**：给 `_overlap_shift` 加单元测试（固定掩膜断言最优位移 `(-0.20, -1.00)`），目前只有构建日志与渲染证据。
+
+### 四、本轮改动文件
+
+`tools/class_rules.py` · `tools/classify_entities.py` · `tools/scene_interiors.py` · `tools/blender_continent.py` · `tools/parse_interior_mlo.py` · `tools/audit_interior_placement.py` · `tools/_check_interior_align.py` · `tools/_check_rules.py` · `tools/_check_tour_vis_unit.py` · `tools/rules_cases.csv` · `tools/build_scenes.py` · **新增** `tools/_check_mlo_lookup.py` · `tools/mat_rdr2.py` · `docs/AGENTS.md`（§6.14b / §6.23）· `docs/格式与资产/分类体系与判定规则.md` · 本文件。
 
 ---
 
@@ -32,6 +78,14 @@
 **🔴 2026-11-06 用户实机抓到的第四个 bug：屋顶白板 `i_83445ac3` / `i_42319dbd`** —— 它们是 **MLO 布局白模**：`ann_setlrs_reg_int_beams`（`layout_floors`）和 `ann_setlrs_reg_int_shell`（`layout_walls/floors/ceiling`），是 Rockstar 地编布局用的占位白模。**用户裁定：不准删网格，只准分好类 + 默认隐藏。** 落地：① 新类 **`layout`（布局白模）**，默认隐藏；室内摆放把白模**摆进来**并归到 `C_layout_布局白模`（混血模型拆两件：真几何 `part` 可见 + 白模件 `layout` 隐藏，范本 `ann_setlrs_int_floor` → `i_f333d53c` + `i_f333d53c_lay`）；② 世界侧整件都是 `layout_*` 的模型由 `apply_texture_layout` 判成 `layout`（全图 5 个实例，含 `ann_04_players_int`）。`ann` 重建后：`C_layout_布局白模` 共 **11 件**（1 世界 + 10 室内）整类隐藏，白模对象都还在（没删）。`_check_rules.py` **PASS（61 条）**；`_check_tour_vis_unit.py` 的 SPECS 已补 `layout`。
 
 **🔴 2026-11-06 用户实机抓到的第五个 bug（最严重）：瓦伦丁银行室内转歪 ~100°** —— 根因 **`find_mlo()` 用「先撞到谁算谁」找 MLO 实例**：`val_bank_int` 的精确实例不在 tiles 里，先撞到 `val_bank_int_lod`（yaw **−100°**），正确实例是 `val_bank_int_main`（yaw **0°**）。`_check_interior_align.py` 一直用正确优先级（精确→`_main`→`_lod`），所以体检 PASS 而构建歪。**修法：唯一实现 = `parse_interior_mlo.find_mlo_instance()`（构建 / 审计 / 体检三处共调），并接闸门 `tools/_check_mlo_lookup.py`（`build_scenes.py` 开跑前跑，含反向测试）**；审计重跑 `inside` **210 → 211**（`rho_saloon_int` / `tax_house_int` 进，`sod_house_int` 出）。**全量 42 个 inside 包受影响，涉及 13 张场景**（val / sdn / bra / cal / che / lon / man / mic / pro / rho / str / van / bee）+ `sod`（审计变化）需重建；`ann` 不受影响。**`val` 已重建验证：`i_2b046e06` yaw 0.00°、包围盒落在 `val_bank` 内；构建日志 `[mlo] PASS`。** 细则见 `docs/AGENTS.md` **§6.14b**。
+
+**🔴 2026-11-06 用户实机抓到的第六个 bug：`bla_street_a` 被地形盖住** —— 街面（`road`）不在逐顶点贴地名单里，且贴地采样用最近邻（地形网格是 4 m 格点线性插值面）。实测 **21.8%** 顶点埋深 0.17 m（`bla_street_c_dec` 53.4%）。修法（`blender_continent.build_entities`）：① 贴地判据扩到 `road/decal/track_decal` + 薄（≤2.5 m）+ 水平 + 离地 ≤2 m；② 采样换 `ground_z_surface()`（双线性）；③ 采样必须带**对象实际旋转**（`bla_street_b_dec` 是 90° yaw）。结果：`bla_street_a` 21.8% → **0.0%**，`street_b` 0.9%（最深 0.034 m），`street_a_dec`/`street_c_dec`/`street_b_dec` 0.0%；`bla` 已重建。车辙脚印此前已处理（`make_height_decal` + 贴地），本次只是把同一套机制扩到街面/地面补片。细则见 `docs/AGENTS.md` **§6.23**。
+
+**🔴 2026-11-06 分类补词（用户实机：范霍恩/草莓镇/阿伯丁）** —— 三类误判：① `p_08_ftr_regular/endsum`（142×103 m 地形补片）被 `prop` 的裸 `p_` 抓成道具 → **`decal`**；② `van_horn_02_tradingpost`（21×17×11 m，22 子网格）被 `prop` 的裸 `post` 抓成道具、`van_horn_01_wagonhse01`（马车房）被 `veh` 的裸 `wagon` 抓成载具、`apartment` / `residence` 不在 `bldg` 词表 → **unknown**；③ 补 `bldg`：`apartment|residence|wagon_?hse|trading_?post`（避开 `_dec/_deck/_dr/_bull`），`veh` 的 `wagon` 加 `(?!_?hse)` 守卫。`_check_rules.py` **PASS（80 条，+12 条含反向）**。受影响场景：`van` / `str` / `wild_03`（重建后生效）。
+
+**🔴 2026-11-06 分类补词（第二轮，圣丹尼斯/罗兹）** —— ① `new_wrh_02_boiler`（14×29×34 m、16 子网格的锅炉房）不在 `bldg` 词表 → 加 `boiler(?=$)`（只认结尾；`p_boiler01x` / `agu_boiler_roof|walls` / `agu_boiler_refblocker` / 复数 `boilers` 均不受影响，用例已覆盖）；② 室内**灯光占位件**（`rho_sheriff_int_lights`：24 顶点、无贴图、材质 `ntex_default`）原来归 `part` 可见 → **并入已有的默认隐藏类 `int_proxy`**（`PROXY_NAME` 增加 `_lights`），**不新开分类**（用户裁定：复用已有室内功能代理类）。`_check_rules.py` **PASS（97 条）**。
+
+**🔴 2026-11-06 只差一步的包：`rho_fenceshop_int`（只有 `_lod` 实例）** —— 精确实例与 `_main` 都不在 tiles 里，只剩 LOD 代理；LOD 的**朝向（20° vs 外壳 0°）和高度（z 83.0）都不可信**，导致室内壳转歪 20°、顶部冒出建筑 1.5 m。修法：① 朝向改用同词干外壳实体（`rho_04_fenceshop_ext`）；② 摆完按外壳 bbox 做**竖直套合**（装得下贴地板，装不下居中）。**最终（用户 2026-11-06 验收）**：定位改成**面积重合率最大**求解器 —— 真实网格点掩膜直接网格搜索，目标 `10×墙覆盖率 + 1×建筑内比例`，实测位移 `(-0.20, -1.00)`、蓝墙几乎全被房间盖住。`rho` 重建后：`i_00407e57` yaw 0.00°、房间 bbox `x[95.26,103.28] y[109.48,117.54]`。全量只有 2 个包走这条路（另一个 `cor_factb_int` 找不到外壳，保持原样）。细则见 `docs/AGENTS.md` §6.14b。
 
 **实测（重建验证）**
 

@@ -60,3 +60,39 @@ ann_minedisposal03_d,nbx_overlays_plankends01_ab|railroad_cs_boltrust_ab,bldg_de
 ann_04_players_int,layout_walls|layout_floors|layout_ceiling,layout,整件 layout 白模 → 「布局白模」类（默认隐藏，不删网格）
 rho_sal_outhouseint,layout_walls|layout_floors|layout_ceiling|layout_props,layout,整件 layout 白模 → 「布局白模」类（默认隐藏，不删网格）
 ann_setlrs_int_floor,layout_floors|val_wt_wood_02_ab,unknown,反向：混血模型只丢白模子网格（室内侧），不能整件判成白模
+p_08_ftr_regular,,decal,地形补片（草/路/碎石 _abte）不是道具
+p_08_ftr_endsum,,decal,同上
+p_08_ftr_end_d00,,decal,薄地面补片（muddyroad）
+p_13_ftr_burnt,,decal,焦土补片
+p_13_ftr_p_13_bridge_left,,struct,反向：真桥仍是 struct（struct 规则在前）
+p_13_ftr_burnt_lod,,lod,反向：lod 先接走
+u_06_ftr_01,,unknown,反向：u_06_ftr 是真岩石，不许被 ftr 规则吃掉
+van_horn_01_apartment01,,bldg,apartment 不在词表 → 原来 unknown
+van_horn_01_apartment01_em,,prop,反向：_em 自发光窗仍是 prop
+str_01_residence03a,,bldg,residence 不在词表 → 原来 unknown
+str_01_residence03_dcl,,bldg_decal,反向：_dcl 仍是建筑贴花
+van_horn_01_wagonhse01,,bldg,马车房：裸 wagon 抢成了载具
+van_horn_01_wagonhse01_dcl,,bldg_decal,反向：_dcl 贴花层
+van_horn_01_wagonhse_em,,prop,反向：_em 窗片
+amb_bgv_wagon_cloth01x,,veh,反向：真马车仍是载具
+van_horn_02_tradingpost,,bldg,贸易站：裸 post 抢成了道具
+van_horn_02_tradingpost_dcl,,bldg_decal,反向：_dcl 贴花层
+aba_01_abtradingpost,,bldg,同族贸易站
+aba_01_abtradingpost_deck,,part,反向：甲板是部件
+van_horn_01_townhall,,bldg,市政厅：townhall 不在词表
+van_horn_01_townhall_em,,prop,反向：_em 窗片
+van_horn_01_smallhse01,,bldg,hse = house 缩写
+van_horn_01_smallhse01_decal,,decal,反向：_decal 仍是贴花
+van_horn_01_smallhse_em,,prop,反向：_em 窗片
+col_01_bunkhse,,bldg,bunkhse 宿舍
+str_03_mayorshse,,bldg,mayorshse 市长宅
+van_03_farmhse1,,bldg,farmhse 农舍
+van_03_farmhse1_veg01,,unknown,反向：农舍的植被附件不是房子
+bee_hse_int_bath_mirror,,unknown,反向：室内镜子不是房子
+van_horn_01_back,,bldg,纠错 #342：名字无关键词
+new_wrh_02_boiler,,bldg,仓库锅炉房（14×29×34 m、16 子网格）
+p_boiler01x,,prop,反向：锅炉道具
+agu_boiler_roof001,,part,反向：锅炉房屋顶是部件
+agu_boiler_walls002,,part,反向：墙体
+agu_boiler_refblocker_001,,unknown,反向：参考块
+dov_lab_boilers,,unknown,反向：复数 boilers 不误伤

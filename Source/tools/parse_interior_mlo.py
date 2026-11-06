@@ -119,14 +119,60 @@ def pick_instance(idx, pkg):
     return None
 
 
+def _stem_exterior(pkg, idx, inst, radius=100.0):
+    """同词干的外壳实体：`rho_fenceshop_int` → `rho_04_fenceshop_ext`。
+
+    只在「精确实例与 `_main` 都缺、只剩 `_lod`」时用（见 find_mlo_instance）。
+    排除贴花/LOD 变体；取离 LOD 位置最近的一个（≤ radius 米）。
+    """
+    if not pkg.endswith('_int'):
+        return None
+    stem = pkg[:-4].split('_')[-1].lower()
+    if len(stem) < 3:
+        return None
+    best = None
+    for name, e in idx.items():
+        if stem not in name or '_ext' not in name:
+            continue
+        if any(b in name for b in ('_dcl', '_decal', '_dec', '_lod', '_slod', '_dslod')):
+            continue
+        d = (e[1] - inst[1]) ** 2 + (e[2] - inst[2]) ** 2
+        if d <= radius * radius and (best is None or d < best[0]):
+            best = (d, e)
+    return best[1] if best else None
+
+
+def stem_exterior(pkg, names=None, tile_list=None, inst=None):
+    """公开入口：包 → 同词干外壳实体（scene_interiors 做竖直套合用）。"""
+    idx = mlo_index(names=names, tile_list=tile_list)
+    if inst is None:
+        inst = pick_instance(idx, pkg)
+    return None if inst is None else _stem_exterior(pkg, idx, inst)
+
+
 def find_mlo_instance(pkg, names=None, tile_list=None):
     """包名 → MLO 实例 `[hash, x, y, z, qx, qy, qz, qw]`。
 
     优先级 **精确 → `_main` → `_lod`**（LOD 只作最后兜底）。
     🔴 构建（scene_interiors）、审计（audit_interior_placement）、体检（_check_interior_align）
        必须调**这同一个函数**，禁止再各写一份。
+
+    🔴 2026-11-06（用户实机 `rho_fenceshop_int`）：**只有 `_lod` 时 LOD 的朝向不可信** ——
+       实测 LOD yaw 19.99°、外壳 `rho_04_fenceshop_ext` yaw 0°，室内整体歪 20°。
+       这种情况用**同词干外壳实体**的朝向（取共轭，与普通实体一致），位置仍用 LOD 的。
+       全量只有 2 个包命中（另一个 `cor_factb_int` 找不到外壳，保持原样）。
     """
-    return pick_instance(mlo_index(names=names, tile_list=tile_list), pkg)
+    idx = mlo_index(names=names, tile_list=tile_list)
+    inst = pick_instance(idx, pkg)
+    if inst is None:
+        return None
+    if pkg not in idx and (pkg + '_main') not in idx:
+        host = _stem_exterior(pkg, idx, inst)
+        if host is not None:
+            e = list(inst)
+            e[4], e[5], e[6], e[7] = -host[4], -host[5], -host[6], host[7]
+            return e
+    return inst
 
 
 def parse_ytyp(path):

@@ -16,6 +16,7 @@ import math
 import argparse
 import struct
 import numpy as np
+from mathutils import Quaternion, Vector
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 # 2026-11-04：场景的远景碎片改从「打散分组」的远景库按需 append（合并块已按据点 P 切开）。
@@ -351,6 +352,28 @@ def in_town(x, y):
     if (x - sx) ** 2 + (y - sy) ** 2 <= sr * sr:
       return True
   return False
+
+
+def ground_z_surface(x, y):
+  """**地形网格面**的高度（双线性插值），贴花逐顶点贴地用。
+
+  `ground_z()` 是最近邻（格点取样）—— 与地形网格的**顶点**一致，但网格内部是线性插值。
+  贴花顶点若用最近邻，在坡地上会落到网格面以下（实测 bla_street_b 最深 0.4 m，
+  表现为"街道被地形啃掉一块"）。这里按全局 4 m 格点做双线性，与 `scene_terrain._grid`
+  （`axis()` + `sample_h()`）是同一张面。
+
+  🔴 2026-11-06 实机（用户）：`bla_street_a` 21.8% 顶点埋进地形。
+  """
+  gx = math.floor(x / RES) * RES
+  gy = math.floor(y / RES) * RES
+  tx = (x - gx) / RES
+  ty = (y - gy) / RES
+  z00 = ground_z(gx, gy)
+  z10 = ground_z(gx + RES, gy)
+  z01 = ground_z(gx, gy + RES)
+  z11 = ground_z(gx + RES, gy + RES)
+  return (z00 * (1 - tx) * (1 - ty) + z10 * tx * (1 - ty)
+          + z01 * (1 - tx) * ty + z11 * tx * ty)
 
 
 def _pad():
@@ -1010,14 +1033,31 @@ def build_entities(libdir, tiles_dir, max_ent=0, only_tile='', conj=False, rails
         _flat_decal = bool(_tn) and (
             all('_height_' in n.lower() for n in _tn)
             or any('muddyroad' in n.lower() for n in _tn))
+        if not _flat_decal:
+          # 2026-11-06（用户实机：`bla_street_a` 被地形啃掉一块）：
+          # 街面 / 地面补片（road / decal / track_decal）同样要**逐顶点贴地**。
+          # 实测 bla_street_a 21.8% 顶点在地形下（最深 0.17 m）、bla_street_c_dec 53.4%。
+          # 只认「薄（≤2.5 m）+ 水平 + 离地 ≤2 m + 地面类」——
+          # 屋顶/墙贴花（垂直或高出地面）、抬高栈桥（离地 >2 m）、lod 都不受影响。
+          _cls = _cls_name(_NAMES.get(e[0], '')) if _cls_name else ''
+          _thin = (ent['b'][5] - ent['b'][2]) <= 2.5
+          _horiz = abs(e[4]) < 1e-4 and abs(e[5]) < 1e-4
+          _g0 = ground_z(e[1], e[2]) if (_thin and _horiz and _cls in ('road', 'decal', 'track_decal')) else None
+          _flat_decal = _g0 is not None and abs(e[3] - float(_g0)) <= 2.0
         if _flat_decal and abs(e[4]) < 1e-4 and abs(e[5]) < 1e-4:
+          ob['snap_ground'] = 1
           try:
             _me2 = me.copy()
             ob.data = _me2
             _sx = max(1e-6, e[8])
             _sz = max(1e-6, e[9])
+            # 🔴 2026-11-06：采样必须带**旋转** —— 水平贴花也可能是 90°/180° yaw
+            # （实机 `bla_street_b_dec` q=(0,0,0.7071,0.7071)，漏旋转时采到错位地面）。
+            # 用对象**实际**的四元数（上面刚设完，含 conj 口径），别自己再拼一遍。
+            _q = ob.rotation_quaternion.copy()
             for _v in _me2.vertices:
-              _g = ground_z(e[1] + _v.co.x * _sx, e[2] + _v.co.y * _sx)
+              _w = _q @ Vector((_v.co.x * _sx, _v.co.y * _sx, 0.0))
+              _g = ground_z_surface(e[1] + _w.x, e[2] + _w.y)
               if _g is not None:
                 _v.co.z = (float(_g) + 0.05 - e[3]) / _sz
             _me2.update()

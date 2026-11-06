@@ -105,6 +105,12 @@ RULES = [
     ('road', '道路', ROAD),
     ('ruin', '废墟', RUIN),
     ('decal', '地面贴花', re.compile(
+        # 2026-11-06（用户实机）：`p_08_ftr_regular` / `p_08_ftr_endsum` / `p_13_ftr_burnt`
+        # 这类 **地形补片**（142×103 m、约 2 m 厚，贴图全是 `_abte` 地形 albedo：草/路/碎石/焦土）
+        # 原来被 `prop` 的裸 `p_` 前缀抓成道具。它们铺在地形上 = 地面贴花。
+        # 只认 `p_<数字>_ftr_`：`u_06_ftr_01/02` 是真岩石（48×17×39，不是贴花）；
+        # `p_13_ftr_*_bridge_*` 是真桥（struct 规则在前，先接走）；`*_lod/_slod` 也被 lod 先接走。
+        r'p_\d+_ftr_|'
         r'decal|grndec|ground_dec|puddle|dirt|dust|gravel|skid|stain|mudstain|trackmark|'
         # 🔴 2026-11-05：`oil` / `rut` 原来是**裸子串** —— `boiler`(锅炉)、`oildrum`(油桶)、
         #    `strut`(支撑) 全被扫成"地面贴花"（用户实测整栋 `ann_boilerhse` 成了地面贴花）。
@@ -120,7 +126,9 @@ RULES = [
     ('rock', '岩石地形', re.compile(
         r'rock|boulder|cliff|stone_|outcrop|sandstone|gravelpile|_cliff', re.I)),
     ('veh', '载具', re.compile(
-        r'wagon|cart(?!ridge)|carriage|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
+        # 2026-11-06：`wagonhse`（马车房，建筑）不能被裸 `wagon` 抓走 —— 实测
+        # `van_horn_01_wagonhse01` 17×15×12 m 被分进载具。
+        r'wagon(?!_?hse)|cart(?!ridge)|carriage|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
         r'p_train_|trolley|handcar|barge|raft|stagecoach|hull(?!.*_doors)|canetrain|coupler', re.I)),
     # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
     # 2026-11-06：`_em_hd` 也是同一族（17 个，安尼斯堡/瓦伦丁的自发光窗），原来只认结尾 `_em`。
@@ -137,11 +145,25 @@ RULES = [
         # 2026-11-05：`boilerhse`（锅炉房，hse = house 缩写）原来谁都不认，
         #   被 decal 的裸 `oil` 子串抓走 ⇒ 整栋房子成了"地面贴花"（用户实测）。
         r'boilerhse|'
+        # 2026-11-06（用户实机，圣丹尼斯）：`new_wrh_02_boiler`（14×29×34 m、16 子网格的锅炉房）
+        # 不在表里。只认**结尾** `boiler`：`p_boiler01x`（道具）、`agu_boiler_roof/walls/windows`（部件）、
+        # `agu_boiler_refblocker`（参考块）都不受影响。
+        r'boiler(?=$)|'
         # 2026-11-06：安尼斯堡 44 个 unknown 复盘 —— 三个写法原来是真房子却没人认：
         #   `ann_housing010_d`（18×25×8 m，12 槽屋顶/木墙/窗框）、`ann_storage`（13×13×8）、
         #   `ann_02_locker_room`（19×29×9，29 槽砖墙/门）。
         # `storage` 必须避开：`p_storagebox01x`（箱子=道具）、`_glue` 装饰件（=部件）、`_decal`（=贴花）。
         # `locker_room` 避开 `_d` 结尾：`ann_02_locker_room_d` 是污渍层，要留给贴花兜底去认。
+        # 2026-11-06（用户实机）：`apartment` / `residence` / `wagonhse`（马车房）/
+        #   `tradingpost` 原来都不在表里 —— apartment 落 unknown、wagonhse 被 veh 的 `wagon` 抢、
+        #   tradingpost 被 prop 的 `post` 抢。`tradingpost` 要避开附属件（`_dec` 贴花 / `_deck` 甲板 /
+        #   `_dr` / `_bull` 招牌），那些保持原类。
+        r'apartment|residence|wagon_?hse|trading_?post(?!.*_(dec|deck|dr|bull))|'
+        # 2026-11-06（用户实机，范霍恩）：`townhall`（市政厅）与 `*hse`（house 缩写：
+        #   smallhse / bunkhse / farmhse / mayorshse / playerhse / lghthse…）都不在表里。
+        #   `hse` 只认「后接数字 / 结尾 / _main」——避开 `bee_hse_int_bath_mirror`（室内镜）、
+        #   `roc_hse_bed01_details01`（床）这类室内件；`_veg/_wood` 附件也排除（不是房子本体）。
+        r'town_?hall|hse(?=\d|$|_main)(?!.*_(veg|wood)\d*$)|'
         r'housing|locker_room(?!.*_d(?=\d|_|$))|storage(?!box)(?!.*(_glue|decal))|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
@@ -238,6 +260,8 @@ _append_class('lod_out', '远景碎片·区外')
 _append_class('int_decal', '室内地面贴花')
 # 2026-11-05：建筑贴花由 RULES 里那行登记（`_dcl`），**不要再手工 append**（见 _append_class 注释）。
 # 2026-11-05：室内阴影 / 反射代理。同样名字规则判不出，由 scene_interiors.py 按模型名直接写 cls_key。
+# 2026-11-06：**灯光占位件**（`*_int_lights` / `*_lights`）也收进本类——同样是"不可见的功能代理"，
+# 不另开新类（用户裁定：复用已有的默认隐藏室内功能类，别再堆面板）。实机 `rho_sheriff_int_lights`。
 _append_class('int_proxy', '室内阴影代理')
 # 2026-11-06：布局白模（`layout_walls/floors/ceiling/props`）。室内由 scene_interiors 写 cls_key，
 # 室外由 apply_texture_layout 按贴图判；**不删网格，只归类 + 默认隐藏**（用户裁定）。

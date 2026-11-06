@@ -73,6 +73,16 @@ def main():
     else:
         print('[mlo] roc_house_int -> yaw %.2f°' % yaw(inst))
 
+    # 只有 _lod 的包：LOD 朝向不可信，必须用同词干外壳的朝向（rho_fenceshop_int）
+    inst = PM.find_mlo_instance('rho_fenceshop_int', names=nm, tile_list=tl)
+    if inst is None:
+        bad.append('真实数据：rho_fenceshop_int 找不到实例')
+    else:
+        fy = yaw(inst)
+        print('[mlo] rho_fenceshop_int -> yaw %.2f°（外壳 0°；原始 _lod 是 20°）' % fy)
+        if abs(fy) > 2.0:
+            bad.append('只有 _lod 的包没有改用外壳朝向：rho_fenceshop_int yaw %.2f°（应≈0°）' % fy)
+
     # 3) 反向测试：旧写法（tiles 顺序第一个名字命中）必须取到 _lod —— 否则闸门没有分辨力
     want = ('val_bank_int', 'val_bank_int_main', 'val_bank_int_lod')
     old = None
