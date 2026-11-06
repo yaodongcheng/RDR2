@@ -83,6 +83,18 @@ def main():
         if abs(fy) > 2.0:
             bad.append('只有 _lod 的包没有改用外壳朝向：rho_fenceshop_int yaw %.2f°（应≈0°）' % fy)
 
+    # 只有 _lod 的包 · 人工对位（2026-11-06 用户实机 cor.blend）：
+    # `cor_factb_int` 只剩 `_lod`（yaw −85°），真实厂房叫 `cor_factoryes`（世界 yaw −5°）。
+    # 对位后实例应是「外壳四元数取共轭」⇒ 存值 yaw ≈ −5°，绝不能还是 −85°。
+    inst = PM.find_mlo_instance('cor_factb_int', names=nm, tile_list=tl)
+    if inst is None:
+        bad.append('真实数据：cor_factb_int 找不到实例')
+    else:
+        cy = yaw(inst)
+        print('[mlo] cor_factb_int -> yaw %.2f°（外壳 cor_factoryes 世界 yaw −5°；原始 _lod 是 −85°）' % cy)
+        if abs(cy + 5.0) > 2.0:
+            bad.append('人工对位失效：cor_factb_int yaw %.2f°（应≈−5°，不能是 LOD 的 −85°）' % cy)
+
     # 3) 反向测试：旧写法（tiles 顺序第一个名字命中）必须取到 _lod —— 否则闸门没有分辨力
     want = ('val_bank_int', 'val_bank_int_main', 'val_bank_int_lod')
     old = None

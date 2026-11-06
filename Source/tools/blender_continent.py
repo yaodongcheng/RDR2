@@ -582,6 +582,14 @@ def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None, name_h
     if textured_model:
       return _invisible_mat()
     return _ntex_generic(name_hint, texmeta, libdir)
+  # 🔴 2026-11-06（用户实机 `i_c4db87de` = 模型 `0xc4db87de` = `p_tablework02x` 一张桌子，
+  #   渲染成一块暖灰）：**只缺 albedo、法线/高光槽还挂着图**的件，原来直接落到
+  #   `mat_rdr2.get_or_make(-1, ...)` 的「中性暖灰」分支 —— 于是**猜木材/金属的机制从没生效过**。
+  #   实测 56 张场景：「三张全缺」0 个对象，「只缺 albedo」**6,542 个**。
+  #   这里改成：albedo 缺失就走同一套按类别猜色（ntex_palette → 库里真实贴图 + 金属度/粗糙度），
+  #   不再要求三张全缺。名字查不到（hash 名）时 `category_for('')` 仍是原来的暖灰，不会更差。
+  if _missing(ab_tid):
+    return _ntex_generic(name_hint, texmeta, libdir)
   ab_tid = -1 if _missing(ab_tid) else ab_tid
   nm_tid = -1 if _missing(nm_tid) else nm_tid
   ma_tid = -1 if _missing(ma_tid) else ma_tid

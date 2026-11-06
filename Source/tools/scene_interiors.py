@@ -44,6 +44,87 @@ import parse_interior_mlo as PM         # noqa: E402
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 LIB = os.path.join(ROOT, 'assets/lib_native')
 AUDIT = os.path.join(ROOT, 'export/world/interior_placement_audit.json')
+
+# ── 室内对位台账（2026-11-06 用户要求："单独列一个 csv 记录每个据点每个建筑的情况，方便调整或反查"）──
+# ① 自动生成（**生成物，禁止手改**）：每张场景的每个室内包一行 —— 朝向来源 / 位移 / 贴合方式 / 越界。
+#    放仓库 docs 下（2026-11-06 用户要求：这份表要进 git，方便反查"这栋为什么歪了"）。
+FIT_CSV = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       'docs', '世界与地编', 'interior_fit.csv')
+# ② 人工修正（**手维护**）：pkg,dx,dy,dz,note —— 在自动结果之上再叠加，用来微调单个建筑。
+FIT_OVERRIDES = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'docs', '世界与地编', 'interior_fit_overrides.csv')
+
+
+def _load_fit_overrides():
+    """→ {pkg: (dx, dy, dz)} —— **绝对覆盖**：文件里写了，就完全用它的三个位移，不再自动套合。
+
+    文件不存在 / 某包没写 → 走自动对位。
+    """
+    out = {}
+    if not os.path.exists(FIT_OVERRIDES):
+        return out
+    try:
+        import csv as _csv
+        with open(FIT_OVERRIDES, encoding='utf-8-sig', newline='') as f:
+            for r in _csv.DictReader(f):
+                p = (r.get('pkg') or '').strip()
+                if not p or p.startswith('#'):
+                    continue
+                try:
+                    out[p] = (float(r.get('dx') or 0), float(r.get('dy') or 0),
+                              float(r.get('dz') or 0))
+                except Exception:
+                    continue
+    except Exception as e:
+        print('[int] 读修正表失败（忽略）：%s' % e)
+    return out
+
+
+def _append_fit_override(pkg, dx, dy, dz, note):
+    """把某个包的**当前自动结果**追加进修正表（该包已有行就跳过，绝不覆盖用户改过的行）。
+
+    直接以追加模式写一行，**不重写整个文件** —— 否则注释行会被 csv 读成数据再写回去、
+    变成 `# 说明,,,,` 的碎片（2026-11-06 实测踩过）。
+    """
+    try:
+        if os.path.exists(FIT_OVERRIDES):
+            import csv as _csv
+            with open(FIT_OVERRIDES, encoding='utf-8-sig', newline='') as f:
+                for r in _csv.DictReader(f):
+                    if (r.get('pkg') or '').strip() == pkg:
+                        return
+        os.makedirs(os.path.dirname(FIT_OVERRIDES), exist_ok=True)
+        write_header = not os.path.exists(FIT_OVERRIDES)
+        with open(FIT_OVERRIDES, 'a', encoding='utf-8', newline='') as f:
+            if write_header:
+                f.write('pkg,dx,dy,dz,note\n')
+            f.write('%s,%.2f,%.2f,%.2f,%s\n' % (pkg, dx, dy, dz, note))
+    except Exception as e:
+        print('[int] 写修正表失败（忽略）：%s' % e)
+
+
+def _write_fit_rows(scene_id, rows):
+    """把这场景的行写进台账：删掉本场景旧行，再追加新行（其余场景原样保留）。"""
+    import csv as _csv
+    keep = []
+    if os.path.exists(FIT_CSV):
+        try:
+            with open(FIT_CSV, encoding='utf-8-sig', newline='') as f:
+                keep = [r for r in _csv.DictReader(f) if r.get('scene') != scene_id]
+        except Exception:
+            keep = []
+    fields = ['scene', 'pkg', 'host', 'orient', 'lod_yaw', 'yaw', 'dx', 'dy', 'dz',
+              'fit', 'clear_m', 'objects']
+    os.makedirs(os.path.dirname(FIT_CSV), exist_ok=True)
+    with open(FIT_CSV, 'w', encoding='utf-8', newline='') as f:
+        w = _csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
+        w.writeheader()
+        for r in sorted(keep, key=lambda x: (x.get('scene') or '', x.get('pkg') or '')):
+            w.writerow({k: r.get(k, '') for k in fields})
+        for r in sorted(rows, key=lambda x: x['pkg']):
+            w.writerow(r)
+    print('[int] 对位台账已更新：%s（本场景 %d 行）' % (FIT_CSV, len(rows)))
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 PACKS = os.path.join(ROOT, 'raw/all_packs')
 COL = 'C_int_室内'
@@ -191,6 +272,11 @@ def _inst_yaw(inst):
 
 _WALL_CACHE = {}
 
+# 有 `*_fakeint`（游戏自带的房间占位）时，室内顶相对占位件顶的余量（米）。
+# 🔴 2026-11-06 用户实机定案：`cor_factb_int` 手动把原点调到 121.20 目视合适 ⇒ 余量 0.00。
+#    想整体再降，就把这个数调大（每 0.1 = 降 10 cm）。
+FAKEINT_TOP_MARGIN = 0.00
+
 
 def _low_wall_dir(h):
     """模型**下半截墙体**方向 → (角度 mod 90, 纯度)。
@@ -242,6 +328,68 @@ def _obj_mesh_bbox(o):
         return None
     return {'xmin': min(xs), 'xmax': max(xs), 'ymin': min(ys), 'ymax': max(ys),
             'zmin': min(zs), 'zmax': max(zs)}
+
+
+def _roof_clearance_drop(room_objs, build_obj, margin=0.10, cell=1.0):
+    """室内顶到屋顶外时，需要**整体下移多少**（米，≥0）。
+
+    🔴 2026-11-06 用户原则（写死）：**室内件任意一个点往上，都必须能找到建筑的一个点** ——
+       否则就是"透出屋顶"。做法：
+       ① 把建筑顶点按 1 m 网格分箱，取每格（含 8 邻域）的**最高 z** 当作该处天花板上限；
+       ② 室内每个顶点超过上限 `margin` 的部分都是违规，取最大违规量作为下移量。
+    返回 0 表示没顶出去。
+    """
+    try:
+        import numpy as np
+    except Exception:
+        return 0.0
+    if build_obj is None or build_obj.type != 'MESH':
+        return 0.0
+    bm = build_obj.matrix_basis
+    bv = np.array([(bm @ v.co)[:] for v in build_obj.data.vertices], dtype=np.float64)
+    if len(bv) < 50:
+        return 0.0
+    rm = [(o.matrix_basis, np.array([(o.matrix_basis @ v.co)[:] for v in o.data.vertices],
+                                    dtype=np.float64))
+          for o in room_objs if o is not None and o.type == 'MESH' and len(o.data.vertices)]
+    if not rm:
+        return 0.0
+    # 建筑顶点分箱：格子 → 最高 z
+    bx = np.floor(bv[:, 0] / cell).astype(np.int64)
+    by = np.floor(bv[:, 1] / cell).astype(np.int64)
+    cap = {}
+    for x, y, z in zip(bx.tolist(), by.tolist(), bv[:, 2].tolist()):
+        if z > cap.get((x, y), -1e9):
+            cap[(x, y)] = z
+    if not cap:
+        return 0.0
+    overs = []
+    for _m, rv in rm:
+        if not len(rv):
+            continue
+        rx = np.floor(rv[:, 0] / cell).astype(np.int64).tolist()
+        ry = np.floor(rv[:, 1] / cell).astype(np.int64).tolist()
+        rz = rv[:, 2].tolist()
+        for x, y, z in zip(rx, ry, rz):
+            c = -1e9
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    v = cap.get((x + dx, y + dy))
+                    if v is not None and v > c:
+                        c = v
+            if c < -1e8:
+                continue                     # 该处建筑没有采样点，不敢判断
+            over = z - (c - margin)
+            if over > 0:
+                overs.append(over)
+    if not overs:
+        return 0.0
+    # 🔴 2026-11-06（用户："下沉太多了"）：取 **99 分位**而不是最大值 ——
+    #   包里的单个高道具（烟囱/管束）能顶出 0.95 m，按最大值会把整包压下去 1 m，
+    #   地板跟着沉，反而更难看。99 分位 = 忽略极个别尖点后的整体越界量。
+    if len(overs) < 50:
+        return float(max(overs))
+    return float(np.percentile(np.asarray(overs), 99))
 
 
 def _overlap_shift(room_objs, wall_obj, build_objs, res=0.15, span=1.5, step=0.10):
@@ -470,6 +618,10 @@ def build(scene, save=True, verbose=True):
     placed = made = decals = proxies = 0
     layouts = 0             # layout 白模（不删，单独归类 + 默认隐藏）
     skipped_out = 0          # P 外（= 远景区域）的包：一律不摆
+    warn_orient = 0          # 朝向**未校验**的包（只有 LOD 实例且找不到宿主），见下方 WARN
+    scene_id = scene.get('id') or scene.get('name') or '?'
+    fit_rows = []            # 对位台账（本场景每包一行）
+    ovr_fit = _load_fit_overrides()
     for rec in ok:
         pkg = rec['pkg']
         inst = find_mlo(pkg)
@@ -504,12 +656,24 @@ def build(scene, save=True, verbose=True):
         # 反算实例 yaw；宿主优先取审计表的 `host`（真正承载房间的墙体/构件，如 `rho_04_bkdoorshut`），
         # 没有再退同词干外壳。4θ 墙向有 90° 歧义，用 LOD 原朝向选最近的象限。
         _idx0 = PM.mlo_index(names=_names(), tile_list=_tiles())
+        # 对位台账（每包一行，最后写进 interior_fit.csv）
+        _row = {'scene': scene_id, 'pkg': pkg, 'host': '', 'orient': '',
+                'lod_yaw': '', 'yaw': '', 'dx': '', 'dy': '', 'dz': '',
+                'fit': '', 'clear_m': '', 'objects': ''}
+        _raw = PM.pick_instance(_idx0, pkg)
+        _row['lod_yaw'] = '%.2f' % _inst_yaw(_raw) if _raw else ''
+        _row['orient'] = ('exact' if pkg in _idx0 else
+                          ('main' if (pkg + '_main') in _idx0 else 'lod_only'))
         _ov_host = None
         if pkg not in _idx0 and (pkg + '_main') not in _idx0:
+            # 宿主优先级：审计表的 host（真正承载房间的墙体/构件）→ `host_for`（显式对位或同词干外壳）。
+            # 🔴 2026-11-06（用户实机 `cor.blend`）：这里原来只认「审计 host + 同词干」，
+            #   不认识 `HOST_OVERRIDE` ⇒ `cor_factb_int` 的 `_ov_host` 一直是 None，
+            #   于是**朝向被修好了、水平/竖直径向套合却整段没跑**，室内壳浮在厂房外面。
             _hn = (rec.get('host') or '').lower()
             _ov_host = _idx0.get(_hn) if _hn else None
             if _ov_host is None:
-                _ov_host = PM.stem_exterior(pkg, names=_names(), tile_list=_tiles(), inst=inst)
+                _ov_host = PM.host_for(pkg, _idx0, inst)
             _shell_h = None
             for _e in ents:
                 _n = (_names().get(_e['h']) or '')
@@ -532,6 +696,17 @@ def build(scene, save=True, verbose=True):
                     inst[7] = math.cos(_rad / 2.0)
                     print('[int] %-24s 朝向按墙体校正 %+.2f°（原 LOD %+.2f°；宿主 %s）'
                           % (pkg, _best, _cur, _names().get(int(_ov_host[0]), '')))
+            else:
+                # 🔴 2026-11-06（用户："难道每次都要我肉眼检查？"）：**静默用 LOD 朝向 = 定时炸弹**
+                #   实测 `cor_factb_int` 就是这样歪了 80° 而日志全绿（审计 host 空、同词干也匹配不到）。
+                #   只有「连宿主都找不到」才报 —— 找得到宿主时 `find_mlo_instance` 已经改过朝向了
+                #   （`cor_factb_int` 走 HOST_OVERRIDE，这里没有 *_shell 件也不会误报）。
+                if PM.host_for(pkg, _idx0, inst) is None:
+                    _why = ('找不到宿主外壳（审计 host 为空、同词干也没匹配）'
+                            if _ov_host is None else '室内包里找不到 *_shell 件')
+                    print('[int][WARN] %-24s 只有 LOD 实例、%s ⇒ 朝向**未校验**（当前 %+.1f°，LOD 朝向不可信）'
+                          % (pkg, _why, _inst_yaw(inst)))
+                    warn_orient += 1
         q = Quaternion((inst[7], inst[4], inst[5], inst[6]))
 
         n_pkg = 0
@@ -621,7 +796,19 @@ def build(scene, save=True, verbose=True):
         # （室内壳顶 86.48 m，建筑顶 84.95 m，冒出去 1.5 m）。按同词干外壳做**竖直套合**：
         # 装得下就贴地板（外壳 zmin + 5 cm），装不下就居中。只作用于「只有 _lod」的包。
         _idx = PM.mlo_index(names=_names(), tile_list=_tiles())
-        if pkg_objs and pkg not in _idx and (pkg + '_main') not in _idx and _ov_host is not None:
+        _ovr = ovr_fit.get(pkg)          # 人工修正表：**绝对覆盖**（有值就用它，不再自动套合）
+        if pkg_objs and _ovr is not None:
+            _dx, _dy, _dz = _ovr
+            for _o in pkg_objs:
+                _o.location.x += _dx
+                _o.location.y += _dy
+                _o.location.z += _dz
+            _row['dx'], _row['dy'], _row['dz'] = '%.2f' % _dx, '%.2f' % _dy, '%.2f' % _dz
+            _row['fit'] = 'manual'
+            _h_ov = PM.host_for(pkg, _idx, inst)
+            _row['host'] = _names().get(int(_h_ov[0]), '') if _h_ov else '—'
+            print('[int] %-24s 按人工修正表绝对定位 (%+.2f, %+.2f, %+.2f)' % (pkg, _dx, _dy, _dz))
+        elif pkg_objs and pkg not in _idx and (pkg + '_main') not in _idx and _ov_host is not None:
             _host = _ov_host
             # 🔴 用场景里宿主对象的**真实网格** bbox（不是模型库的 `b`——库 bbox 偏大，
             #    实测 bkdoorshut 库 10.8×10.5 vs 实际 7.4×7.3，拿错就永远对不上）。
@@ -650,7 +837,7 @@ def build(scene, save=True, verbose=True):
                 # 墙是 L 形墙带时 bbox 居中不是最优；有真实网格就覆盖上面的 bbox 结果。
                 _build_objs = [_hobj] if _hobj is not None else []
                 _stem_obj = None
-                _stem = PM.stem_exterior(pkg, names=_names(), tile_list=_tiles(), inst=inst)
+                _stem = PM.host_for(pkg, _idx, inst)
                 if _stem is not None:
                     _sn = _names().get(int(_stem[0]), '')
                     _stem_obj = bpy.data.objects.get(_sn) if _sn else None
@@ -661,14 +848,48 @@ def build(scene, save=True, verbose=True):
                                 break
                     if _stem_obj is not None and _stem_obj is not _hobj:
                         _build_objs.append(_stem_obj)
-                _ov = _overlap_shift(pkg_objs, _hobj, _build_objs)
+                # 🔴 2026-11-06（用户实机 `cor.blend`）：**优先拿游戏自带的 `*_fakeint` 当贴合目标** ——
+                #   那是 Rockstar 标记「房间应该摆在哪」的占位件（`cor_factoryes_fakeint`），
+                #   比厂房外壳准得多。实测只用外壳时 X 方向差 5.2 m（外壳贴着整栋，房间只在其中一跨）。
+                _wall_target = _hobj
+                _fi = bpy.data.objects.get((_hname or '') + '_fakeint')
+                _fi_box = None
+                if _fi is not None and _fi.type == 'MESH':
+                    _wall_target = _fi
+                    if _fi is not _hobj:
+                        _build_objs.append(_fi)
+                    # 🔴 先按 fakeint 的**包围盒对中**粗定位，再交给求解器微调。
+                    #   求解器搜索半径只有 ±1.5 m（`span`），实测这里需要 5.2 m，
+                    #   只靠它会原地不动（score 从 5.6 涨到 8.8 但位置几乎没变）。
+                    _fb = _obj_mesh_bbox(_fi)
+                    if _fb:
+                        _fi_box = _fb
+                        _cdx = ((_fb['xmin'] + _fb['xmax']) - (_pb['xmin'] + _pb['xmax'])) / 2.0
+                        _cdy = ((_fb['ymin'] + _fb['ymax']) - (_pb['ymin'] + _pb['ymax'])) / 2.0
+                        for _o in pkg_objs:
+                            _o.location.x += _cdx
+                            _o.location.y += _cdy
+                        bpy.context.view_layer.update()
+                        _pb = _objs_world_bbox(pkg_objs) or _pb
+                        print('[int] %-24s 贴合目标改用 %s（游戏自带的假室内占位）：先对中 (%+.2f, %+.2f)'
+                              % (pkg, _fi.name, _cdx, _cdy))
+                _ov = _overlap_shift(pkg_objs, _wall_target, _build_objs)
                 if _ov is not None:
                     _dx, _dy, _sc = _ov
                     print('[int] %-24s 面积重合率最优位移 (%+.2f, %+.2f) score %.3f'
                           % (pkg, _dx, _dy, _sc))
                 _hroom = _pb['zmax'] - _pb['zmin']
                 _fr = _floor_roof_planes(_stem_obj, pkg_objs) if _stem_obj is not None else None
-                if _fr:
+                if _fi_box is not None:
+                    # 🔴 2026-11-06（用户实机三轮回合定案）：**顶部对齐 fakeint**，
+                    #   余量 = 0（室内顶 = 占位件顶）。用户手动把 `i_8435e65c` 的原点从 120.90
+                    #   调到 **121.20** 后目视"差不多了"，换算成这里的余量就是 0.00。
+                    #   注意：机械判据（`_roof_clearance_drop`）在这档会报更多越界顶点
+                    #   （0.17% / 最深 0.76 m），但都在屋顶板厚度内 —— **以实机目视为准**。
+                    _dz = (_fi_box['zmax'] - FAKEINT_TOP_MARGIN) - _pb['zmax']
+                    print('[int] %-24s 顶部对齐 %s：室内顶 = 占位顶 −%.2f m，位移 %+.2f m'
+                          % (pkg, _fi.name, FAKEINT_TOP_MARGIN, _dz))
+                elif _fr:
                     _floor_b, _roof_b, _floor_r = _fr
                     # 竖直：**房间地板面 ↔ 建筑地板面**（主水平面对齐），不再用 bbox 底/顶
                     _dz = _floor_b - _floor_r
@@ -684,18 +905,66 @@ def build(scene, save=True, verbose=True):
                     _o.location.x += _dx
                     _o.location.y += _dy
                     _o.location.z += _dz
+                # 🔴 用户原则（2026-11-06）：**室内件任意一点往上，都必须能碰到建筑的点**。
+                #   这里只**报警不自动下移** —— 实测按最大值要下移 0.95 m（用户："下沉太多"），
+                #   按 99 分位也要 0.8 m；而顶部对齐 fakeint 后只差一点点。自动下移会把地板带沉。
+                _drop = _roof_clearance_drop(pkg_objs, _hobj)
+                if _drop > 0.05:
+                    print('[int] WARNING %-20s 仍有 %.2f m 顶点高于建筑（尖角可能埋进屋顶板厚里；'
+                          '要强压就调大 FAKEINT_TOP_MARGIN）' % (pkg, _drop))
+                _row['host'] = _names().get(int(_host[0]), '')
+                _row['dx'] = '%.2f' % _dx
+                _row['dy'] = '%.2f' % _dy
+                _row['dz'] = '%.2f' % _dz
+                _row['clear_m'] = '%.2f' % _drop
+                _row['fit'] = ('fakeint' if _fi_box is not None
+                               else ('floor' if _fr else 'bbox'))
+                _row['orient'] = ('lod+host' if PM.host_for(pkg, _idx, inst) else 'lod_only')
                 print('[int] %-24s 套合到宿主：水平 (%+.2f, %+.2f) / 竖直 %+.2f m（仅 _lod 包；宿主 %s）'
                       % (pkg, _dx, _dy, _dz, _names().get(int(_host[0]), '')))
                 # 自检：套合后仍超出宿主 bbox 就报警（不静默通过）
-                _pb2 = _objs_world_bbox(pkg_objs)
-                _out = max(_hb['xmin'] - _pb2['xmin'], _pb2['xmax'] - _hb['xmax'],
-                           _hb['ymin'] - _pb2['ymin'], _pb2['ymax'] - _hb['ymax'],
-                           _hb['zmin'] - _pb2['zmin'], _pb2['zmax'] - _hb['zmax'])
-                if _out > 0.25:
-                    print('[int] WARNING %s 套合后仍超出宿主 %.2f m' % (pkg, _out))
+                # ⚠️ 只看**房间壳**，不看整包 317 件 —— 实测 `cor_factb_details05`（32×31×8.7 m 的
+                #    管线/设备细节件）本来就该伸到厂房外 10.7 m，拿它当判据会天天误报；
+                #    房间壳 `i_8435e65c` 实际在宿主内 0.85 m。
+                bpy.context.view_layer.update()
+                _chk = pkg_objs
+                if _shell_h is not None:
+                    _sn2 = _names().get(int(_shell_h)) or ''
+                    _so = bpy.data.objects.get(_sn2) if _sn2 else None
+                    if _so is not None:
+                        _chk = [_so]
+                # 逐件算越界，**按件数**判：单个细节件伸到房外是正常的
+                # （实测 `cor_factb_details05` 越界 10.7 m，但那是管线/设备件），
+                # 只有超过总件数 1%（且至少 2 件）才说明整包没套上。
+                _out_n = 0
+                _out_max = 0.0
+                for _o in _chk:
+                    _bb = _objs_world_bbox([_o])
+                    if not _bb:
+                        continue
+                    _o1 = max(_hb['xmin'] - _bb['xmin'], _bb['xmax'] - _hb['xmax'],
+                              _hb['ymin'] - _bb['ymin'], _bb['ymax'] - _hb['ymax'],
+                              _hb['zmin'] - _bb['zmin'], _bb['zmax'] - _hb['zmax'])
+                    if _o1 > 0.25:
+                        _out_n += 1
+                        _out_max = max(_out_max, _o1)
+                if _out_n >= 2 and _out_n > max(1, len(_chk) * 0.01):
+                    print('[int] WARNING %s 套合后仍有 %d/%d 件超出宿主（最大 %.2f m）'
+                          % (pkg, _out_n, len(_chk), _out_max))
+        # 把**自动对位的结果**搬进人工修正表：只在该包还没有行时追加，
+        # 绝不覆盖用户改过的行（用户改过 = 以后永远按他的值走）。
+        if pkg_objs and _ovr is None and _row['dx'] not in ('', None):
+            try:
+                _append_fit_override(pkg, float(_row['dx']), float(_row['dy']),
+                                     float(_row['dz']), 'auto:%s' % (_row['fit'] or ''))
+            except Exception:
+                pass
         if n_pkg:
             placed += 1
             made += n_pkg
+            _row['yaw'] = '%.2f' % _inst_yaw(inst)
+            _row['objects'] = n_pkg
+            fit_rows.append(_row)
             if verbose:
                 print('[int] %-24s %4d 件  @(%.1f, %.1f)' % (pkg, n_pkg, inst[1], inst[2]))
 
@@ -705,6 +974,13 @@ def build(scene, save=True, verbose=True):
     print('[int] 其阴影代理壳 %d 件 → 「室内阴影代理」类（默认隐藏，勾开可看；含灯光占位）' % proxies)
     print('[int] 布局白模 %d 件 → 「布局白模」类（默认隐藏，勾开可看）' % layouts)
     print('[int] 远景圈跳过 %d 个包（活动区 P 外，一律不放室内）' % skipped_out)
+    if warn_orient:
+        print('[int][WARN] 共 %d 个包的室内朝向**未校验**（只有 LOD 实例且找不到宿主）'
+              ' —— 这批包必须人工确认或补 HOST_OVERRIDE' % warn_orient)
+    try:
+        _write_fit_rows(scene_id, fit_rows)
+    except Exception as e:
+        print('[int] 对位台账写入失败（不影响场景）：%s' % e)
     if save and made:
         # 🔴 必须 compress=True：`scene_trim` 存出来的是 zstd 压缩的（187 MB），
         # 这里显式写 False 会把整份文件摊成未压缩（922 MB）—— 体积 4 倍，白吓人。

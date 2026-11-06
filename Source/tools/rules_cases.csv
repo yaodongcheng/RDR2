@@ -1,4 +1,4 @@
-name,textures,expected,note
+name,textures,expected,note,size
 p_crossflower02x,,veg,rail 不能吃裸 cross
 shwb_kudwall3,,veg,葛藤树/墙不能被 part 的 wall 抢
 smb_kudzowalls_05,,veg,kudzo 拼写
@@ -95,4 +95,35 @@ p_boiler01x,,prop,反向：锅炉道具
 agu_boiler_roof001,,part,反向：锅炉房屋顶是部件
 agu_boiler_walls002,,part,反向：墙体
 agu_boiler_refblocker_001,,unknown,反向：参考块
-dov_lab_boilers,,unknown,反向：复数 boilers 不误伤
+dov_lab_boilers,,unknown,反向：复数 boilers 不误伤,
+val_05_res_a,,bldg,住宅字母后缀（贴图 10/15 是红砖墙+屋瓦）,
+val_05_res_c,,bldg,住宅字母后缀,
+val_05_res_d,,bldg,住宅字母后缀,
+val_05_res_e,,bldg,住宅字母后缀,
+val_res_a_int,,unknown,反向：室内部件名不能被 res_[a-z] 抓成建筑,
+val_res_a_int_shell,,part,反向：室内壳仍是部件,
+val_05_res_a_dcl,,bldg_decal,反向：住宅污垢层仍归建筑贴花,
+val_05_res_e_veg,rho_fur_moss_decal01_abal|rho_cs_branch01_abal|rho_cs_ivy01_abal,unknown,反向：爬藤件不是建筑（贴图否决）,12.1x11.5x4.7
+val_shrffhs,,bldg,警长宅简称,
+p_win_val_shrffhs_01x,,prop,反向：窗道具不能被 shrffhs 抓走,
+val_freightstn,,bldg,货运站简称,
+arm_04__dne_arm_freightstn01x,,unknown,反向：01x 是道具写法,
+val_03_redrest_endlssum,,bldg,无尽头之夏商铺（endlssum 拼写）,
+val_03_room4rent_enlssum,,bldg,出租公寓（enlssum 拼写）,
+val_03_redrest_endlssum_dtls,,part,反向：_dtls 细节件归部件,
+val_03_rent_lock,,part,上锁前脸（门板+挂锁）,
+val_02_lockdown_law,,part,lockdown 前脸,
+val_05_pigpen_a,,part,猪圈,
+val_gallows,,part,绞架,
+val_05__em001,val_win_church_01_em,prop,反向：_em+数字 是自发光窗片,
+val_06__em001,val_cs_curtains_01b_em|val_cs_curtains_01_em,prop,反向：自发光窗帘,
+cas_e_01_stage04_frame,nbx_wall_brick_englishbond_01_ab|cas_wall_brick_englishbond_01_ab|bee_wall_woodplankclean_01b_ab,bldg,贴图兜底：砖墙+原木 → 建筑,17.8x17.2x6.1
+e_1a2b3c4d,nbx_wall_brick_englishbond_01_ab|cas_wall_brick_englishbond_01_ab|bee_wall_woodplankclean_01b_ab,unknown,反向：同一贴图但尺寸不足 → 不兜底,1.0x1.0x1.0
+e_1a2b3c4e,nbx_wall_brick_englishbond_01_ab|cas_wall_brick_englishbond_01_ab|bee_wall_woodplankclean_01b_ab,unknown,反向：同一贴图但太矮 → 不兜底,8.0x8.0x2.0
+e_50ba9f78,bla_05_roofaccess_lod_ab,unknown,反向：LOD 贴图必须让路（否则远景壳重新显示）,32.6x32.0x14.0
+e_f750e966,bla_west_res_wall_lod_ab|bla_fizz_iron_abal,unknown,反向：同上（墙的远景版）,65.4x64.3x9.5
+bra_vfx_man_window_fire,,placeholder,vfx 特效件是功能占位（火焰）,
+bra_vfx_man_roof_burn_embers,,placeholder,vfx 特效件（余烬）,
+a_water_01_vfx,,watertile,反向：水面块规则在前,
+a_water_01_vfx_j09_slod,,lod,反向：远景碎片规则在前,
+adl_01_vfx_helper_fire,,placeholder,反向：helper 本来就是占位,

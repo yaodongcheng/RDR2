@@ -58,7 +58,7 @@ GEOM_SKIP = re.compile(
 from class_rules import (  # noqa: E402
     RULES, LEFTOVER, PLANT, ALL_CLASSES,
     classify_name, apply_hard_rules, load_corrections, apply_corrections,
-    apply_texture_lod, apply_texture_decal, apply_texture_layout,
+    apply_texture_lod, apply_texture_decal, apply_texture_layout, apply_texture_bldg,
 )
 
 # 默认隐藏的类（对应"归类不搬走、整类藏起来"的规范）
@@ -283,6 +283,9 @@ def main():
         k = apply_texture_decal(k, n, tex_names)
         # 2026-11-06：整件都是 `layout_*` 贴图 ⇒ MLO 布局白模 ⇒ 占位代理（默认隐藏）
         k = apply_texture_layout(k, tex_names)
+        # 2026-11-06（用户实机，`val_05_res_a`）：名字完全看不出是房子，但贴图是砖墙/瓦/梁
+        # 且尺寸够大 ⇒ 建筑。只对 unknown 生效，结果仍是可见类（不会凭空消失）。
+        k = apply_texture_bldg(k, tex_names, tuple(o.dimensions))
         k = apply_corrections(k, n, tex_names, overrides)
         # 🔴 名字表查不到名字 ⇒ unknown，但贴图名带 `_lod` ⇒ 其实是远景 LOD 分身
         #（瓦伦丁 `e_f005a86d` 压在 `val_01_aucbarns_barn3` 屋顶上，就是那块污渍）

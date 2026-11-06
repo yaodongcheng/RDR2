@@ -77,7 +77,11 @@ RULES = [
         r'^a_water|water_fntn|water_pool|waterfountain|groun2fntn|font_water|_water$', re.I)),
     ('placeholder', '占位代理', re.compile(
         r'donotdelete|dontdelete|emitterdummy|placeholder|_occ_|occ_test_box|'
-        r'proxy|amb_pun|cubedelete|fakeintdummy|cover_coll|helper', re.I)),
+        # 2026-11-06（用户实机，`bra_vfx_man_window_fire`）：`vfx` = 特效/效果件（火焰、余烬、
+        #   水花、灯光代理），是**功能占位**不是常驻模型 —— 画出来就是一张烧着的卡片。
+        #   实测全库名字带 vfx 且有模型的只有 113 个，落在可见类的约 75 个。
+        #   更早的规则仍优先：`a_water_01_vfx*` 归水面块、`*_vfx*_slod` 归远景碎片、`*_helper` 本就占位。
+        r'vfx|proxy|amb_pun|cubedelete|fakeintdummy|cover_coll|helper', re.I)),
     # 2026-11-01 用户裁定：铁轨**本体**与铁轨**贴花**分成两类（同 road / decal 的先例），
     # 且**不跟 decal 走** —— 贴花是轨面/枕木/栈桥的油渍·炭化层，归 decal 会被启动器一起关掉、画面掉一层。
     # 判定 = 名字里**同时**有「铁路上下文」和「贴花上下文」（纯 `track_decal` **不算**：
@@ -132,7 +136,9 @@ RULES = [
         r'p_train_|trolley|handcar|barge|raft|stagecoach|hull(?!.*_doors)|canetrain|coupler', re.I)),
     # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
     # 2026-11-06：`_em_hd` 也是同一族（17 个，安尼斯堡/瓦伦丁的自发光窗），原来只认结尾 `_em`。
-    ('prop', '道具', re.compile(r'_em(?=_hd|$)', re.I)),
+    # 2026-11-06（瓦伦丁 unknown 复盘）：`val_05__em001` / `val_04__em003_re` 这种 **`_em+数字`**
+    #   同样是自发光窗（贴图 `val_win_church_01_em` / `val_cs_curtains_01_em`），补 `\d`。
+    ('prop', '道具', re.compile(r'_em(?=_hd|\d|$)', re.I)),
     # 2026-11-05 用户裁定：**建筑贴花**单独成类，和「地面贴花」分开。
     # `<名>_dcl` / `_dcls` = 贴在建筑**墙面/屋顶**上的污垢层（实测瓦伦丁银行
     # `val_bank_dcl01`：材质 mud_floor / mudgrime / grimewall / dirt_grunge_drip，包住整栋 13.8×25.9×6.4 m）。
@@ -167,7 +173,22 @@ RULES = [
         r'housing|locker_room(?!.*_d(?=\d|_|$))|storage(?!box)(?!.*(_glue|decal))|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
-        r'postoffice|storefront|res_?\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
+        r'postoffice|storefront|res_?\d\d|'
+        # 2026-11-06（用户实机，瓦伦丁 `val_05_res_a`）：住宅用**字母**后缀
+        #   （`res_a` / `res_c` / `res_d` / `res_e`），原来的 `res_?\d\d` 只认数字 ⇒ 4 栋房子落 unknown。
+        #   三条边界都必须有：
+        #     · 左 `(?<![a-z])` —— `metaped_textures_a` / `bridge_tres_a` 里都含 "res_a"；
+        #     · 右 `(?![a-z_])` —— `val_res_a_int` / `val_res_a_int_shell`（室内部件）、
+        #       `val_05_res_a_dcl`（污垢层，要留给 bldg_decal）、`val_05_res_e_veg`（爬藤）都不该吃。
+        r'(?<![a-z])res_[a-z](?![a-z_])|'
+        # 2026-11-06（用户实机，瓦伦丁）：三个缩写/俗称不在表里 ——
+        #   `val_shrffhs`（警长宅）、`val_freightstn`（货运站）、
+        #   `val_03_redrest_endlssum` / `room4rent_enlssum`（无尽头之夏商铺/出租公寓，两种拼写）。
+        #   尾部 `(?![a-z0-9_])` 挡住道具写法：`p_win_val_shrffhs_01x`（窗）、
+        #   `arm_04__dne_arm_freightstn01x`（`01x` = 道具）。`_dtls` 细节件留给 part。
+        r'shrffhs(?![a-z0-9_])|freight_?stn(?![a-z0-9_])|'
+        r'end?lssum(?!.*_dtls$)|room4rent(?!.*_dtls$)|'
+        r'shack|cabin|dock_?house|bunkhouse|bathhouse|'
         r'undertaker|gunsmith|tailor|butcher|doctor|photo|newspaper|'
         # 2026-11-04 黑水镇 72 个 unknown 复盘补的词（都是当时漏网的写法）：
         #   `_ext` 原来只认 `_ext_`（后跟下划线），`bla_bakery_ext` 这种**结尾**写法全漏；
@@ -200,6 +221,15 @@ RULES = [
         #   输送带中段 `convmid` / 水管 `waterpipe` / 通风井 `airshaft` / 边缘绳 `edgerope` /
         #   矿井口顶 `mineshaft_top` / 台阶 `steps` / 枪眼窗 `gun_win`。
         r'convmid|water_?pipe|air_?shaft|edgerope|mineshaft_top|steps?(?=_|\d|$)|gun_win|'
+        # 2026-11-06（瓦伦丁 unknown 复盘）：
+        #   `_lock` / `_lockdown` = 店铺「上锁状态」前脸（门板 + 挂锁 + 百叶窗），不是整栋楼
+        #     —— `val_03_rent_lock` / `gen_lock` / `sal_lock_win|dor` / `law_lock` / `val_02_lockdown_law`。
+        #     `locker_room` 不受影响（`_lock` 后接 `e`，`(?=_|$)` 挡住）；已判 bldg 的牢房门
+        #     （`val_03_jail_lock`）由 bldg 规则先接走。
+        #   `pigpen`（猪圈）/ `gallows`（绞架）= 室外小构筑；按 2026-10-31 裁定 struct 只放桥 ⇒ 部件。
+        #   `_dtls` = details 细节件（`redrest_endlssum_dtls` 这类），本体在 bldg。
+        #   `explo_cable` 只认这一个写法 —— 裸 `cable` 会一次翻 500+ 个 `cablemesh`，别加。
+        r'_lock(?=_|$)|_lockdown(?=_|$)|pigpen|gallows|_dtls$|explo_?cable|'
         r'glue|_outerwall|_shell$|_shell_|parklights|arch_?ext', re.I)),   # 2026-11-04：scaf+old 兼容数据里的拼写 scafold
     ('junk', '杂物堆', re.compile(
         r'debris|debirs|rubble|trash|garbage|junk|scrap|cloth|cotton|bale|bundle|sugarcane|cane_|'
@@ -404,6 +434,50 @@ def apply_texture_layout(k, tex_names):
     if all(LAYOUT_TEX.match(t) for t in txs):
         return 'layout'
     return k
+
+
+# ── 贴图兜底：名字完全看不出来，但材质是「建筑布料」────────────────────
+# 2026-11-06（用户实机，`val_05_res_a` 一类）：名字判不出的房子靠贴图认。
+# 实测分辨力（瓦伦丁，过半槽位命中才算）：
+#   unknown 19/58 = 33% · bldg 31% · prop 4% · part 4% · junk 1% · veh 0%
+# ⇒ 能分开但不够干净，所以**只对 unknown 生效**，再加三道闸：
+#   ① 尺寸（占地 ≥6×6 m 且高 ≥3 m）—— 小件、贴片、窗片一律不碰；
+#   ② 建筑布料过半；
+#   ③ 植被贴图（苔藓/爬藤/树枝）过半则否决 —— `val_05_res_e_veg` 就是反例。
+# 结果只会把 unknown 挪到 bldg，**两者都可见**，不会让任何东西凭空消失。
+BLDG_FABRIC = re.compile(
+    r'wall|roof|shingle|plaster|brick|chimney|floorboard|woodplank|exteriorwall|curtain', re.I)
+_VEG_TEX = re.compile(r'moss|ivy|branch|foliage|grass|leaf|leaves|bark|tree|bush|fern|reed', re.I)
+
+
+def apply_texture_bldg(k, tex_names, size=None):
+    """名字判不出 + 尺寸够大 + 贴图过半是墙/瓦/砖/梁 → `bldg`。
+
+    `size` = (x, y, z) 米（对象的世界尺寸）；不传则不做兜底。
+    """
+    if k != 'unknown' or not size:
+        return k
+    try:
+        dx, dy = float(size[0]), float(size[1])
+        dz = float(size[2]) if len(size) > 2 else 0.0
+    except Exception:
+        return k
+    if min(dx, dy) < 6.0 or dz < 3.0:
+        return k
+    txs = [t for t in (tex_names or ()) if t]
+    if not txs:
+        return k
+    # 🔴 必须先给 LOD 让路：hash 命名的远景壳贴图名叫 `bla_west_res_wall_lod_ab` /
+    #   `p_fence_wall01x_post_lod_abal` —— 名字里既有 "wall" 又是大件，会被误判成建筑。
+    #   这些件原本由后面的 apply_texture_lod 收进 `lod`（默认隐藏），
+    #   这里抢先接走 = 远景壳重新露出来（2026-11-06 实测：黑水镇 3 个 · 瓦伦丁 1 个）。
+    if any(LOD_RX.search(t) for t in txs):
+        return k
+    hits = sum(1 for t in txs if BLDG_FABRIC.search(t))
+    veg = sum(1 for t in txs if _VEG_TEX.search(t))
+    if hits * 2 < len(txs) or veg * 2 >= len(txs):
+        return k
+    return 'bldg'
 
 
 def apply_corrections(k, name, tex_names, corrections, verbose=True):

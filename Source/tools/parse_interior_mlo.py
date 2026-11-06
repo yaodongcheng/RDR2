@@ -119,11 +119,35 @@ def pick_instance(idx, pkg):
     return None
 
 
+# 🔴 人工对位表（2026-11-06 用户实机 `cor.blend`）：同词干搜索找不到外壳时的**唯一**兜底。
+#   `cor_factb_int` 没有精确实例、也没有 `_main`，只剩 `cor_factb_int_lod`（yaw −85°），
+#   而它的真实厂房叫 **`cor_factoryes`**（世界 yaw −5°）—— 词干 `factb` 与 `factory` 不同，
+#   `_stem_exterior`（要求名字里带 `_ext`）也匹配不到 ⇒ 室内整体歪 80°。
+#   全库只有这一个包需要人工对位（`rho_fenceshop_int` 走同词干能找到 `rho_04_fenceshop_ext`）。
+HOST_OVERRIDE = {
+    'cor_factb_int': 'cor_factoryes',
+}
+
+
+def host_for(pkg, idx, inst):
+    """包 → 用来**定朝向**的宿主实体（`HOST_OVERRIDE` 优先，其次同词干外壳）；没有返回 None。
+
+    构建侧也调它：`find_mlo_instance` 已经用宿主改写过朝向时，就不该再报「朝向未校验」。
+    """
+    if not pkg.endswith('_int'):
+        return None
+    fix = HOST_OVERRIDE.get(pkg)
+    if fix:
+        return idx.get(fix)
+    return _stem_exterior(pkg, idx, inst)
+
+
 def _stem_exterior(pkg, idx, inst, radius=100.0):
     """同词干的外壳实体：`rho_fenceshop_int` → `rho_04_fenceshop_ext`。
 
     只在「精确实例与 `_main` 都缺、只剩 `_lod`」时用（见 find_mlo_instance）。
     排除贴花/LOD 变体；取离 LOD 位置最近的一个（≤ radius 米）。
+    `HOST_OVERRIDE` 里的显式对位在 `host_for()` 处理，这里只管按词干找。
     """
     if not pkg.endswith('_int'):
         return None
@@ -160,14 +184,15 @@ def find_mlo_instance(pkg, names=None, tile_list=None):
     🔴 2026-11-06（用户实机 `rho_fenceshop_int`）：**只有 `_lod` 时 LOD 的朝向不可信** ——
        实测 LOD yaw 19.99°、外壳 `rho_04_fenceshop_ext` yaw 0°，室内整体歪 20°。
        这种情况用**同词干外壳实体**的朝向（取共轭，与普通实体一致），位置仍用 LOD 的。
-       全量只有 2 个包命中（另一个 `cor_factb_int` 找不到外壳，保持原样）。
+       全量只有 2 个包命中：`rho_fenceshop_int`（同词干找到）与 `cor_factb_int`
+       （外壳叫 `cor_factoryes`，词干对不上 ⇒ 走 `HOST_OVERRIDE` 显式对位）。
     """
     idx = mlo_index(names=names, tile_list=tile_list)
     inst = pick_instance(idx, pkg)
     if inst is None:
         return None
     if pkg not in idx and (pkg + '_main') not in idx:
-        host = _stem_exterior(pkg, idx, inst)
+        host = host_for(pkg, idx, inst)
         if host is not None:
             e = list(inst)
             e[4], e[5], e[6], e[7] = -host[4], -host[5], -host[6], host[7]

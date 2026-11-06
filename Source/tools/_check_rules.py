@@ -25,8 +25,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from class_rules import (  # noqa: E402
     CLASSES, DEFAULT_HIDDEN, RULES, LEFTOVER, TECHNICAL, ALL_CLASSES,
     classify_name, apply_corrections, apply_hard_rules, load_corrections,
-    apply_texture_decal, apply_texture_layout,
+    apply_texture_decal, apply_texture_layout, apply_texture_bldg,
 )
+
+
+def parse_size(s):
+    """用例表 `size` 列：`17.8x17.2x6.1`（米）；空 = 不做贴图建筑兜底。"""
+    s = (s or '').strip().lower().replace(' ', '')
+    if not s:
+        return None
+    for sep in ('x', '*', '|'):
+        if sep in s:
+            try:
+                return tuple(float(v) for v in s.split(sep))
+            except Exception:
+                return None
+    return None
 
 
 def check_defs():
@@ -113,10 +127,12 @@ def check_cases(corr):
             n += 1
             exp = (row.get('expected') or '').strip()
             tex = [t for t in (row.get('textures') or '').split('|') if t]
+            size = parse_size(row.get('size'))
             k = classify_name(name)
-            # 与 classify_entities 同序：贴花证据 → layout 白模 → 纠错 → 硬规则
+            # 与 classify_entities 同序：贴花证据 → layout 白模 → 建筑贴图兜底 → 纠错 → 硬规则
             k = apply_texture_decal(k, name, tex)
             k = apply_texture_layout(k, tex)
+            k = apply_texture_bldg(k, tex, size)
             k = apply_corrections(k, name, tex, corr, verbose=False)
             k = apply_hard_rules(k, name)
             if k != exp:

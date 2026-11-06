@@ -1,0 +1,6 @@
+scene,pkg,host,orient,lod_yaw,yaw,dx,dy,dz,fit,clear_m,objects
+cor,car_barn_int,,exact,65.00,65.00,,,,,,22
+cor,car_house_int,,exact,107.01,107.01,,,,,,209
+cor,cor_factb_int,cor_factoryes,lod_only,-85.03,-5.00,0.50,0.50,-4.57,manual,,317
+cor,din_barn_int,,exact,-172.67,-172.67,,,,,,97
+cor,din_house_int,,exact,-100.01,-100.01,,,,,,216

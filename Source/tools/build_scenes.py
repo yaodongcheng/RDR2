@@ -152,6 +152,15 @@ def scene_rooms(logpath):
     return '%s/%s' % (m.group(1), m.group(2)) if m else '0/0'
 
 
+def scene_warns(logpath):
+    """数场景日志里的 `[int][WARN]`（室内朝向未校验等）—— 有就必须在驱动日志里露头。"""
+    try:
+        txt = open(logpath, encoding='utf-8', errors='replace').read()
+    except Exception:
+        return 0
+    return txt.count('[int][WARN]')
+
+
 def verify_scene(sc, manifest):
     """0 超界 + 至少 1 个对象 → PASS。"""
     if not os.path.exists(manifest):
@@ -349,6 +358,10 @@ def main():
                 log('[%s] FAILED：地形图自检 FAIL（%s）（批量停止）' % (sid, ck))
                 failed = 1
                 break
+        _w = scene_warns(os.path.join(LOGDIR, 'scene_%s.log' % sid))
+        if _w:
+            row['note'] = '%s / ⚠ 室内告警 %d' % (vmsg, _w)
+            log('[%s] ⚠ 室内告警 %d 条（朝向未校验，见 _logs/scene_%s.log）' % (sid, _w, sid))
         row['status'] = 'done'
         status[sid] = row; write_status([status[k] for k in sorted(status)])
         log('[%s] -> done：%d 对象（远景 %d）/ %ds / %.1f MB'
