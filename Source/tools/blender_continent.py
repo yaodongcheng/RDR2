@@ -567,13 +567,22 @@ def _mat_for(ab_tid, nm_tid, ma_tid, texmeta, matcache, libdir, lyr=None, name_h
                               lyr=lyr, two_layer=TWO_LAYER, alpha=ALPHA_ON)
 
 
-def load_model_mesh(libdir, entry, texmeta, matcache, cache, name_hint=''):
-  """把一个 .mdl 建成 Blender mesh（顶点/索引一次 foreach_set 灌进去）。"""
+def load_model_mesh(libdir, entry, texmeta, matcache, cache, name_hint='', skip_tex=None, keep_tex=None):
+  """把一个 .mdl 建成 Blender mesh（顶点/索引一次 foreach_set 灌进去）。
+
+  `skip_tex` / `keep_tex`：可选正则，按**子网格**的贴图名过滤（`keep` = 只留命中的）。
+  用于室内 MLO 的 `layout_*` 白模 —— 混血模型拆成「真几何」+「白模」两件，
+  **不删网格**（2026-11-06 用户裁定：只归类 + 默认隐藏），见 tools/scene_interiors.py。
+  """
   key = entry['f']
   # 无贴图模型的材质取决于 name_hint（自动配色），缓存键必须带上它，
   # 否则同名模型先后用不同 hint 加载会互相串色。
   if name_hint and all((t < 0) for t, _, _ in (entry.get('s') or [])):
     key = key + '|' + name_hint
+  if skip_tex is not None:
+    key = key + '|skip=' + skip_tex.pattern
+  if keep_tex is not None:
+    key = key + '|keep=' + keep_tex.pattern
   if key in cache:
     return cache[key]
   buf = open(os.path.join(libdir, entry['f']), 'rb').read()
@@ -596,6 +605,12 @@ def load_model_mesh(libdir, entry, texmeta, matcache, cache, name_hint=''):
   sub_bbox = []
   base = 0
   for si, (tid, vc, ic, po, no, uo, io_) in enumerate(subs):
+    if skip_tex is not None or keep_tex is not None:
+      _tn = (texmeta[tid] or {}).get('n') if isinstance(tid, int) and 0 <= tid < len(texmeta) else ''
+      if skip_tex is not None and _tn and skip_tex.match(_tn):
+        continue
+      if keep_tex is not None and not (_tn and keep_tex.match(_tn)):
+        continue
     pos = np.frombuffer(buf, dtype=np.float32, count=vc * 3, offset=po).reshape(-1, 3)
     nrm = np.frombuffer(buf, dtype=np.float32, count=vc * 3, offset=no).reshape(-1, 3)
     uv = np.frombuffer(buf, dtype=np.float32, count=vc * 2, offset=uo).reshape(-1, 2)

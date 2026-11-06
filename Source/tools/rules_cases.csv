@@ -36,3 +36,27 @@ dis_grt_horsejumpc,,prop,赛马跳栏
 e_6e394696,val_02_slod1_ab,lod,无名 + LOD 贴图 → lod（第 341 行；街区 LOD 不该露在高清区）
 e_00000000,kudzu01,veg,无名 + 葛藤贴图 → veg（AND 语义仍保留）
 l_09_heighttracks_decals01,val_dc_wheel_mud_01_height_05,track_decal,高度图贴花 → 脚印车辙（与 road 分开）
+ann_05_conv06a_dc,nbx_signs_notices01_abnbx_signs_notices01_al|nbx_overlays_plankends01_ab|nbx_overlay_rustdrips_abnbx_overlay_rustdrips_al|nbx_metal_ironrust_01_ab,bldg_decal,输送带污渍层（_dc + 贴图证据；旧判 part）
+ann_04_steps_02_dc,nbx_overlays_plankends01_ab|nbx_metal_ironrust_01_ab,bldg_decal,台阶污渍层（旧判 unknown）
+ann_05_house_dec,sla_cs_nails001_absla_cs_nails001_al|cas_dc_mud_deck_abrho_bank_floor_smudges_al,bldg_decal,_dec 污渍层（旧判 bldg 会留在画面）
+arm_04_generalstore01x_dec,nbx_dirt_grunge_drip_br_01_abal|val_dc_mudgrime_1_abal|val_dr_mud_floor_1_abal,bldg_decal,同上
+her_01_shack_01_dc,griz_shack_03_iw_woodends01_ab|but_shack_ew_log03_ab,bldg,反向：_dc 但贴图是木墙 → 仍是建筑
+ann_housing010_d,nbx_metal_rooftrim03_ab|pro_barnplanks_001_ab|nbx_window_sash_01_ab,bldg,housing 关键词（真房子，_d 不许吞）
+ann_02_locker_room,pro_cs_beamends01_ab|nbx_wall_brickred01_ab|nbx_doors_wrh_01_ab,bldg,locker_room
+ann_02_locker_room_d,nbx_overlay_rustdrips_abnbx_overlay_rustdrips_al|nbx_overlays_beamjoint001_ab|ann_decal_chisled001_ab,bldg_decal,locker_room 的 _d 变体留给贴花兜底
+ann_storage,ann_roof_tin_02_ab|nbx_wood_largebean01_ab|pro_barnplanks_001_ab,bldg,storage
+che_01_castor_storage,che_cs_logs02|che_ew_wallwood03b,bldg,storage 另一种写法
+p_storagebox01x,p_storagebox01x_ab,prop,反向：storage 不许吃箱子
+ann_storage001_glue,big_ap_compact_soil3dark_abte,part,反向：storage 不许吃装饰件
+ann_05_convmid1,ann_coalfact_metal04_ab|nbx_wood_largebean01_ab,part,输送带中段
+ann_02_waterpipe00,ann_metal_pipe001_ab|nbx_metal_ironrust_01_ab,part,水管
+ann_airshaft,nbx_overlays_plankends01_ab|nbx_wood_planks_rougher001_ab,part,通风井
+ann_05_edgerope01,nbx_overlays_plankends01_ab|nbx_fabric_rope01_ab,part,边缘绳
+ann_01_mineshaft_top01,nbx_wood_minebeam_001_ab|nbx_overlays_plankends01_ab,part,矿井口顶
+ann_04_steps_01,pro_cs_beamends01_ab|nbx_wood_largebean01_ab,part,台阶
+ann_04_gun_win_01,p_win_jts_sash_clean02x_ab|p_win_glassclean01_abal,part,枪眼窗
+ann_02_locker_room_em_hd,emissive_win_light_02_ememissive_win_frames_02_al,prop,_em_hd 自发光窗
+ann_minedisposal03_d,nbx_overlays_plankends01_ab|railroad_cs_boltrust_ab,bldg_decal,_d + 贴图证据
+ann_04_players_int,layout_walls|layout_floors|layout_ceiling,layout,整件 layout 白模 → 「布局白模」类（默认隐藏，不删网格）
+rho_sal_outhouseint,layout_walls|layout_floors|layout_ceiling|layout_props,layout,整件 layout 白模 → 「布局白模」类（默认隐藏，不删网格）
+ann_setlrs_int_floor,layout_floors|val_wt_wood_02_ab,unknown,反向：混血模型只丢白模子网格（室内侧），不能整件判成白模

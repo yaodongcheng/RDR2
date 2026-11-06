@@ -450,12 +450,17 @@ _MUD_CACHE = {}
 
 
 def _is_light_mud(ab_name, ab_tid, texmeta, libdir):
-    """`muddyroad` 这类**近白路面贴花**：RGB 是浅砂土（均值 ~218），alpha 才是覆盖范围。
+    """`muddyroad` / `track_decal` 这类**近白路面贴花**：RGB 是浅砂土（均值 ~218/203），alpha 才是覆盖范围。
 
-    当普通 albedo 渲染会变成白色条带（2026-11-05 用户指出 `val_03_road_d_19` 白得不真实）。
+    当普通 albedo 渲染会变成白色条带：
+      · 2026-11-05 `val_03_road_d_19`（`muddyroad` 族）；
+      · 2026-11-06 `ann_04_d_southtrack_02`（`hea_track_decal_02_abte`，均值 203、alpha 全 255）——
+        同一症状、另一族贴图，旧判据只认 `muddyroad` 所以漏了。
+    真正让它们变白的是 shader 的 `palette` + 逐顶点 COLOR0 染色（我们还没接），
+    这里先用「亮度调泥色」近似，保证不出现白带。
     """
     n = (ab_name or '').lower()
-    if 'muddyroad' not in n:
+    if not any(k in n for k in ('muddyroad', 'track_decal')):
         return False
     key = ab_tid
     if key in _MUD_CACHE:

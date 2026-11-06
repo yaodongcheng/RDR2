@@ -58,15 +58,11 @@ def _tiles():
 
 
 def load_mlo(pkg):
+    """包名 → MLO 实例；**唯一口径** = `parse_interior_mlo.find_mlo_instance`
+    （精确 → `_main` → `_lod`）。2026-11-06 前这里是「先撞到谁算谁」，会把
+    `val_bank_int_lod`（yaw −100°）当成银行实例，`inside` 判定跟着错。"""
     names = _names()
-    want = [pkg, pkg + '_lod', pkg + '_main']
-    for e in _tiles():
-        n = names.get(e[0])
-        if not n:
-            continue
-        if n.split('/')[-1] in want:
-            return e, names
-    return None, names
+    return PM.find_mlo_instance(pkg, names=names, tile_list=_tiles()), names
 
 
 def quat_mat(q):

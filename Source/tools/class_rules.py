@@ -26,7 +26,7 @@ ROOT = r'D:/BrainMaker/大镖客2解包分析'
 CLASSES = (
     'lod', 'lod_out', 'terrain_lod', 'terrain_cell', 'underground', 'watertile', 'placeholder',
     'rail', 'rail_decal', 'struct', 'road', 'track_decal', 'ruin', 'decal', 'bldg_decal',
-    'int_decal', 'int_proxy',
+    'int_decal', 'int_proxy', 'layout',
     'veg', 'stone', 'rock',
     'veh', 'bldg', 'part', 'junk', 'prop', 'unknown',
 )
@@ -39,9 +39,11 @@ CLASSES = (
 # 同样判不出名字，由 scene_interiors.py 按**模型名**判（proxy/shadow/shdw/shd_/shad_ 一整族，
 # 全量 326 件）；它们只参与投影与镜面，摆出来就是盖在屋顶/墙上的一块空壳。
 # track_decal = 脚印车辙（高度图贴花，2026-11-05 用户裁定：和 road 路面贴花分开）。
+# layout = 布局白模（Rockstar 地编布局用的 `layout_*` 占位白盒，2026-11-06 用户裁定：
+#   **不许删网格**，摆进来但单独成类、默认隐藏）。
 DEFAULT_HIDDEN = ('lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertile',
                   'placeholder', 'veg', 'stone', 'road', 'track_decal', 'int_decal', 'int_proxy',
-                  'bldg_decal')
+                  'bldg_decal', 'layout')
 
 # 技术类：内容纠错不覆盖（junc 硬规则除外）
 TECHNICAL = ('lod', 'underground')
@@ -121,7 +123,8 @@ RULES = [
         r'wagon|cart(?!ridge)|carriage|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
         r'p_train_|trolley|handcar|barge|raft|stagecoach|hull(?!.*_doors)|canetrain|coupler', re.I)),
     # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
-    ('prop', '道具', re.compile(r'_em$', re.I)),
+    # 2026-11-06：`_em_hd` 也是同一族（17 个，安尼斯堡/瓦伦丁的自发光窗），原来只认结尾 `_em`。
+    ('prop', '道具', re.compile(r'_em(?=_hd|$)', re.I)),
     # 2026-11-05 用户裁定：**建筑贴花**单独成类，和「地面贴花」分开。
     # `<名>_dcl` / `_dcls` = 贴在建筑**墙面/屋顶**上的污垢层（实测瓦伦丁银行
     # `val_bank_dcl01`：材质 mud_floor / mudgrime / grimewall / dirt_grunge_drip，包住整栋 13.8×25.9×6.4 m）。
@@ -134,6 +137,12 @@ RULES = [
         # 2026-11-05：`boilerhse`（锅炉房，hse = house 缩写）原来谁都不认，
         #   被 decal 的裸 `oil` 子串抓走 ⇒ 整栋房子成了"地面贴花"（用户实测）。
         r'boilerhse|'
+        # 2026-11-06：安尼斯堡 44 个 unknown 复盘 —— 三个写法原来是真房子却没人认：
+        #   `ann_housing010_d`（18×25×8 m，12 槽屋顶/木墙/窗框）、`ann_storage`（13×13×8）、
+        #   `ann_02_locker_room`（19×29×9，29 槽砖墙/门）。
+        # `storage` 必须避开：`p_storagebox01x`（箱子=道具）、`_glue` 装饰件（=部件）、`_decal`（=贴花）。
+        # `locker_room` 避开 `_d` 结尾：`ann_02_locker_room_d` 是污渍层，要留给贴花兜底去认。
+        r'housing|locker_room(?!.*_d(?=\d|_|$))|storage(?!box)(?!.*(_glue|decal))|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
         r'postoffice|storefront|res_?\d\d|shack|cabin|dock_?house|bunkhouse|bathhouse|'
@@ -165,6 +174,10 @@ RULES = [
         # 2026-11-05：`conv<N>` = 矿场输送带（安尼斯堡 ann_05_conv06b 等 14 个），原来谁都不认 → unknown。
         #   `struct` 按 2026-10-31 裁定只放桥，所以归「建筑部件」。
         r'conv\d|conveyor|'
+        # 2026-11-06：安尼斯堡 unknown 复盘补的矿场/工业件（全是部件，不是建筑）：
+        #   输送带中段 `convmid` / 水管 `waterpipe` / 通风井 `airshaft` / 边缘绳 `edgerope` /
+        #   矿井口顶 `mineshaft_top` / 台阶 `steps` / 枪眼窗 `gun_win`。
+        r'convmid|water_?pipe|air_?shaft|edgerope|mineshaft_top|steps?(?=_|\d|$)|gun_win|'
         r'glue|_outerwall|_shell$|_shell_|parklights|arch_?ext', re.I)),   # 2026-11-04：scaf+old 兼容数据里的拼写 scafold
     ('junk', '杂物堆', re.compile(
         r'debris|debirs|rubble|trash|garbage|junk|scrap|cloth|cotton|bale|bundle|sugarcane|cane_|'
@@ -200,21 +213,39 @@ ALL_CLASSES = []
 for _k, _zh, _rx in RULES:
     if _k not in [c[0] for c in ALL_CLASSES]:
         ALL_CLASSES.append((_k, _zh))
+
+
+def _append_class(key, zh):
+    """手工登记类名：**已经在 ALL_CLASSES 里的不许再 append**。
+
+    🔴 2026-11-06 实机教训：`bldg_decal` 在 RULES 里已经有一行，这里又 append 了一次 ⇒
+    `classify_entities` 建树时创建了两个同名集合，Blender 把第二个改名成 `.001`，
+    对象全进 `.001`，面板上出现「建筑贴花 (0)」+「建筑贴花.001 (15)」两栏。
+    `_check_rules.py` 现在会检查重复，构建侧也做了去重兜底。
+    """
+    if key not in [c[0] for c in ALL_CLASSES]:
+        ALL_CLASSES.append((key, zh))
+    else:
+        print('[rules] WARNING: 类 %s 重复登记，已忽略（规则表里已有）' % key)
+
+
 # 2026-11-04 用户裁定：远景碎片按「活动区外/内」分成两类。
 # 名字规则永远判不出 lod_out —— 它由场景裁剪按几何（是否在活动区内）改标，
 # 大陆/旧分区里这个类永远为空，不受影响。
-ALL_CLASSES.append(('lod_out', '远景碎片·区外'))
+_append_class('lod_out', '远景碎片·区外')
 # 2026-11-05：室内地面贴花。名字规则判不出（室内件全是 i_<hash>），
 # 由 scene_interiors.py 按模型贴图名判定后直接写 cls_key，这里只登记类名。
-ALL_CLASSES.append(('int_decal', '室内地面贴花'))
-# 2026-11-05：建筑贴花（墙面/屋顶的污垢层）。名字规则能判（`_dcl`），但必须排在 bldg 之前。
-ALL_CLASSES.append(('bldg_decal', '建筑贴花'))
+_append_class('int_decal', '室内地面贴花')
+# 2026-11-05：建筑贴花由 RULES 里那行登记（`_dcl`），**不要再手工 append**（见 _append_class 注释）。
 # 2026-11-05：室内阴影 / 反射代理。同样名字规则判不出，由 scene_interiors.py 按模型名直接写 cls_key。
-ALL_CLASSES.append(('int_proxy', '室内阴影代理'))
+_append_class('int_proxy', '室内阴影代理')
+# 2026-11-06：布局白模（`layout_walls/floors/ceiling/props`）。室内由 scene_interiors 写 cls_key，
+# 室外由 apply_texture_layout 按贴图判；**不删网格，只归类 + 默认隐藏**（用户裁定）。
+_append_class('layout', '布局白模')
 # 2026-11-05：泥地脚印/车辙（高度图贴花）。由纠错表按「名字 + _height_ 贴图」判定，
 # 和 road（路面贴花，如 val_03_road_d_19）分开开关。
-ALL_CLASSES.append(('track_decal', '脚印车辙'))
-ALL_CLASSES.append(('unknown', '未分类'))
+_append_class('track_decal', '脚印车辙')
+_append_class('unknown', '未分类')
 
 
 def classify_name(name):
@@ -286,6 +317,68 @@ def apply_texture_lod(k, tex_names):
     for t in (tex_names or ()):
         if t and LOD_RX.search(t):
             return 'lod'
+    return k
+
+
+# ── 建筑贴花：后缀 + 贴图证据（2026-11-06）────────────────────────────
+# 用户实测 `ann_05_conv06a_dc` 被判成「建筑部件」，但它 17 个槽的 albedo 全是
+# `nbx_overlays_*` / `nbx_overlay_*` / `nbx_signs_notices` / `ironrust` —— 是一层污渍贴花。
+# 旧规则只认 `_dcl`（2026-11-05 立的），`_dc` / `_dec` / `_det_dec` 都漏了。
+# 🔴 **不能只按后缀判**：48 个 `_dc` 里 5 个是真建筑（`her_01_shack_01_dc` 用的是木墙贴图，
+#    0% 污渍层），一刀切会把真房子藏掉。
+# 判据 = 名字带贴花后缀 **且** 模型 albedo 有半数以上是污渍/贴花图。
+# `_d` 更含糊（327 个名字，里面有真房子 `ann_housing010_d`）⇒ **只对 unknown 兜底**。
+DECAL_SUFFIX = re.compile(r'(?:_dc|_dec|_det_dec)(?=\d|_|$)', re.I)
+DECAL_SUFFIX_WEAK = re.compile(r'_d(?=\d|_|$)', re.I)
+DECAL_TEX = re.compile(
+    r'overlay|decal|_dc_|grime|grunge|rust|stain|moss|dirt|mud|poster|splatter|drip|'
+    r'puddle|smudge|nails|woodchip|scratch|signs?_notices|branding', re.I)
+# 地面语境的（河水/碎石坡/路面）仍归「地面贴花」，别混进建筑贴花。
+DECAL_GROUND = re.compile(r'river|scree|road|street|path|ground|mud|track|trail|sand|snow', re.I)
+_TEX_DECAL_EXCLUDE = (
+    'bldg_decal', 'int_decal', 'decal', 'rail_decal', 'track_decal',
+    'lod', 'lod_out', 'terrain_cell', 'terrain_lod', 'underground',
+    'watertile', 'placeholder', 'int_proxy', 'road')
+
+
+def apply_texture_decal(k, name, tex_names):
+    """名字带贴花后缀 + 贴图多半是污渍层 → 建筑贴花（地面语境 → 地面贴花）。
+
+    在执行顺序里放在 `apply_corrections` **之前**：纠错清单是人工裁定，应当能覆盖它。
+    """
+    if not name or k in _TEX_DECAL_EXCLUDE:
+        return k
+    if not DECAL_SUFFIX.search(name):
+        # 单 `_d` 只兜 unknown（真房子也可能是 `_d` 结尾，交给贴图证据把关）。
+        if not (k == 'unknown' and DECAL_SUFFIX_WEAK.search(name)):
+            return k
+    txs = [t for t in (tex_names or ()) if t]
+    if not txs:
+        return k
+    hits = sum(1 for t in txs if DECAL_TEX.search(t))
+    if hits * 2 < len(txs):
+        return k
+    return 'decal' if DECAL_GROUND.search(name) else 'bldg_decal'
+
+
+# 2026-11-06：MLO 的 **layout 白模**（`layout_walls/floors/ceiling/props`）。
+# 实测 `ann_04_players_int` / `rho_sal_outhouse*` 等 5 个世界实例：整件都是白模贴图，
+# 在场景里就是一整块白板（用户实机截图）。全部贴图都是 layout_* → 占位代理（默认隐藏）。
+# 混血模型（真实木地板 + layout_floors）不在这里处理：室内侧按子网格丢（scene_interiors），
+# 世界侧保留真实子网格。
+LAYOUT_TEX = re.compile(r'^(?:alb_)?layout_(?:walls|floors|ceiling|props)$', re.I)
+
+
+def apply_texture_layout(k, tex_names):
+    """整件模型的所有贴图都是 `layout_*` → `layout`（布局白模，默认隐藏）。
+
+    🔴 2026-11-06 用户裁定：**不准删网格** —— 只归类 + 默认隐藏。
+    """
+    txs = [t for t in (tex_names or ()) if t]
+    if not txs or k in ('lod', 'underground'):
+        return k
+    if all(LAYOUT_TEX.match(t) for t in txs):
+        return 'layout'
     return k
 
 

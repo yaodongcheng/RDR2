@@ -23,8 +23,9 @@ CASES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rules_cases.cs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from class_rules import (  # noqa: E402
-    CLASSES, DEFAULT_HIDDEN, RULES, LEFTOVER, TECHNICAL,
+    CLASSES, DEFAULT_HIDDEN, RULES, LEFTOVER, TECHNICAL, ALL_CLASSES,
     classify_name, apply_corrections, apply_hard_rules, load_corrections,
+    apply_texture_decal, apply_texture_layout,
 )
 
 
@@ -32,6 +33,12 @@ def check_defs():
     bad = []
     if len(set(CLASSES)) != len(CLASSES):
         bad.append('CLASSES 有重复')
+    # 🔴 2026-11-06：ALL_CLASSES 重复 ⇒ classify_entities 建两个同名集合，
+    # Blender 把第二个改名成 `.001`，面板出现两栏（实机：建筑贴花 0 / 建筑贴花.001 15）。
+    keys = [k for k, _ in ALL_CLASSES]
+    dup = [k for k, c in collections.Counter(keys).items() if c > 1]
+    if dup:
+        bad.append('ALL_CLASSES 有重复 key：%s（会造成两个同名集合 .001）' % ','.join(dup))
     for k in DEFAULT_HIDDEN:
         if k not in CLASSES:
             bad.append('DEFAULT_HIDDEN 含未知类 %s' % k)
@@ -107,6 +114,9 @@ def check_cases(corr):
             exp = (row.get('expected') or '').strip()
             tex = [t for t in (row.get('textures') or '').split('|') if t]
             k = classify_name(name)
+            # 与 classify_entities 同序：贴花证据 → layout 白模 → 纠错 → 硬规则
+            k = apply_texture_decal(k, name, tex)
+            k = apply_texture_layout(k, tex)
             k = apply_corrections(k, name, tex, corr, verbose=False)
             k = apply_hard_rules(k, name)
             if k != exp:

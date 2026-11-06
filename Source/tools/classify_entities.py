@@ -58,7 +58,7 @@ GEOM_SKIP = re.compile(
 from class_rules import (  # noqa: E402
     RULES, LEFTOVER, PLANT, ALL_CLASSES,
     classify_name, apply_hard_rules, load_corrections, apply_corrections,
-    apply_texture_lod,
+    apply_texture_lod, apply_texture_decal, apply_texture_layout,
 )
 
 # 默认隐藏的类（对应"归类不搬走、整类藏起来"的规范）
@@ -278,6 +278,11 @@ def main():
             ab = m.get('albedo')
             if ab:
                 tex_names.append(ab)
+        # 2026-11-06：名字带贴花后缀（`_dc` / `_dec` / `_det_dec`，以及 unknown 的 `_d`）
+        # 且贴图多半是污渍层 ⇒ 建筑贴花。放在纠错**之前**：人工裁定能覆盖它。
+        k = apply_texture_decal(k, n, tex_names)
+        # 2026-11-06：整件都是 `layout_*` 贴图 ⇒ MLO 布局白模 ⇒ 占位代理（默认隐藏）
+        k = apply_texture_layout(k, tex_names)
         k = apply_corrections(k, n, tex_names, overrides)
         # 🔴 名字表查不到名字 ⇒ unknown，但贴图名带 `_lod` ⇒ 其实是远景 LOD 分身
         #（瓦伦丁 `e_f005a86d` 压在 `val_01_aucbarns_barn3` 屋顶上，就是那块污渍）
@@ -319,7 +324,14 @@ def main():
     made = 0
     ccols = {}
     ZH = dict(ALL_CLASSES)   # key -> 中文类名（选中物体时给人看）
+    # 🔴 2026-11-06：去重兜底 —— 重复的 key 会让 Blender 建出第二个同名集合（`.001`），
+    #   面板上出现两栏「建筑贴花 0 / 建筑贴花.001 15」（实机）。规则表已修，这里再挡一层。
+    _seen = set()
     for key, zh in ALL_CLASSES:
+        if key in _seen:
+            print('[cls] WARNING: 类 %s 重复登记，跳过第二个集合' % key)
+            continue
+        _seen.add(key)
         col = bpy.data.collections.new('C_%s_%s' % (key, zh))
         ent.children.link(col)
         ccols[key] = col

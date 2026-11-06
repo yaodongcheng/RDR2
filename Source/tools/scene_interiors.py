@@ -64,6 +64,10 @@ DECAL_TEX = re.compile(r'(_dc_|decal|holepatch|drip|stain)', re.I)
 COL_PROXY = 'C_int_proxy_室内阴影代理'
 PROXY_NAME = re.compile(r'(proxy|shadow|shdw|shd_|shad_)', re.I)
 
+# 2026-11-06：MLO 的 **layout 白模**（Rockstar 地编布局用的 `layout_*` 占位白盒）。
+# 🔴 用户裁定：**不准删网格** —— 摆进来、单独成类、默认隐藏，N 面板可勾开看。
+COL_LAYOUT = 'C_layout_布局白模'
+
 _NAMES = None
 _TILES = None
 
@@ -102,14 +106,13 @@ def _tiles():
 
 
 def find_mlo(pkg):
-    """包名 → MLO 实例实体 [hash, x, y, z, qx, qy, qz, qw]。"""
-    names = _names()
-    want = (pkg, pkg + '_lod', pkg + '_main')
-    for e in _tiles():
-        n = names.get(e[0])
-        if n and n.split('/')[-1] in want:
-            return e
-    return None
+    """包名 → MLO 实例实体 [hash, x, y, z, qx, qy, qz, qw]。
+
+    🔴 唯一口径 = `parse_interior_mlo.find_mlo_instance`（精确 → `_main` → `_lod`）。
+    2026-11-06 实机：旧实现「先撞到谁算谁」把 `val_bank_int_lod`（yaw −100°）当成银行实例，
+    瓦伦丁银行室内转歪；全量 210 个 inside 包里 42 个受影响。
+    """
+    return PM.find_mlo_instance(pkg, names=_names(), tile_list=_tiles())
 
 
 def _ytyp(pkg):
@@ -132,6 +135,11 @@ def _col_decal():
 def _col_proxy():
     """阴影代理壳集合（默认隐藏：只参与投影，摆出来就是一块盖在屋顶上的空壳）。"""
     return _col_named(COL_PROXY, hide=True)
+
+
+def _col_layout():
+    """布局白模集合（默认隐藏：Rockstar 地编布局用的白盒，不是最终可见几何；N 面板可勾开）。"""
+    return _col_named(COL_LAYOUT, hide=True)
 
 
 def _col_named(name, hide=False):
@@ -186,6 +194,19 @@ def _is_decal(m, texmeta):
     return all(DECAL_TEX.search(n) for n in names)
 
 
+# 🔴 2026-11-06：MLO 的 **layout 白模**（Rockstar 地编布局用的占位壳/家具）。
+# 实测 `ann_setlrs_reg_int_shell`（layout_walls/floors/ceiling）与 `_beams`（layout_floors）
+# 被当普通室内件摆进去 ⇒ 安尼斯堡房顶上多出两块白板（用户实机截图）。
+# 它们不是可见几何，**一律不摆**（不是隐藏，是根本不该进场景）。
+LAYOUT_TEX = re.compile(r'^layout_(?:walls|floors|ceiling|props)$', re.I)
+
+
+def _is_layout_model(m, texmeta):
+    """模型的所有子网格贴图都是 `layout_*` → 布局白模，跳过。"""
+    names = _mat_textures(m, texmeta)
+    return bool(names) and all(LAYOUT_TEX.match(n) for n in names)
+
+
 def build(scene, save=True, verbose=True):
     """把审计通过、且落在活动区里的室内包摆进当前场景。返回摆放对象数。"""
     # 🔴 只给**据点场景**摆室内。野地场景的活动区是 2~4 km 的大矩形，里面套着整座城，
@@ -215,6 +236,7 @@ def build(scene, save=True, verbose=True):
     col = _col()
     matcache, meshcache = {}, {}
     placed = made = decals = proxies = 0
+    layouts = 0             # layout 白模（不删，单独归类 + 默认隐藏）
     skipped_out = 0          # P 外（= 远景区域）的包：一律不摆
     for rec in ok:
         pkg = rec['pkg']
@@ -256,41 +278,77 @@ def build(scene, save=True, verbose=True):
             m = models.get(hx)
             if not m:
                 continue
+            # 2026-11-06（用户裁定）：layout 白模**不准删网格**，只归类 + 默认隐藏。
+            # 整件都是白模 → 一件「布局白模」；混血（真实木地板 + layout_floors）→ 拆两件：
+            # 真几何按原规则（int_proxy / int_decal / part，可见），白模走「布局白模」（隐藏）。
+            _subs = m.get('s') or []
+            _nlay = sum(1 for s in _subs
+                        if isinstance(s[0], int) and 0 <= s[0] < len(texmeta)
+                        and LAYOUT_TEX.match((texmeta[s[0]] or {}).get('n') or ''))
             try:
                 # 2026-11-05：传模型名 → 无 albedo 的件按名字自动配色（ntex_palette）。
                 _mn = _names().get(int(hx, 16), '')
-                me = BC.load_model_mesh(LIB, m, texmeta, matcache, meshcache, name_hint=_mn)
+                me_real = None
+                if _nlay < len(_subs):
+                    me_real = BC.load_model_mesh(LIB, m, texmeta, matcache, meshcache,
+                                                 name_hint=_mn, skip_tex=LAYOUT_TEX)
+                me_lay = None
+                if _nlay:
+                    me_lay = BC.load_model_mesh(LIB, m, texmeta, matcache, meshcache,
+                                                name_hint=_mn, keep_tex=LAYOUT_TEX)
             except Exception:
                 continue
-            if not me:
+            if not me_real and not me_lay:
                 continue
-            ob = bpy.data.objects.new('i_%s' % hx[2:], me)
-            ob.location = P + (q @ Vector(e['p']))
-            ob.rotation_mode = 'QUATERNION'
+            loc = P + (q @ Vector(e['p']))
             lq = Quaternion((e['q'][3], -e['q'][0], -e['q'][1], -e['q'][2]))
-            ob.rotation_quaternion = q @ lq
-            is_dec = _is_decal(m, texmeta)
-            # 名字规则：`i_<hash>` 判不出是什么件，只能问模型名（`<包>_shadow` 这类）。
-            is_proxy = bool(PROXY_NAME.search(_mn or ''))
-            key = 'int_proxy' if is_proxy else ('int_decal' if is_dec else 'part')
-            ob['cls_key'] = key
-            ob['int_pkg'] = pkg
-            # 子集合按地块分（与世界坐标一致，重建/裁剪时对数方便）
-            tid = tour._tile_of(ob.location.x + cx, ob.location.y + cy)
-            parent = _col_proxy() if is_proxy else (_col_decal() if is_dec else col)
-            tag = 'int_proxy' if is_proxy else ('int_decal' if is_dec else 'int')
-            sub = next((s for s in parent.children if s.get('tile') == tid), None)
-            if sub is None:
-                sub = bpy.data.collections.new('%s|%s' % (tag, tid))
-                sub['tile'] = tid
-                sub['cat'] = key
-                parent.children.link(sub)
-            sub.objects.link(ob)
-            if is_proxy:
-                proxies += 1
-            if is_dec:
-                decals += 1
-            n_pkg += 1
+            roq = q @ lq
+            tid = tour._tile_of(loc.x + cx, loc.y + cy)
+
+            if me_real:
+                ob = bpy.data.objects.new('i_%s' % hx[2:], me_real)
+                ob.location = loc
+                ob.rotation_mode = 'QUATERNION'
+                ob.rotation_quaternion = roq
+                is_dec = _is_decal(m, texmeta)
+                # 名字规则：`i_<hash>` 判不出是什么件，只能问模型名（`<包>_shadow` 这类）。
+                is_proxy = bool(PROXY_NAME.search(_mn or ''))
+                key = 'int_proxy' if is_proxy else ('int_decal' if is_dec else 'part')
+                ob['cls_key'] = key
+                ob['int_pkg'] = pkg
+                # 子集合按地块分（与世界坐标一致，重建/裁剪时对数方便）
+                parent = _col_proxy() if is_proxy else (_col_decal() if is_dec else col)
+                tag = 'int_proxy' if is_proxy else ('int_decal' if is_dec else 'int')
+                sub = next((s for s in parent.children if s.get('tile') == tid), None)
+                if sub is None:
+                    sub = bpy.data.collections.new('%s|%s' % (tag, tid))
+                    sub['tile'] = tid
+                    sub['cat'] = key
+                    parent.children.link(sub)
+                sub.objects.link(ob)
+                if is_proxy:
+                    proxies += 1
+                if is_dec:
+                    decals += 1
+                n_pkg += 1
+
+            if me_lay:
+                ob2 = bpy.data.objects.new('i_%s%s' % (hx[2:], '_lay' if me_real else ''), me_lay)
+                ob2.location = loc
+                ob2.rotation_mode = 'QUATERNION'
+                ob2.rotation_quaternion = roq
+                ob2['cls_key'] = 'layout'
+                ob2['int_pkg'] = pkg
+                parent = _col_layout()
+                sub = next((s for s in parent.children if s.get('tile') == tid), None)
+                if sub is None:
+                    sub = bpy.data.collections.new('layout|%s' % tid)
+                    sub['tile'] = tid
+                    sub['cat'] = 'layout'
+                    parent.children.link(sub)
+                sub.objects.link(ob2)
+                layouts += 1
+                n_pkg += 1
         if n_pkg:
             placed += 1
             made += n_pkg
@@ -301,6 +359,7 @@ def build(scene, save=True, verbose=True):
           % (placed, made, scene['aw'], scene['ah']))
     print('[int] 其中地面贴花 %d 件 → 「室内地面贴花」类（默认隐藏）' % decals)
     print('[int] 其阴影代理壳 %d 件 → 「室内阴影代理」类（默认隐藏，勾开可看）' % proxies)
+    print('[int] 布局白模 %d 件 → 「布局白模」类（默认隐藏，勾开可看）' % layouts)
     print('[int] 远景圈跳过 %d 个包（活动区 P 外，一律不放室内）' % skipped_out)
     if save and made:
         # 🔴 必须 compress=True：`scene_trim` 存出来的是 zstd 压缩的（187 MB），

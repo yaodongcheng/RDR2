@@ -701,6 +701,27 @@ x[3097.4,3414.6] y[−731.1,−487.9]；未拆整块 `new_area_slod4` 不再存�
 等于错两次）。另：夏洛蒂家当年还有**第二个**毛病 —— 用的是替身实例 `roc_hse_int_lod` 而非真实例
 `roc_house_int`（差 100°），别把整口锅都算在共轭上。
 
+### 6.14b MLO 实例的**查找**必须按优先级：精确 → `_main` → `_lod`（2026-11-06 用户实机）
+
+**症状**：`val.blend` 里瓦伦丁银行室内（`i_2b046e06` = `val_bank_main_shell`）整体歪 **~100°**，室内壳从屋顶穿出来；用户实机当场指出"昨天刚修好的旋转又坏了"。
+
+**根因**：`scene_interiors.find_mlo()` 旧写法是「遍历 tiles，**第一个**名字命中 `pkg / pkg_lod / pkg_main` 的就返回」。`val_bank_int` 的精确实例不在 tiles 里 ⇒ 先撞到 `val_bank_int_lod`（yaw **−100°**，LOD 代理的摆位与正体不同），而正确实例是 `val_bank_int_main`（yaw **0°**）。
+
+**为什么体检没抓到**：`_check_interior_align.py` 一直用的是 `pkg → _main → _lod` 优先级 ⇒ 体检 PASS、构建歪 —— **构建/审计/体检三处口径不一致**才是真问题（§6.14 末尾记过夏洛蒂家 `roc_hse_int_lod` 同类现象，但当时只修了那一个案例，没修查找逻辑）。
+
+**影响面（实测）**：全量 210 个 `inside` 包中 **42 个**旧写法取到 `_lod`；涉及 13 张场景（`val` / `sdn` / `bra` / `cal` / `che` / `lon` / `man` / `mic` / `pro` / `rho` / `str` / `van` / `bee`）+ `sod`（审计结论变化）。
+
+**修法**：
+- **统一实现** = `tools/parse_interior_mlo.py` 的 `find_mlo_instance()`（纯函数 `build_mlo_index()` + `pick_instance()`，优先级 精确 → `_main` → `_lod`）；
+  `scene_interiors.find_mlo()`、`audit_interior_placement.load_mlo()`、`_check_interior_align.collect()` **三处全部改为调它**，禁止再各写一份；
+- 审计重跑：`inside` **210 → 211**（`rho_saloon_int` / `tax_house_int` 进，`sod_house_int` 出）；旧表备份在 `_tmp/interior_placement_audit_before_20261106.json`；
+- **闸门** = `tools/_check_mlo_lookup.py`（已接进 `build_scenes.py` 开跑前，不过就 `return 4`）：
+  ① 优先级用例；② 真实数据 `val_bank_int` 必须 yaw≈0°；③ **反向测试**——模拟旧写法必须取到 `_lod`（否则判闸门无分辨力）。
+
+**验收**：`val` 重建后 `i_2b046e06` yaw **0.00°**、包围盒落在 `val_bank` 内；`_check_interior_align --only val` PASS；构建日志出现 `[mlo] PASS`。
+
+**通用教训**：**"找实例"这种语义只允许一份口径 + 一道闸门**。体检和构建各写一份，必然出现「体检绿、画面歪」；案例式修复（只改夏洛蒂家那一个）不叫修根因。
+
 ### 6.15 室内宿主判据 + 阴影代理壳（2026-11-05）
 
 两个独立的坑，都在「室内明明摆了却不对/多一块」这条线上。

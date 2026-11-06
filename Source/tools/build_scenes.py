@@ -234,6 +234,19 @@ def main():
             log('ERROR UV V 约定自检未过（tools/check_uv_v_convention.py），先修再批量')
             return 4
 
+    # 🔴 MLO 实例查找唯一口径闸门（2026-11-06）：构建 / 审计 / 体检必须同一优先级
+    #   （精确 → _main → _lod）。旧写法「先撞到谁算谁」会把 `val_bank_int_lod`（yaw −100°）
+    #   当成银行实例 ⇒ 瓦伦丁室内转歪，而体检用正确优先级所以 PASS（假绿）。
+    mlochk = os.path.join(TOOLS, '_check_mlo_lookup.py')
+    if os.path.exists(mlochk):
+        p = subprocess.run([sys.executable, '-X', 'utf8', mlochk], capture_output=True,
+                           text=True, encoding='utf-8', errors='replace')
+        for line in (p.stdout or '').strip().splitlines():
+            log('    ' + line.strip())
+        if p.returncode != 0:
+            log('ERROR MLO 实例查找闸门未过（tools/_check_mlo_lookup.py），先修再批量')
+            return 4
+
     if not todo:
         log('没有待跑的场景。')
         return 0

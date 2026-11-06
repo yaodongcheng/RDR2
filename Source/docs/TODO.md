@@ -1,13 +1,72 @@
 # TODO —— 交接版（2026-11-05）
 
-> 交接阅读顺序：1) 本文（最上面是**当前状态**：**56 张要全量重跑**，见第一节）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**；室内看 **§6.14 / §6.15**，地形看 **§6.20**）4) `docs/交接与状态/README_交接.md`（历史）。
+> 交接阅读顺序：1) 本文（最上面是**当前状态**：2026-11-06 分类修复已落地，**逐张重建验收中**（不跑全量）；其下是 2026-11-05 全量执行结果）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**；室内看 **§6.14 / §6.15**，地形看 **§6.20**）4) `docs/交接与状态/README_交接.md`（历史）。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
 
 ---
 
-## 🔴 2026-11-05 · 待执行：**56 张场景全量重跑**（约 **1 小时**）
+## 🔄 2026-11-06 · 分类修复：`_dc`/`_dec` 贴花 + 安尼斯堡 unknown（全量重跑中）
 
-### ① 现在是什么状态
+**用户点名的两个问题**
+
+| 问题 | 根因 | 结果 |
+|---|---|---|
+| `ann_05_conv06a_dc` 算成「建筑部件」 | `bldg_decal` 只认 `_dcl`、不认 `_dc`；`part` 的 `conv\d` 先命中 | 新增「后缀 + 贴图证据」→ **`bldg_decal`**（默认隐藏） |
+| `ann` 44 个 unknown 里有建筑 | 词表缺写法：`housing` / `storage` / `locker_room` 是真房子；`convmid` / `waterpipe` / `airshaft` / `edgerope` / `mineshaft_top` / `steps` / `gun_win` 是部件；`_em_hd` 是自发光窗 | 补词 + 贴花证据 → `ann` unknown **46 → 21**，建筑全部归位 |
+
+**规则改动（唯一真身 `tools/class_rules.py`）**
+
+| 改动 | 判据 |
+|---|---|
+| `bldg` 补词 | `housing`、`locker_room`（避开 `_d` 结尾）、`storage`（避开 `box` / `_glue` / `_decal`） |
+| `part` 补词 | `convmid` / `water_?pipe` / `air_?shaft` / `edgerope` / `mineshaft_top` / `steps?` / `gun_win` |
+| `prop` | `_em$` → `_em(?=_hd\|$)`（自发光窗片） |
+| **新增 `apply_texture_decal`** | `_dc` / `_dec` / `_det_dec`（任意类）或 `unknown` 的 `_d`，且 albedo 半数以上是污渍层 → `bldg_decal`；地面语境 → `decal`。**不能只按后缀**：48 个 `_dc` 里 5 个是真建筑（`her_01_shack_01_dc`），靠贴图证据区分 |
+
+**回归**：`tools/rules_cases.csv` **+21 条**（含反向用例 `her_01_shack_01_dc` → `bldg`）；`_check_rules.py` **PASS（58 条）**。
+
+**🔴 2026-11-06 用户实机抓到的第二个 bug：面板出现两栏「建筑贴花」** —— `ALL_CLASSES` 里 `bldg_decal` 登记了两次（HEAD 里就有：RULES 一行 + 手工 append 一行），建树时第二个集合被 Blender 改名 `.001`，对象全进 `.001`（面板「建筑贴花 (0)」+「建筑贴花.001 (15)」）。已修：手工登类改走 `_append_class()`（重复即忽略）+ `_check_rules.py` 增加重复检查 + 建树去重兜底。**`ann` / `val` 已按修复版重建（09:26 / 09:29），Blender 里核对过：各只有一个 `C_bldg_decal_建筑贴花`（15 / 37 件），无 `.001`。**
+
+**🔴 2026-11-06 用户实机抓到的第三个 bug：`ann_04_d_southtrack_02` 道路轨迹发白** —— 该模型两路子网格：`muddyroad` 那路已走 `muddecal`（深泥色），白的是另一路 `standard_decal_hbb` + **`hea_track_decal_02_abte`**（RGB 均值 **203** 的近白图、alpha 全 255）。旧判据 `_is_light_mud` 只认名字含 `muddyroad`，`track_decal` 这一族漏了（全库 **262 个子网格**用它）。已把 `track_decal` 并入近白贴花判据（`mat_rdr2._is_light_mud`），`ann` 重建后两路都是 `muddecal_*`。**根因注**：真正的染色来源是 shader 的 `palette`（`ann_04_d_southtrack_02_pal`）+ 逐顶点 `COLOR0`，这两样我们还没接（`.mdl` 不存 COLOR0）；当前是「亮度调泥色」的近似，视觉上不出白带。
+
+**🔴 2026-11-06 用户实机抓到的第四个 bug：屋顶白板 `i_83445ac3` / `i_42319dbd`** —— 它们是 **MLO 布局白模**：`ann_setlrs_reg_int_beams`（`layout_floors`）和 `ann_setlrs_reg_int_shell`（`layout_walls/floors/ceiling`），是 Rockstar 地编布局用的占位白模。**用户裁定：不准删网格，只准分好类 + 默认隐藏。** 落地：① 新类 **`layout`（布局白模）**，默认隐藏；室内摆放把白模**摆进来**并归到 `C_layout_布局白模`（混血模型拆两件：真几何 `part` 可见 + 白模件 `layout` 隐藏，范本 `ann_setlrs_int_floor` → `i_f333d53c` + `i_f333d53c_lay`）；② 世界侧整件都是 `layout_*` 的模型由 `apply_texture_layout` 判成 `layout`（全图 5 个实例，含 `ann_04_players_int`）。`ann` 重建后：`C_layout_布局白模` 共 **11 件**（1 世界 + 10 室内）整类隐藏，白模对象都还在（没删）。`_check_rules.py` **PASS（61 条）**；`_check_tour_vis_unit.py` 的 SPECS 已补 `layout`。
+
+**🔴 2026-11-06 用户实机抓到的第五个 bug（最严重）：瓦伦丁银行室内转歪 ~100°** —— 根因 **`find_mlo()` 用「先撞到谁算谁」找 MLO 实例**：`val_bank_int` 的精确实例不在 tiles 里，先撞到 `val_bank_int_lod`（yaw **−100°**），正确实例是 `val_bank_int_main`（yaw **0°**）。`_check_interior_align.py` 一直用正确优先级（精确→`_main`→`_lod`），所以体检 PASS 而构建歪。**修法：唯一实现 = `parse_interior_mlo.find_mlo_instance()`（构建 / 审计 / 体检三处共调），并接闸门 `tools/_check_mlo_lookup.py`（`build_scenes.py` 开跑前跑，含反向测试）**；审计重跑 `inside` **210 → 211**（`rho_saloon_int` / `tax_house_int` 进，`sod_house_int` 出）。**全量 42 个 inside 包受影响，涉及 13 张场景**（val / sdn / bra / cal / che / lon / man / mic / pro / rho / str / van / bee）+ `sod`（审计变化）需重建；`ann` 不受影响。**`val` 已重建验证：`i_2b046e06` yaw 0.00°、包围盒落在 `val_bank` 内；构建日志 `[mlo] PASS`。** 细则见 `docs/AGENTS.md` **§6.14b**。
+
+**实测（重建验证）**
+
+| 场景 | 旧口径 | 新口径 |
+|---|---|---|
+| `ann` | unknown **46** / bldg_decal **2** | unknown **21** / bldg_decal **17** |
+| `val` | bldg 113 / bldg_decal 27 / unknown 84 | bldg 106 / bldg_decal **37** / unknown 78 |
+
+**重跑方式（2026-11-06 用户裁定）**：**不跑全量批量，逐张重建验收**。已用新规则重建并待用户验收：`ann`（09:20）、`val`（09:18）。其余 54 张仍是旧口径，按场景顺序一张张来（下一张 = `van`，批量在它开头被叫停，`van.blend` 未被改动）。
+
+---
+
+## ✅ 2026-11-05 · 已执行：**56 张场景全量重跑**（22:21 → 23:24，**63.4 分钟**，**56/56 `done`**）
+
+### ⓪ 执行结果（判据逐条见 ④）
+
+| 项 | 结果 |
+|---|---|
+| `scene_build_status.csv` | **56 / 56 `done`**，0 失败、0 超界 |
+| 对象 | **187,877**（远景 `lod_out` **22,521**） |
+| blend 体积 | **10,114.8 MB**（9.88 GB） |
+| 室内 | **148 包 / 25,144 件** = 所有 MLO 落在据点 P 内的包全部摆上；审计 `inside=True` **210 / 247**，另 62 个在 P 外（瓜玛 + 野地小屋），按设计不摆 |
+| 室内阴影代理 | **187 件**（`int_proxy`，默认隐藏） |
+| 室内地面贴花 | **107 件**（`int_decal`，默认隐藏） |
+| 地形图 | **56 / 56 PASS**（最大误差 0.000 m） |
+| 室内对齐 | `_check_interior_align.py` **PASS**：现口径 \|Δ\| 中位 **0.28°**、≤2° 占 **92%**；负面测试（取共轭）中位 29.73°、≤2° 占 2% |
+| `ann` 剖面 y=1348 | **2960→42.95 / 3000→40.30 / 3120→18.97**（判据 42.9 / 40.3 / 19.0；旧口径 7.1 死平） |
+| `ann` 分类 | decal **33**（旧 88）、unknown **46**（旧 53）；`ann_boilerhse`=`bldg`、`ann_05_conv06b`=`part` |
+
+对账表（56 行：对象 / 远景 / 室内包 / 代理 / 室内贴花 / full decal / full unknown / 地形）：
+`D:\BrainMaker\大镖客2解包分析\deliverable\handoff\scene_rebuild_reconcile_20261105.csv`
+
+**剩下的一件事（用户）**：抽查 `ann` + 2~3 张据点场景，命令见 ③。
+
+### ① 现在是什么状态（执行前记录，保留作对照）
 
 | 批次 | 张数 | 吃到哪些修复 |
 |---|---:|---|
@@ -39,7 +98,7 @@
 > **不存在**。CodeWalker 的 `CMloArchetypeDef` 只有 flags + 数组，room 只有 bbox，没有任何变换字段。
 > 别再往那个方向查。细节见 `docs/AGENTS.md` **§6.14 / §6.15**。
 
-### ③ 下一步怎么做（就一条命令）
+### ③ 重跑命令（本轮已执行；要再跑同一条）
 
 **开跑前**：关掉 Blender（管线禁止并跑）、关掉 RDR2（RPF 有锁）。
 

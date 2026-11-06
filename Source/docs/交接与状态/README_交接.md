@@ -716,6 +716,11 @@ python tools\list_unparsed_models.py         # 未入库逐条清单
   `std_annesburg_muddyroad_03`（253 处）、`_01`（114）、`road_muddyroad_03`（69）、`road_muddyroadtnt_02`（83）。
 - 下一步：`rdr2_ytd` 解这种名字时**选对子资源/层**（要 `_ab`，别拿 `_al`），再重跑贴图表 + 重绑 + 重建。
 - 影响面：目前只在安尼斯堡站场、`road_muddyroad*` 这类泥路上看得出来（白缝）；其它粘连名目视正常。
+- **2026-11-06 更新**：同一症状的另一族也已处理 —— `hea_track_decal_02_abte`（RGB 均值 203、alpha 全 255，
+  全库 **262 个子网格**）原来没进「近白贴花」判据（旧版只认名字含 `muddyroad`）。现在 `mat_rdr2._is_light_mud`
+  同时认 `track_decal`，走 `make_mud_decal`（亮度调泥色 + 半透明），`ann_04_d_southtrack_02` 重建后不再发白。
+  ⚠️ 这是**近似**：真正的染色来源是 shader 的 `palette`（`ann_04_d_southtrack_02_pal`）+ 逐顶点 `COLOR0`，
+  `.mdl` 目前不存 COLOR0，两样都没接。
 
 ### 16.7 待提交（本轮，AI 不提交）
 

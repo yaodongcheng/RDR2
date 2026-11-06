@@ -111,11 +111,8 @@ def wrap90(a):
 def collect(only=''):
     nm = names()
     tl = tiles()
-    byname = {}
-    for e in tl:
-        n = nm.get(e[0])
-        if n:
-            byname.setdefault(n.split('/')[-1], e)
+    # 宿主名 → 实例（与构建同一份索引实现）
+    byname = PM.build_mlo_index(nm, tl)
     audit = {x['pkg']: x for x in json.load(open(AUDIT, encoding='utf-8'))}
 
     pkgs = sorted(d for d in os.listdir(PACKS) if d.endswith('_int'))
@@ -131,7 +128,8 @@ def collect(only=''):
             if not c:
                 continue
             yp = c[0]
-        inst = byname.get(pkg) or byname.get(pkg + '_main') or byname.get(pkg + '_lod')
+        # 唯一口径：与构建/审计同一个函数（精确 → _main → _lod）
+        inst = PM.find_mlo_instance(pkg, names=nm, tile_list=tl)
         if inst is None:
             skipped += 1
             continue
