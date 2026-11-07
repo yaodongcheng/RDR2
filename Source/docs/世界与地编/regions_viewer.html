@@ -9,6 +9,7 @@
   --line:#d9ccb7; --line-strong:#b9a98f; --accent:#b4552d; --accent-ink:#fff8ef;
   --city:#b8861f; --castle:#3d6d99; --village:#4f8456; --hideout:#8a5a9e;
   --walk:#d9772a; --wild:#2f7f72; --danger:#b23b2e;
+  --act:#1c1610; --far:#1f6feb;
   --map-ink:#241c14; --map-halo:#fffaf0;
   --shadow:0 10px 28px rgba(45,30,15,.14);
   --sans:"Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
@@ -20,6 +21,7 @@
     --line:#3a2f24; --line-strong:#57483a; --accent:#e08a4c; --accent-ink:#1a120a;
     --city:#d9a83a; --castle:#6fa3d1; --village:#79b87f; --hideout:#b98cc9;
     --walk:#ef9a52; --wild:#5fb3a3; --danger:#e06a56;
+    --act:#ffdcaa; --far:#6aa8ff;
     --shadow:0 10px 28px rgba(0,0,0,.38); color-scheme:dark;
   }
 }
@@ -28,6 +30,7 @@
   --line:#3a2f24; --line-strong:#57483a; --accent:#e08a4c; --accent-ink:#1a120a;
   --city:#d9a83a; --castle:#6fa3d1; --village:#79b87f; --hideout:#b98cc9;
   --walk:#ef9a52; --wild:#5fb3a3; --danger:#e06a56;
+  --act:#ffdcaa; --far:#6aa8ff;
   --shadow:0 10px 28px rgba(0,0,0,.38); color-scheme:dark;
 }
 * { box-sizing: border-box; }
@@ -58,14 +61,14 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
 .legend-grid b { color:var(--ink); }
 .sw-p { background:rgba(217,119,42,.4); border:1px solid var(--walk); }
 .sw-wild { background:rgba(47,127,114,.4); border:1px solid var(--wild); }
-.sw-t { border:1px dashed var(--muted); }
-.sw-o { border:1px dashed var(--castle); }
+.sw-t { border:2px solid var(--act); background:rgba(28,22,16,.05); }
+.sw-o { border:2px dashed var(--far); background:rgba(31,111,235,.05); }
 .sw-city { background:var(--city); border-radius:50%; }
 .sw-castle { background:var(--castle); transform:rotate(45deg); width:10px !important; height:10px !important; }
 .sw-village { background:var(--village); border-radius:50%; }
 .sw-hideout { width:0 !important; height:0 !important; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid var(--hideout); background:none !important; }
 .sw-anchor { background:var(--wild); border-radius:50%; }
-.sw-edge { border-top:2px dashed var(--ink); height:7px; }
+.sw-edge { border-top:2px dotted #6b5d4d; height:7px; }
 .detail { margin:0 18px 9px; padding:10px 11px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; }
 .detail h2 { font-family:var(--serif); font-size:17px; margin:2px 0 4px; }
 .detail .row { display:flex; justify-content:space-between; gap:10px; font-size:11.5px; }
@@ -75,6 +78,7 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
 .detail .row span { color:var(--muted); }
 .detail .row b { text-align:right; font-variant-numeric:tabular-nums; }
 .detail .hint { margin:7px 0 0; font-size:11px; color:var(--muted); line-height:1.45; }
+.detail .hint.warn { color:var(--accent); font-weight:600; }
 .list { flex:1; overflow:auto; padding:0 10px 16px; min-height:0; }
 .group-head { display:flex; justify-content:space-between; padding:9px 8px 4px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:700; }
 .group-head span { font-variant-numeric:tabular-nums; }
@@ -108,16 +112,20 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
 .p-fill.village { fill:rgba(79,132,86,.28); stroke:var(--village); }
 .p-fill.hideout { fill:rgba(138,90,158,.30); stroke:var(--hideout); }
 .p-fill.sel { stroke-width:2.6; }
+.p-fill.faint { opacity:.30; }
 .wild-fill { fill:rgba(47,127,114,.22); stroke:var(--wild); stroke-width:1.5; vector-effect:non-scaling-stroke; }
-.wild-fill.sel { fill:rgba(47,127,114,.4); stroke-width:2.8; }
-.wild-fill.faint { fill:rgba(47,127,114,.10); stroke-width:.8; stroke-opacity:.55; }
-.t-ghost { fill:none; stroke:var(--muted); stroke-width:1.1; stroke-dasharray:5 5; vector-effect:non-scaling-stroke; opacity:.7; }
-.o-frame { fill:none; stroke:var(--castle); stroke-width:1.2; stroke-dasharray:6 6; vector-effect:non-scaling-stroke; opacity:.6; }
-.o-frame.over { stroke:#c0392b; stroke-width:2; opacity:.95; }
-.o-lbl { font-size:calc(15px * var(--k,1)); fill:var(--castle); opacity:.85; pointer-events:none; }
-.o-lbl.over { fill:#c0392b; font-weight:600; }
-.extent-line { fill:none; stroke:#1f6feb; stroke-width:2; stroke-dasharray:12 6; vector-effect:non-scaling-stroke; opacity:.75; }
-.extent-lbl { font-size:calc(15px * var(--k,1)); fill:#1f6feb; opacity:.85; pointer-events:none; }
+.wild-fill.sel { fill:rgba(47,127,114,.20); stroke:none; }
+.wild-fill.faint { fill:rgba(47,127,114,.08); stroke-width:.8; stroke-opacity:.35; }
+/* 点选后只留两种框（2026-11-07）：黑实线 = 玩家活动区，蓝虚线 = 远景范围。
+   其他野地 / 据点一律淡化让路，缺口/重叠默认关闭 —— 否则满屏矩形分不清谁是谁。 */
+.t-box { fill:rgba(28,22,16,.05); stroke:var(--act); stroke-width:2.4; vector-effect:non-scaling-stroke; }
+.t-box.ghost { fill:none; stroke-width:1.2; stroke-opacity:.45; }
+.o-box { fill:rgba(31,111,235,.05); stroke:var(--far); stroke-width:2; stroke-dasharray:10 6; vector-effect:non-scaling-stroke; opacity:.9; }
+.box-lbl { font-weight:700; paint-order:stroke; stroke:var(--map-halo); stroke-linejoin:round; pointer-events:none; }
+.box-lbl.t { fill:var(--act); }
+.box-lbl.o { fill:var(--far); }
+.extent-line { fill:none; stroke:#6b5d4d; stroke-width:1.3; stroke-dasharray:2 7; vector-effect:non-scaling-stroke; opacity:.5; }
+.extent-lbl { fill:#6b5d4d; opacity:.85; pointer-events:none; }
 .anchor { fill:var(--wild); stroke:var(--map-halo); stroke-width:1.1; vector-effect:non-scaling-stroke; }
 .city-m { fill:var(--city); stroke:var(--map-halo); stroke-width:1.4; vector-effect:non-scaling-stroke; }
 .castle-m { fill:var(--castle); stroke:var(--map-halo); stroke-width:1.4; vector-effect:non-scaling-stroke; }
@@ -171,11 +179,11 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
         <div><i style="background:rgba(200,40,40,.35);border:1px dashed #b23b2e"></i><span><b>红色块 = 没被任何野地覆盖的地方</b>（缺口）：地图区里有、但没有野地管，拖相邻野地的边补上。</span></div>
         <div><i style="background:rgba(230,140,20,.3);border:1px dashed #c87a10"></i><span><b>橙色块 = 两个野地互相重叠的地方</b>：拖边让它们刚好贴住（吸附会帮你对齐）。</span></div>
         <div><i class="sw-wild"></i><span><b>绿色块 = 野地的核心区（P）</b>：17 个中心把真实陆地分完，也是「站在这块坐标就载入这张野地图」的归属区；<b>包含据点范围</b>。方框内、绿块外的部分是<b>缓冲带</b>（能看见、能走，但没内容）。</span></div>
-        <div><i class="sw-t"></i><span><b>灰虚线方框 = 玩家活动区</b>：这张地图玩家走得到的地方，走到边上就被挡住。<b>默认只画你选中的那一个</b>；想一次看全部，点左上角「显示全部活动区」。远景范围同样只在点选时显示。</span></div>
-        <div><i class="sw-o"></i><span><b>蓝虚线方框 = 远景范围</b>：活动区每边再往外铺一圈（只做背景，不能走）；可以互相重叠。</span></div>
+        <div><i class="sw-t"></i><span><b>黑实线方框 = 玩家活动区</b>：这张地图玩家走得到的地方，走到边上就被挡住，框上直接写着尺寸。<b>默认只画你选中的那一个</b>；想一次看全部，点左上角「显示全部活动区」（那时变成淡线）。</span></div>
+        <div><i class="sw-o"></i><span><b>蓝虚线方框 = 远景范围</b>：活动区每边再往外铺一圈（只做背景，不能走）；可以互相重叠。<b>顶到地图边界会被裁短</b> —— 裁完就不再以活动区为中心，这是正常的。<b>图上画的框 = blend 里真正有的地面</b>（4 m 高度图只覆盖到地图画面区，外面那截既不建地形也没贴图）。</span></div>
         <div><i style="background:repeating-linear-gradient(45deg,rgba(90,80,70,.05) 0 3px,rgba(90,80,70,.45) 3px 5px);border:1px dashed rgba(90,80,70,.55)"></i><span><b>斜线区 = 地图外</b>：官方地图上就是空白羊皮纸（河流以南、西北角、东侧海面外侧），<b>不算有效地图</b>；只做远景，谁也不能走。</span></div>
         <div><i class="sw-anchor"></i><span><b>绿点 = 野地地图的中心</b>：玩家在这一片扎营，就载入以它为中心的野地场景。</span></div>
-        <div><i class="sw-edge"></i><span><b>深色虚线 = 大镖客地图边缘</b>；外面是扩充区，不能走。</span></div>
+        <div><i class="sw-edge"></i><span><b>深色点线 = 大镖客地图边缘</b>（远景框不得超出它）；线外面是扩充区，不能走。</span></div>
         <div><i style="background:#7c3aed;border:1px solid #fff8ef;border-radius:2px"></i><span><b>紫方块 = 含室内场景的房间</b>：这栋建筑内部有独立室内模型（已摆进场景 blend）。<b>点一个据点就显示</b>，滚轮放大到房间铺得开时会自动出名字（<b>再点它一次 / 按 Esc 取消</b>）；悬停看包名 / 宿主建筑 / 世界坐标；左侧清单点一行可单间放大。</span></div>
         <div><span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap"><i class="sw-city"></i>黄星=城市 · <i class="sw-castle"></i>蓝菱=城堡 · <i class="sw-village"></i>绿点=村庄/营地/点位 · <i class="sw-hideout"></i>紫三角=藏身处</span></div>
       </div>
@@ -206,7 +214,7 @@ h1 { font-family:var(--serif); font-size:23px; line-height:1.2; margin:4px 0 2px
     <div class="map-controls">
       <button class="ctrl" id="reset">复位</button>
       <button class="ctrl" id="tall">显示全部活动区</button>
-      <button class="ctrl" id="iss">缺口/重叠：开</button>
+      <button class="ctrl" id="iss">缺口/重叠：关</button>
       <button class="ctrl" id="edit">编辑模式：关</button>
       <button class="ctrl" id="newWild" style="display:none">＋新建野地</button>
       <span class="ctrl" id="dirtyBadge" style="cursor:default">无改动</span>
@@ -242,7 +250,7 @@ const MX = (PROJ.x1 - PROJ.x0) / MAP_W;
 const MY = (PROJ.y1 - PROJ.y0) / MAP_H;
 const NS = "http://www.w3.org/2000/svg";
 const SVG = document.getElementById("map");
-const state = { tab: "overview", sel: null, showAllT: false, showIssues: true, edit: false, mode: "select", drag: null, draft: [], dirtyS: new Set(), dirtyW: new Set(), addedW: new Set(), deletedW: new Set(), exported: true, snap: true, snapX: null, snapY: null, drawStart: null, view: { x: 0, y: 0, w: MAP_W, h: MAP_H } };
+const state = { tab: "overview", sel: null, showAllT: false, showIssues: false, edit: false, mode: "select", drag: null, draft: [], dirtyS: new Set(), dirtyW: new Set(), addedW: new Set(), deletedW: new Set(), exported: true, snap: true, snapX: null, snapY: null, drawStart: null, view: { x: 0, y: 0, w: MAP_W, h: MAP_H } };
 for (const w of WILDS) {
   const r = w.P[0];
   let axis = r.length >= 4;
@@ -362,7 +370,7 @@ function drawSettle(g, faint) {
     const d = polyPath(p.P);
     if (!d) continue;
     const sel = state.sel && state.sel.kind === "settle" && state.sel.id === p.code;
-    const path = el("path", { d, class: `p-fill ${p.kind}` + (sel ? " sel" : ""), "fill-rule": "evenodd" }, g);
+    const path = el("path", { d, class: `p-fill ${p.kind}` + (sel ? " sel" : "") + (faint && !sel ? " faint" : ""), "fill-rule": "evenodd" }, g);
     path.addEventListener("pointerdown", ev => { ev.stopPropagation(); select({ kind: "settle", id: p.code }); });
   }
 }
@@ -377,70 +385,176 @@ function drawWild(g, faint) {
   }
 }
 
-// 两层口径：活动区（aw × ah）+ 每边外扩 w → 远景范围（fw × fh）
-// 据点的活动区是正方形（可手改）；野地的活动区由矩形自动取整到 128，不能手改。
-function wildActivity(w) {
-  const poly = w.P[0] || [];
-  let hx = 0, hy = 0;
-  for (const q of poly) {
-    hx = Math.max(hx, Math.abs(q[0] - w.x));
-    hy = Math.max(hy, Math.abs(q[1] - w.y));
-  }
-  const G = 128;
-  return { aw: Math.ceil(2 * hx / G) * G, ah: Math.ceil(2 * hy / G) * G };
-}
-
+// 活动区 = 能走矩形（= scene_list.csv 的「能走_x0..y1」：据点取 P_rect，野地取 P 的外接矩形）；
+// 远景 = FW/FH（构建侧配置的原值 —— 据点的 FW 是「档位 T + 外扩」，**不是** AW + 外扩）。
+// 2026-11-07 修：以前据点用 AW+2W 算远景框，比真实配置小最多 370 m。
+// 🔴 同一轮第二修：高度图 / blend 里的地形**只覆盖地图画面区**（`scene_terrain.build` 会把框再夹回去），
+//    所以这里两个矩形都先夹进地图框 —— 保证「图上画的 = 高度图范围 = blend 里的地面」是同一个数。
 function sceneExtent(o) {
-  const isWild = !!(o.id && String(o.id).indexOf("wild_") === 0);
-  const a = isWild ? wildActivity(o) : { aw: o.AW || o.T || 0, ah: o.AH || o.T || 0 };
+  const poly = (o.P && o.P[0]) || [];
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const q of poly) {
+    x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]);
+    x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]);
+  }
+  if (!isFinite(x0)) { x0 = x1 = o.x; y0 = y1 = o.y; }
+  const raw = { x0: x0, y0: y0, x1: x1, y1: y1 };   // 规格能走矩形（未夹地图框）
+  const b = EXTENT && EXTENT.map;
+  if (b && b.length >= 4) {
+    x0 = Math.max(x0, b[0]); y0 = Math.max(y0, b[1]);
+    x1 = Math.min(x1, b[2]); y1 = Math.min(y1, b[3]);
+  }
   const w = o.W || 0;
-  return { aw: a.aw, ah: a.ah, w: w, fw: a.aw + 2 * w, fh: a.ah + 2 * w };
+  const aw = x1 - x0, ah = y1 - y0;
+  const isWild = !!(o.id && String(o.id).indexOf("wild_") === 0);
+  // 远景尺寸要和 build_scene_division 一致：野地 = 活动区(box 取整到 128) + 2W；
+  // 据点 = 档位 T + 2W（T 是老的档位方块，和能走范围 P 无关）。
+  const aw0 = raw.x1 - raw.x0, ah0 = raw.y1 - raw.y0;
+  const fw = isWild ? Math.ceil(aw0 / 128) * 128 + 2 * w : (o.T || Math.ceil(aw0 / 128) * 128) + 2 * w;
+  const fh = isWild ? Math.ceil(ah0 / 128) * 128 + 2 * w : (o.T || Math.ceil(ah0 / 128) * 128) + 2 * w;
+  // 远景框是**以场景中心 (x,y) 为原点**铺的，不是以能走范围的中心 —— 据点这两个中心常差几十米
+  return { x0: x0, y0: y0, x1: x1, y1: y1, aw: aw, ah: ah, w: w, fw: fw, fh: fh,
+           cx: o.x, cy: o.y, raw: raw };
 }
 
-function sceneBox(g, x, y, aw, ah, W, withO) {
-  const tw = aw / MX, th = ah / MY;
-  el("rect", { x: px(x) - tw / 2, y: py(y) - th / 2, width: tw, height: th, class: "t-ghost" }, g);
-  if (withO) {
-    const c = clampFar(x, y, aw + 2 * W, ah + 2 * W, aw, ah);
-    const bx = px(c.x) - c.fw / MX / 2, by = py(c.y) - c.fh / MY / 2;
-    const ow = c.fw / MX, oh = c.fh / MY;
-    const over = frameOverflows(x, y, aw + 2 * W, ah + 2 * W);
-    el("rect", { x: bx, y: by, width: ow, height: oh, class: "o-frame" + (over ? " over" : "") }, g);
-    text(g, bx + ow / 2, by + oh - 6,
-      "远景 " + fmt(c.fw) + " × " + fmt(c.fh) + " m" + (over ? "  ⚠ 按地图边界裁剪" : ""),
-      "o-lbl" + (over ? " over" : ""), "middle");
+// 屏幕恒定字号：SVG 里写多少 px = 屏幕上多少 px（--k 在深放大时兜不住，会越放越大）
+function unitFor(p) { const r = SVG.getBoundingClientRect(); const ppu = (r.width || 1100) / state.view.w; return p / ppu; }
+
+// 两个框：黑实线 = 玩家活动区（能走），蓝虚线 = 远景范围（只做背景）
+function sceneBox(g, e, withO) {
+  const bx0 = px(e.x0), by0 = py(e.y1);
+  const tw = px(e.x1) - bx0, th = py(e.y0) - by0;
+  if (!withO) {   // 「显示全部活动区」：只画淡框，不写字
+    el("rect", { x: bx0, y: by0, width: tw, height: th, class: "t-box ghost" }, g);
+    return;
   }
+  const pad = unitFor(9), fs = unitFor(14), sw = unitFor(3.5);
+  // 画面顶部被工具栏占着（复位/显示全部活动区/…），标签别钻到它下面
+  const topSafe = state.view.y + unitFor(52), botSafe = state.view.y + state.view.h - unitFor(8);
+  const clampY = y => Math.min(Math.max(y, topSafe), botSafe);
+  el("rect", { x: bx0, y: by0, width: tw, height: th, class: "t-box" }, g);
+  const lt = text(g, bx0 + pad, clampY(by0 + pad + fs), "活动区 " + fmt(e.aw) + " × " + fmt(e.ah) + " m", "box-lbl t", "start");
+  lt.style.fontSize = fs.toFixed(2) + "px"; lt.style.strokeWidth = sw.toFixed(2) + "px";
+  // 小据点的框装不下这行字（会压到镇名上）→ 挪到框外上方
+  const lw = lt.getComputedTextLength ? lt.getComputedTextLength() : 0;
+  const outTop = by0 - pad > state.view.y + fs;
+  if (outTop && lw + 2 * pad > tw) {
+    lt.setAttribute("x", (bx0 + unitFor(2)).toFixed(2));
+    lt.setAttribute("y", clampY(by0 - pad).toFixed(2));
+  }
+
+  const c = clampFar(e.cx, e.cy, e.fw, e.fh, e);
+  const fbx = px(c.x) - c.fw / MX / 2, fby = py(c.y) - c.fh / MY / 2;
+  const fw = c.fw / MX, fh = c.fh / MY;
+  el("rect", { x: fbx, y: fby, width: fw, height: fh, class: "o-box" }, g);
+  const cn = cutNames(c.cut);
+  // 规格尺寸与"超出地图多少"放在右侧面板讲，图上只留实际尺寸（否则又变成"一堆看不懂的数"）
+  // 远景标签挂在「远景框上边、活动区正上方」——远景框一定包住活动区，而活动区一定在画面里，
+  // 所以这个位置永远看得见（挂在框的右下角时，框被地图边界推出去，字就跑到屏幕外了）。
+  // 但框本身顶出地图画面区时上边会跑到屏幕外 —— 所以纵向也要夹进视口。
+  const crowded = (by0 - fby) < fs * 3.2;      // 上边离活动区太近 → 字挪到框外上方
+  const yA = clampY(by0 + pad + fs);           // 活动区那行字的实际落点
+  let ly = clampY(crowded ? fby - pad : fby + pad + fs);
+  if (Math.abs(ly - yA) < fs * 1.5) {          // 两行会压在一起（框顶顶出画面时就是这情况）→ 错开一行
+    ly = yA + fs * 1.6;
+    if (ly > botSafe) ly = yA - fs * 1.6;
+  }
+  const cxA = (bx0 + px(e.x1)) / 2;            // 活动区中心（水平）
+  const lo = text(g, cxA, ly,
+    "远景 " + fmt(c.fw) + " × " + fmt(c.fh) + " m" + (cn ? "（按地图边界裁剪）" : ""),
+    "box-lbl o", "middle");
+  lo.style.fontSize = fs.toFixed(2) + "px"; lo.style.strokeWidth = sw.toFixed(2) + "px";
+  // 长标签别越出远景框（也夹进视口，免得被屏幕边缘切掉）
+  const lwO = lo.getComputedTextLength ? lo.getComputedTextLength() : 0;
+  const minX = Math.max(fbx + pad + lwO / 2, state.view.x + pad + lwO / 2);
+  const maxX = Math.min(fbx + fw - pad - lwO / 2, state.view.x + state.view.w - pad - lwO / 2);
+  lo.setAttribute("x", (minX <= maxX ? Math.min(Math.max(cxA, minX), maxX) : (minX + maxX) / 2).toFixed(2));
+}
+
+// 远景框被地图边界裁剪后，面板里那句解释（用户 2026-11-07 问："是你画错了还是框范围错了"）
+function cutHint(c, e) {
+  const cn = cutNames(c.cut);
+  if (!cn) return "";
+  const sp = c.spill > 0.5
+    ? ` 规格远景框是 <b>${fmt(e.fw)} × ${fmt(e.fh)} m</b>，其中 <b>${fmt(Math.round(c.spill))} m</b> 伸出地图画面区 —— `
+      + `那一条既没有地形也没有贴图（4 m 高度图只到画面区，建场景时远景框还会被夹回来），`
+      + `所以图上画的、blend 里的地面，都只到 <b>${fmt(c.fw)} × ${fmt(c.fh)} m</b>。`
+    : "";
+  return `<p class="hint warn">⚠ 远景框${cn}顶到地图边界，被裁短了 —— 所以图上它不再以活动区为中心，四边余量不一样是正常的。${sp}</p>`;
+}
+
+// 能走范围被地图画面区切掉时也要说清楚（切掉的那块没有地面）。<2 m 属取整噪声，不报。
+function actHint(e) {
+  const dx = Math.round((e.raw.x1 - e.raw.x0) - e.aw);
+  const dy = Math.round((e.raw.y1 - e.raw.y0) - e.ah);
+  if (dx < 2 && dy < 2) return "";
+  const parts = [];
+  if (dx >= 2) parts.push("宽 " + fmt(dx) + " m");
+  if (dy >= 2) parts.push("高 " + fmt(dy) + " m");
+  return `<p class="hint warn">⚠ 能走范围有 ${parts.join(" / ")} 落在地图画面区外面 —— `
+    + `那块没有高度图、场景里也没有地面（build 时会夹掉），实际能走 = <b>${fmt(e.aw)} × ${fmt(e.ah)} m</b>。</p>`;
+}
+
+function cutNames(cut) {
+  if (!cut) return "";
+  const n = [];
+  if (cut.left) n.push("左");
+  if (cut.right) n.push("右");
+  if (cut.top) n.push("上");
+  if (cut.bottom) n.push("下");
+  if (!n.length) return "";
+  return n.length === 4 ? "四边" : n.join("、") + "边";
 }
 
 // 远景框按地图边界裁剪（与构建侧 tools/scene_bounds.py **同一规则**：夹进地图框 → 向内取 128 →
-// 只有活动区 P 会被切到时才外扩）
-function clampFar(x, y, fw, fh, aw, ah) {
+// 只有活动区 P 会被切到时才外扩）。`p` = 能走矩形 {x0,y0,x1,y1}，必须用**真实矩形**，
+// 不能用"以中心为原点 + 宽高"近似 —— 据点 P 的中心和 x/y 常常差几十米，会多切/少切一格。
+// 🔴 最后再硬夹一道地图框：高度图只覆盖到画面区，`scene_terrain.build()` 也会把框夹回去 ——
+//    所以「图上画的框」=「blend 里的地面」=「高度图范围」，三个数必须一模一样（用户 2026-11-07 要求）。
+function clampFar(x, y, fw, fh, p) {
   const b = EXTENT && EXTENT.map;
-  if (!b || b.length < 4) return { x: x, y: y, fw: fw, fh: fh };
-  let L = x - fw / 2, R = x + fw / 2, B = y - fh / 2, T = y + fh / 2;
-  if (!(L < b[0] || B < b[1] || R > b[2] || T > b[3])) return { x: x, y: y, fw: fw, fh: fh };
+  const none = { left: false, right: false, bottom: false, top: false };
+  if (!b || b.length < 4) return { x: x, y: y, fw: fw, fh: fh, cut: none, spill: 0 };
+  const L0 = x - fw / 2, R0 = x + fw / 2, B0 = y - fh / 2, T0 = y + fh / 2;
+  if (!(L0 < b[0] || B0 < b[1] || R0 > b[2] || T0 > b[3])) return { x: x, y: y, fw: fw, fh: fh, cut: none, spill: 0 };
   const Q = 128;
-  L = Math.ceil(Math.max(L, b[0]) / Q) * Q; B = Math.ceil(Math.max(B, b[1]) / Q) * Q;
-  R = Math.floor(Math.min(R, b[2]) / Q) * Q; T = Math.floor(Math.min(T, b[3]) / Q) * Q;
-  L = Math.min(L, Math.floor((x - aw / 2) / Q) * Q); B = Math.min(B, Math.floor((y - ah / 2) / Q) * Q);
-  R = Math.max(R, Math.ceil((x + aw / 2) / Q) * Q); T = Math.max(T, Math.ceil((y + ah / 2) / Q) * Q);
-  return { x: (L + R) / 2, y: (B + T) / 2, fw: R - L, fh: T - B };
+  let L = Math.ceil(Math.max(L0, b[0]) / Q) * Q, B = Math.ceil(Math.max(B0, b[1]) / Q) * Q;
+  let R = Math.floor(Math.min(R0, b[2]) / Q) * Q, T = Math.floor(Math.min(T0, b[3]) / Q) * Q;
+  L = Math.min(L, Math.floor(p.x0 / Q) * Q); B = Math.min(B, Math.floor(p.y0 / Q) * Q);
+  R = Math.max(R, Math.ceil(p.x1 / Q) * Q);  T = Math.max(T, Math.ceil(p.y1 / Q) * Q);
+  // 记下哪几条边真的被裁短了（图上要写明白，否则"两个框不同心"看着像 bug）
+  const cut = { left: L > L0 + 1e-6, right: R < R0 - 1e-6, bottom: B > B0 + 1e-6, top: T < T0 - 1e-6 };
+  // 规格框伸出地图画面区的量（要报给用户：这一段既没地形也没贴图）
+  const spill = Math.max(0, b[0] - L, R - b[2], b[1] - B, T - b[3]);
+  L = Math.max(L, b[0]); B = Math.max(B, b[1]);
+  R = Math.min(R, b[2]); T = Math.min(T, b[3]);
+  return { x: (L + R) / 2, y: (B + T) / 2, fw: R - L, fh: T - B, cut: cut, spill: spill };
 }
 
-// 远景框是否超出「地图画面区」（用户 2026-11-07：要考虑地图边界）
-function frameOverflows(x, y, fw, fh) {
-  const b = EXTENT && EXTENT.map;
-  if (!b || b.length < 4) return false;
-  return (x - fw / 2) < b[0] || (y - fh / 2) < b[1] || (x + fw / 2) > b[2] || (y + fh / 2) > b[3];
-}
-
-// 地图画面区边界（官方地图有画的那一片）
+// 地图画面区边界（官方地图有画的那一片）—— 远景框不得超出
 function drawExtent(g) {
   const b = EXTENT && EXTENT.map;
   if (!b || b.length < 4) return;
   const x0 = px(b[0]), x1 = px(b[2]), y0 = py(b[3]), y1 = py(b[1]);
   el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, class: "extent-line" }, g);
-  text(g, x0 + 10, y0 + 24, "地图边界（远景框不得超出）", "extent-lbl", "start");
+  if (state.sel) return;   // 选中场景时那两行字已经写了"被地图边界裁剪"，这条灰字就多余且会压字
+  // 标签挂到离画面中心最近的那条边上：放大看某个场景时边界常常只露出一条线，
+  // 固定在左上角会跑到屏幕外，用户就只剩一条莫名其妙的线了（2026-11-07）。
+  const cx = state.view.x + state.view.w / 2, cy = state.view.y + state.view.h / 2;
+  const mid = [[x0, (y0 + y1) / 2], [x1, (y0 + y1) / 2], [(x0 + x1) / 2, y0], [(x0 + x1) / 2, y1]];
+  let best = mid[0], bd = Infinity;
+  for (const m of mid) {
+    const d = (m[0] - cx) * (m[0] - cx) + (m[1] - cy) * (m[1] - cy);
+    if (d < bd) { bd = d; best = m; }
+  }
+  const t = text(g, best[0], best[1] - unitFor(7), "地图边界（远景框不得超出）", "extent-lbl", "middle");
+  t.style.fontSize = unitFor(13).toFixed(2) + "px";
+  // 夹进视口：放大看某个场景时边界常常只露出一条线，标签跟着线跑出屏幕就白写了
+  const m = unitFor(8), w = t.getComputedTextLength ? t.getComputedTextLength() : 0;
+  const vx0 = state.view.x + m + w / 2, vx1 = state.view.x + state.view.w - m - w / 2;
+  t.setAttribute("x", (vx0 <= vx1 ? Math.min(Math.max(best[0], vx0), vx1) : (vx0 + vx1) / 2).toFixed(2));
+  const vy0 = state.view.y + unitFor(52), vy1 = state.view.y + state.view.h - m;   // 52 = 让开左上角工具栏
+  t.setAttribute("y", (vy0 <= vy1 ? Math.min(Math.max(best[1] - unitFor(7), vy0), vy1) : (vy0 + vy1) / 2).toFixed(2));
 }
 
 function drawTFrames(g) {
@@ -449,14 +563,14 @@ function drawTFrames(g) {
     for (const p of SETTLE) {
       if (state.sel && state.sel.kind === "settle" && state.sel.id === p.code) continue;
       const e = sceneExtent(p);
-      sceneBox(g, p.x, p.y, e.aw, e.ah, p.W, false);
+      sceneBox(g, e, false);
     }
   }
   if (state.tab === "wild") {
     for (const w of WILDS) {
       if (state.sel && state.sel.kind === "wild" && state.sel.id === w.id) continue;
       const e = sceneExtent(w);
-      sceneBox(g, w.x, w.y, e.aw, e.ah, w.W, false);
+      sceneBox(g, e, false);
     }
   }
 }
@@ -490,12 +604,12 @@ function drawSelected(g) {
     const p = byCode.get(state.sel.id);
     if (!p) return;
     const e = sceneExtent(p);
-    sceneBox(g, p.x, p.y, e.aw, e.ah, p.W, true);
+    sceneBox(g, e, true);
   } else {
     const w = byWild.get(state.sel.id);
     if (!w) return;
     const e = sceneExtent(w);
-    sceneBox(g, w.x, w.y, e.aw, e.ah, w.W, true);
+    sceneBox(g, e, true);
   }
 }
 
@@ -544,7 +658,11 @@ function drawRooms(g, code) {
   });
   const p = byCode.get(code);
   if (list.length && p) {
-    const hd = text(g, px(p.x) + 10, py(p.y + p.O / 2) + 30,
+    // 挂在远景框上边**外面**：框内顶上那行是「远景 xx × yy m」，两行都在框内会压在一起
+    const e = sceneExtent(p);
+    const c = clampFar(e.cx, e.cy, e.fw, e.fh, e);
+    const fby = py(c.y) - c.fh / MY / 2;
+    const hd = text(g, px(p.x) + 10, Math.max(state.view.y + (58 / pxPerUnit), fby - 8),
                     `含室内场景的房间 ×${list.length}（放大看名字 / 悬停看坐标）`, "lbl room-head");
     hd.style.fontSize = (15 / pxPerUnit).toFixed(3) + "px";
     hd.style.strokeWidth = (5 / pxPerUnit).toFixed(3) + "px";
@@ -565,10 +683,12 @@ function render() {
   clear(go); clear(gf); clear(gs); clear(gw); clear(gi); clear(gr); clear(gx); clear(gm); if (ge) clear(ge);
   drawIssues(gi);
   drawOutside(go); if (ge) drawExtent(ge); drawTFrames(gf);
+  // 选中任何东西以后，其他区域一律淡化让路（2026-11-07：不然满屏矩形，分不清选的是谁）
+  const dim = !!state.sel;
   if (state.tab === "overview") { drawSettle(gs, true); drawWild(gw, true); }
-  if (state.tab === "settle") { drawSettle(gs, false); }
-  if (state.tab === "wild") { drawWild(gw, false); drawSettle(gs, false); }
-  if (state.tab === "cover") { drawSettle(gs, false); drawWild(gw, false); }
+  if (state.tab === "settle") { drawSettle(gs, dim); }
+  if (state.tab === "wild") { drawWild(gw, dim); drawSettle(gs, true); }
+  if (state.tab === "cover") { drawSettle(gs, dim); drawWild(gw, dim); }
   drawMarks(gm);
   // 含室内场景的房间：只在点选了据点时出现
   if (state.sel && state.sel.kind === "settle") drawRooms(gr, state.sel.id);
@@ -612,14 +732,18 @@ function renderDetail() {
       <div class="row"><span>每边外扩</span>${wCell}</div>
       ${(() => {
         const e = sceneExtent(p);
-        const c = clampFar(p.x, p.y, e.aw + 2 * p.W, e.ah + 2 * p.W, e.aw, e.ah);
+        const c = clampFar(e.cx, e.cy, e.fw, e.fh, e);
         const ak = e.aw * e.ah / 1e6, fk = c.fw * c.fh / 1e6;
         const pc = 100 * ak / fk;
-        return `<div class="row"><span>远景范围</span><b id="oVal">${fmt(c.fw)} × ${fmt(c.fh)} m</b></div>
+        const cn = cutNames(c.cut);
+        return `<div class="row"><span>远景范围（实际 = 图上 = blend 地面）</span><b id="oVal">${fmt(c.fw)} × ${fmt(c.fh)} m</b></div>
+          ${(Math.abs(c.fw - e.fw) > 0.5 || Math.abs(c.fh - e.fh) > 0.5)
+             ? `<div class="row"><span>远景框（配置值）</span><b>${fmt(e.fw)} × ${fmt(e.fh)} m</b></div>` : ""}
           <div class="row"><span>活动区面积</span><b>${ak.toFixed(2)} km²</b></div>
           <div class="row"><span>远景框面积</span><b>${fk.toFixed(2)} km²</b></div>
           <div class="row"><span>活动区占比</span><b>${pc.toFixed(1)}%</b></div>
-          <div class="row"><span>外圈（只做远景）</span><b>${(fk - ak).toFixed(2)} km² · ${(100 - pc).toFixed(1)}%</b></div>`;
+          <div class="row"><span>外圈（只做远景）</span><b>${(fk - ak).toFixed(2)} km² · ${(100 - pc).toFixed(1)}%</b></div>`
+          + cutHint(c, e) + actHint(e);
       })()}
       <div class="row"><span>场景中心</span><b>${p.x.toFixed(0)}, ${p.y.toFixed(0)}</b></div>
       ${(() => {
@@ -648,7 +772,7 @@ function renderDetail() {
     return;
   }
   const w = byWild.get(state.sel.id);
-  const act = wildActivity(w);
+  const act = sceneExtent(w);
   const wCell = state.edit
     ? `<input class="editnum" id="inW" type="number" step="128" value="${w.W}">`
     : `<b>${fmt(w.W)} m</b>`;
@@ -658,14 +782,18 @@ function renderDetail() {
     <div class="row"><span>能走面积 P</span><b id="pArea">${polyArea(w.P[0]).toFixed(3)} km²</b></div>
     <div class="row"><span>每边外扩</span>${wCell}</div>
     ${(() => {
-      const c = clampFar(w.x, w.y, act.aw + 2 * w.W, act.ah + 2 * w.W, act.aw, act.ah);
+      const c = clampFar(act.cx, act.cy, act.fw, act.fh, act);
       const ak = act.aw * act.ah / 1e6, fk = c.fw * c.fh / 1e6;
       const pc = 100 * ak / fk;
-      return `<div class="row"><span>远景范围</span><b id="oVal">${fmt(c.fw)} × ${fmt(c.fh)} m</b></div>
+      const cn = cutNames(c.cut);
+      return `<div class="row"><span>远景范围（实际 = 图上 = blend 地面）</span><b id="oVal">${fmt(c.fw)} × ${fmt(c.fh)} m</b></div>
+          ${(Math.abs(c.fw - act.fw) > 0.5 || Math.abs(c.fh - act.fh) > 0.5)
+             ? `<div class="row"><span>远景框（配置值）</span><b>${fmt(act.fw)} × ${fmt(act.fh)} m</b></div>` : ""}
         <div class="row"><span>活动区面积</span><b>${ak.toFixed(2)} km²</b></div>
         <div class="row"><span>远景框面积</span><b>${fk.toFixed(2)} km²</b></div>
         <div class="row"><span>活动区占比</span><b>${pc.toFixed(1)}%</b></div>
-        <div class="row"><span>外圈（只做远景）</span><b>${(fk - ak).toFixed(2)} km² · ${(100 - pc).toFixed(1)}%</b></div>`;
+        <div class="row"><span>外圈（只做远景）</span><b>${(fk - ak).toFixed(2)} km² · ${(100 - pc).toFixed(1)}%</b></div>`
+        + cutHint(c, act) + actHint(act);
     })()}
     <div class="row"><span>中心</span><b>${w.x.toFixed(0)}, ${w.y.toFixed(0)}</b></div>
     ${state.edit ? '<p class="hint">矩形：拖 8 个把手改大小、中间圆点整体挪；多边形：拖顶点。活动区由矩形自动算（取整到 128），改形状就会跟着变。新建野地看左上角「＋新建野地」。</p>'
@@ -681,8 +809,8 @@ function renderDetail() {
     });
     $("#inW").addEventListener("input", e => {
       w.W = +e.target.value || 0; markDirty(w);
-      const a = wildActivity(w);
-      $("#oVal").textContent = `${fmt(a.aw + 2 * w.W)} × ${fmt(a.ah + 2 * w.W)} m`; render(); persist();
+      const a = sceneExtent(w);
+      $("#oVal").textContent = `${fmt(a.fw)} × ${fmt(a.fh)} m`; render(); persist();
     });
     $("#delWild").addEventListener("click", () => {
       if (!confirm("删除野地 " + w.id + "？导出后总数会少一张。")) return;
@@ -724,12 +852,18 @@ function select(sel) {
   render(); renderDetail(); renderList();
   if (sel.kind === "settle") {
     const p = byCode.get(sel.id);
-    if (p) focusOnBBox([p.x - p.O / 2, p.y - p.O / 2, p.x + p.O / 2, p.y + p.O / 2]);
+    if (p) {
+      const e = sceneExtent(p);
+      const c = clampFar(e.cx, e.cy, e.fw, e.fh, e);
+      focusOnBBox([c.x - c.fw / 2, c.y - c.fh / 2, c.x + c.fw / 2, c.y + c.fh / 2]);
+    }
   } else {
     const w = byWild.get(sel.id);
     if (w) {
       const e = sceneExtent(w);
-      focusOnBBox([w.x - e.fw / 2, w.y - e.fh / 2, w.x + e.fw / 2, w.y + e.fh / 2]);
+      // 按**裁剪后**的远景框取景（2026-11-07）：按未裁的算，框会被地图边界推出去，底边跑到屏幕外
+      const c = clampFar(e.cx, e.cy, e.fw, e.fh, e);
+      focusOnBBox([c.x - c.fw / 2, c.y - c.fh / 2, c.x + c.fw / 2, c.y + c.fh / 2]);
     }
   }
 }
@@ -1090,7 +1224,7 @@ function fitNeighbors() {
   alert("贴合完成：调整了 " + n + " 个据点的边（" + moved + " 处相邻边对齐）。没问题就点「导出改动」。");
 }
 
-const BUILD_ID = "623e2652";
+const BUILD_ID = "1e2ef04b";
 const LS_KEY = "lwn_rdr2_scene_overrides_v1";
 let RESTORED = 0;
 function dirtyCount() { return state.dirtyS.size + state.dirtyW.size + state.deletedW.size; }
