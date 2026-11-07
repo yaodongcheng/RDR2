@@ -1063,3 +1063,66 @@ bpy.context.view_layer.update()
 **车辙脚印（既有）**：`l_09_heighttracks_decals01/02/03`、`p_14_02_track_dec_*` 早在 2026-11-05 就处理过 —— 材质走 `mat_rdr2.make_height_decal`（alpha 当脚印遮罩、深泥色）+ 逐顶点贴地；`muddyroad` 走 `make_mud_decal`。这次只是把同一套贴地机制扩展到街面/地面补片。
 
 
+
+
+### 6.24 🔴 室内管线速查（2026-11-07 立；以后查"这栋为什么歪了/怎么调"只看这一节）
+
+**一、数据从哪来（四份，缺一不可）**
+
+| 东西 | 位置 | 说明 |
+|---|---|---|
+| 室内包定义 | `raw/all_packs/<包名>/<包名>.ytyp` | Rockstar 的 MLO 清单：每件 = 模型哈希 + 本地 pos/quat（`cor_factb_int` 共 325 条） |
+| 哈希 → 名字 | `tools/rdr2rpf/bin/Release/net9.0/names.txt` + `tools/name_source.py` | **纯文本名字表**，用 **joaat** 算哈希建 `{hash: name}`；`X_children` 会补出父名 `X`。**不是 JSON** |
+| 哈希 → 模型/贴图槽 | `assets/lib_native/index.json` | `{hash: {b: bbox, s: [[alb,nm,ma]], f: "c4/0x….mdl"}}`，**不含名字** |
+| 包 → 宿主建筑 | `export/world/interior_placement_audit.json` | 按包围盒包含关系算的 `host`；算不出时用 `parse_interior_mlo.HOST_OVERRIDE` 手工对位 |
+
+**二、对象身上的属性（判断来历只认属性，不认名字）**
+
+| 属性 | 谁有 | 含义 |
+|---|---|---|
+| `int_pkg` | 室内件 | 所属室内包名；**没有它 = 世界实体** |
+| `int_model` | 室内件 | 模型原名 |
+| `hash` | 都有 | 模型哈希（室内件也写，可按哈希反查） |
+| `built_loc` | 室内件 | 构建时的位置，`tools/interior_pkg_tool.py` 用它算"你手动挪了多少" |
+
+命名规则：**查得到模型名就用模型名**（`cor_factb_shell_int`），查不到才 `i_<hash>`。
+⚠️ 室内件和世界实体**共用命名空间**（同一个模型两边都有）⇒ Blender 去重后缀（`.033`）可能落在任意一侧，**名字分不出内外**。
+
+**三、朝向（`parse_interior_mlo.find_mlo_instance` 唯一口径，构建/审计/体检三处共调）**
+
+优先级：**精确实例 → `_main` → `_lod`**。只有 `_lod` 时 LOD 朝向不可信（实测歪 80°），改用宿主外壳的四元数**取共轭**（室内侧不取共轭，件级取共轭）。
+宿主来源：审计表 `host` → `HOST_OVERRIDE`（显式对位）→ 同词干 `*_ext`。
+2026-11-07 时点全库只有 2 个包走 LOD 路线：`cor_factb_int`（对位到 `cor_factoryes`）、`rho_fenceshop_int`（同词干）。
+
+**四、落位（`scene_interiors.build`，只对"只有 _lod"的包跑）**
+
+1. **水平**：先按宿主 `*_fakeint` 包围盒**对中**，再用 `_overlap_shift` 面积重合率求解器微调（搜索半径 ±1.5 m，跨不过大偏差）；
+2. **竖直**：**顶部对齐 fakeint**（室内顶 = fakeint 顶 − `FAKEINT_TOP_MARGIN`，当前 0.00）；
+3. **自检**：`_roof_clearance_drop` 按 1 m 网格比对"室内任意点上方是否还有建筑"（用户原则），**只报警不自动压**（自动压会把地板带沉）；
+4. 越界告警按**件数**判（单件管线/设备件伸到房外属正常）。
+
+**五、台账与人工修正（两张 CSV，都在 `docs/世界与地编/`）**
+
+| 文件 | 谁写 | 语义 |
+|---|---|---|
+| `interior_fit.csv` | 构建自动写（生成物，禁手改） | 每场景每包一行：`orient / lod_yaw → yaw / dx,dy,dz / fit / clear_m / objects` |
+| `interior_fit_overrides.csv` | 人手维护 | **绝对覆盖**：写了就不跑自动套合 |
+
+- 修正表列：`pkg,dx,dy,dz,yaw,note`；`yaw` 留空 = 用自动朝向；
+- 🔴 **yaw 的旋转中心 = 包原点（MLO 实例位置的竖轴）**，整包刚体一起转；
+- 构建会把自动结果**追加**进修正表（只追加，不覆盖已改的行）；删整行 = 回到自动；
+- `dx,dy,dz` 记的是**总位移**（对中 + 求解器之和）—— 曾经只记求解器那一步，导致写回修正表后整包跑偏 3 m。
+
+**六、工具**
+
+| 工具 | 用途 |
+|---|---|
+| `python tools/backfill_interior_fit.py` | 从所有 `_logs/scene_*.log` 回填台账（不开 Blender） |
+| `tools/interior_pkg_tool.py`（Blender 内跑） | 按 `int_pkg` 一次选中**整包**；再跑一次打印"相对构建时挪了多少" |
+| `tools/_check_mlo_lookup.py` | 闸门：实例查找优先级 + `cor_factb_int ≈ −5°` 回归 |
+| `tools/_probe_{yaw,obj,clearance,int_bbox}.py` | 量朝向/包围盒、查对象来历、量穿顶 |
+
+**七、两个坑（都踩过）**
+
+- 隐藏集合里的 `matrix_world` **不求值**（读出来是 0）——量位置只认 manifest 的 `bb` 或先 `view_layer.update()`；
+- 构建被打断会留下**半截 blend**（实测 721 MB，正常 196.6 MB）——见到体积异常先重建。

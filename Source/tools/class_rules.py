@@ -81,7 +81,10 @@ RULES = [
         #   水花、灯光代理），是**功能占位**不是常驻模型 —— 画出来就是一张烧着的卡片。
         #   实测全库名字带 vfx 且有模型的只有 113 个，落在可见类的约 75 个。
         #   更早的规则仍优先：`a_water_01_vfx*` 归水面块、`*_vfx*_slod` 归远景碎片、`*_helper` 本就占位。
-        r'vfx|proxy|amb_pun|cubedelete|fakeintdummy|cover_coll|helper', re.I)),
+        # 2026-11-07（用户裁定）：`fakeint` = Rockstar 的"假室内"占位壳（站在外面透过门窗看到的简化室内）。
+        #   游戏里它和真室内**不会同时出现**；我们两套都摆 ⇒ 完全重叠、互相穿插。
+        #   **算坐标时要用它**（室内对位的水平对中/顶部对齐都以它为参照），但**不用显示**。
+        r'vfx|fakeint|proxy|amb_pun|cubedelete|fakeintdummy|cover_coll|helper', re.I)),
     # 2026-11-01 用户裁定：铁轨**本体**与铁轨**贴花**分成两类（同 road / decal 的先例），
     # 且**不跟 decal 走** —— 贴花是轨面/枕木/栈桥的油渍·炭化层，归 decal 会被启动器一起关掉、画面掉一层。
     # 判定 = 名字里**同时**有「铁路上下文」和「贴花上下文」（纯 `track_decal` **不算**：

@@ -57,9 +57,10 @@ FIT_OVERRIDES = os.path.join(
 
 
 def _load_fit_overrides():
-    """→ {pkg: (dx, dy, dz)} —— **绝对覆盖**：文件里写了，就完全用它的三个位移，不再自动套合。
+    """→ {pkg: (dx, dy, dz, yaw|None)} —— **绝对覆盖**：文件里写了，就完全用它的值，不再自动套合。
 
-    文件不存在 / 某包没写 → 走自动对位。
+    `yaw` 是**绝对朝向（度）**：填了就把整包绕**包原点（MLO 实例位置）的竖轴**转到这个角度；
+    留空 = 保留自动算出的朝向。位置与朝向都是整包一起变（见 `_apply_package_fit`）。
     """
     out = {}
     if not os.path.exists(FIT_OVERRIDES):
@@ -72,13 +73,35 @@ def _load_fit_overrides():
                 if not p or p.startswith('#'):
                     continue
                 try:
+                    yaw = r.get('yaw')
+                    yaw = float(yaw) if (yaw or '').strip() else None
                     out[p] = (float(r.get('dx') or 0), float(r.get('dy') or 0),
-                              float(r.get('dz') or 0))
+                              float(r.get('dz') or 0), yaw)
                 except Exception:
                     continue
     except Exception as e:
         print('[int] 读修正表失败（忽略）：%s' % e)
     return out
+
+
+def _apply_package_fit(pkg_objs, pivot, ddx, ddy, ddz, dyaw_deg):
+    """整包一起动：先绕 `pivot` 的**竖轴（世界 Z）**转 `dyaw_deg`，再平移。
+
+    `pivot` = MLO 实例位置（场景局部坐标）。这是"包原点"，不是每个件自己的原点 ——
+    所以所有件保持相对关系，像刚体一样旋转。
+    """
+    if abs(dyaw_deg) > 1e-9:
+        rad = math.radians(dyaw_deg) * 0.5
+        qz = Quaternion((math.cos(rad), 0.0, 0.0, math.sin(rad)))
+        pv = Vector((pivot[0], pivot[1], pivot[2]))
+        for o in pkg_objs:
+            rel = o.location - pv
+            o.location = pv + (qz @ rel)
+            o.rotation_quaternion = qz @ o.rotation_quaternion
+    for o in pkg_objs:
+        o.location.x += ddx
+        o.location.y += ddy
+        o.location.z += ddz
 
 
 def _append_fit_override(pkg, dx, dy, dz, note):
@@ -746,8 +769,15 @@ def build(scene, save=True, verbose=True):
             roq = q @ lq
             tid = tour._tile_of(loc.x + cx, loc.y + cy)
 
+            # 🔴 2026-11-06（用户："既然知道模型名，为什么 blend 里还是哈希名？可读性太差"）：
+            #   以前一律 `i_<hash>`。现在：**查得到模型名就用模型名**（`cor_factb_shell_int`），
+            #   查不到才退回 `i_<hash>`。哈希仍写进 `ob['hash']`，按哈希反查不受影响。
+            _nm_clean = re.sub(r'[\\/]', '_', (_mn or '').strip())
+            _obname = _nm_clean or ('i_%s' % hx[2:])
             if me_real:
-                ob = bpy.data.objects.new('i_%s' % hx[2:], me_real)
+                ob = bpy.data.objects.new(_obname, me_real)
+                ob['hash'] = hx
+                ob['int_model'] = _mn or ''
                 ob.location = loc
                 ob.rotation_mode = 'QUATERNION'
                 ob.rotation_quaternion = roq
@@ -775,7 +805,9 @@ def build(scene, save=True, verbose=True):
                 n_pkg += 1
 
             if me_lay:
-                ob2 = bpy.data.objects.new('i_%s%s' % (hx[2:], '_lay' if me_real else ''), me_lay)
+                ob2 = bpy.data.objects.new(_obname + '_lay', me_lay)
+                ob2['hash'] = hx
+                ob2['int_model'] = _mn or ''
                 ob2.location = loc
                 ob2.rotation_mode = 'QUATERNION'
                 ob2.rotation_quaternion = roq
@@ -798,16 +830,23 @@ def build(scene, save=True, verbose=True):
         _idx = PM.mlo_index(names=_names(), tile_list=_tiles())
         _ovr = ovr_fit.get(pkg)          # 人工修正表：**绝对覆盖**（有值就用它，不再自动套合）
         if pkg_objs and _ovr is not None:
-            _dx, _dy, _dz = _ovr
-            for _o in pkg_objs:
-                _o.location.x += _dx
-                _o.location.y += _dy
-                _o.location.z += _dz
+            _dx, _dy, _dz, _yaw_abs = _ovr
+            # 旋转的**中心轴** = 包原点（MLO 实例位置的竖轴），整包刚体式一起转。
+            _pivot = (inst[1] - cx, inst[2] - cy, inst[3])
+            _dyaw = 0.0 if _yaw_abs is None else (_yaw_abs - _inst_yaw(inst))
+            _apply_package_fit(pkg_objs, _pivot, _dx, _dy, _dz, _dyaw)
             _row['dx'], _row['dy'], _row['dz'] = '%.2f' % _dx, '%.2f' % _dy, '%.2f' % _dz
             _row['fit'] = 'manual'
             _h_ov = PM.host_for(pkg, _idx, inst)
             _row['host'] = _names().get(int(_h_ov[0]), '') if _h_ov else '—'
-            print('[int] %-24s 按人工修正表绝对定位 (%+.2f, %+.2f, %+.2f)' % (pkg, _dx, _dy, _dz))
+            if _yaw_abs is not None:
+                _row['yaw'] = '%.2f' % _yaw_abs
+                inst = list(inst)
+                _r = math.radians(_yaw_abs) * 0.5
+                inst[4], inst[5], inst[6], inst[7] = 0.0, 0.0, math.sin(_r), math.cos(_r)
+            print('[int] %-24s 按人工修正表绝对定位 (%+.2f, %+.2f, %+.2f)%s'
+                  % (pkg, _dx, _dy, _dz,
+                     ('，朝向 %.2f°（绕包原点竖轴整包转）' % _yaw_abs) if _yaw_abs is not None else ''))
         elif pkg_objs and pkg not in _idx and (pkg + '_main') not in _idx and _ov_host is not None:
             _host = _ov_host
             # 🔴 用场景里宿主对象的**真实网格** bbox（不是模型库的 `b`——库 bbox 偏大，
@@ -852,6 +891,7 @@ def build(scene, save=True, verbose=True):
                 #   那是 Rockstar 标记「房间应该摆在哪」的占位件（`cor_factoryes_fakeint`），
                 #   比厂房外壳准得多。实测只用外壳时 X 方向差 5.2 m（外壳贴着整栋，房间只在其中一跨）。
                 _wall_target = _hobj
+                _tot_dx = _tot_dy = 0.0     # 记录**总位移**（对中 + 求解器），供台账/人工修正表用
                 _fi = bpy.data.objects.get((_hname or '') + '_fakeint')
                 _fi_box = None
                 if _fi is not None and _fi.type == 'MESH':
@@ -866,6 +906,8 @@ def build(scene, save=True, verbose=True):
                         _fi_box = _fb
                         _cdx = ((_fb['xmin'] + _fb['xmax']) - (_pb['xmin'] + _pb['xmax'])) / 2.0
                         _cdy = ((_fb['ymin'] + _fb['ymax']) - (_pb['ymin'] + _pb['ymax'])) / 2.0
+                        _tot_dx += _cdx
+                        _tot_dy += _cdy
                         for _o in pkg_objs:
                             _o.location.x += _cdx
                             _o.location.y += _cdy
@@ -913,8 +955,8 @@ def build(scene, save=True, verbose=True):
                     print('[int] WARNING %-20s 仍有 %.2f m 顶点高于建筑（尖角可能埋进屋顶板厚里；'
                           '要强压就调大 FAKEINT_TOP_MARGIN）' % (pkg, _drop))
                 _row['host'] = _names().get(int(_host[0]), '')
-                _row['dx'] = '%.2f' % _dx
-                _row['dy'] = '%.2f' % _dy
+                _row['dx'] = '%.2f' % (_tot_dx + _dx)
+                _row['dy'] = '%.2f' % (_tot_dy + _dy)
                 _row['dz'] = '%.2f' % _dz
                 _row['clear_m'] = '%.2f' % _drop
                 _row['fit'] = ('fakeint' if _fi_box is not None
@@ -951,6 +993,10 @@ def build(scene, save=True, verbose=True):
                 if _out_n >= 2 and _out_n > max(1, len(_chk) * 0.01):
                     print('[int] WARNING %s 套合后仍有 %d/%d 件超出宿主（最大 %.2f m）'
                           % (pkg, _out_n, len(_chk), _out_max))
+        # 记下**构建时的位置**：在 Blender 里手动挪完之后，用 `tools/interior_pkg_tool.py`
+        # 就能算出"你挪了多少"，直接生成要粘进修正表的那一行。
+        for _o in pkg_objs:
+            _o['built_loc'] = tuple(round(v, 4) for v in _o.location)
         # 把**自动对位的结果**搬进人工修正表：只在该包还没有行时追加，
         # 绝不覆盖用户改过的行（用户改过 = 以后永远按他的值走）。
         if pkg_objs and _ovr is None and _row['dx'] not in ('', None):
