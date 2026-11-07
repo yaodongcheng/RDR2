@@ -66,7 +66,8 @@ if not "%ARG%"=="" (
       exit /b 1
     )
   ) else (
-    if /i "%ARG%"=="lod" set "BLEND=%BLENDDIR%\continent_lod_split_v23.blend"
+    if /i "%ARG%"=="lod" for /f "delims=" %%F in ('dir /b /o-d "%BLENDDIR%\continent_lod_split_v*.blend" 2^>nul ^| findstr /i /v "_raw"') do if not defined BLEND set "BLEND=%BLENDDIR%\%%F"
+    if /i "%ARG%"=="river" for /f "delims=" %%F in ('dir /b /o-d "%BLENDDIR%\continent_lod_split_v*_river.blend" 2^>nul') do if not defined BLEND set "BLEND=%BLENDDIR%\%%F"
     if exist "%ARG%" set "BLEND=%ARG%"
     if not defined BLEND if exist "%PROJ%\%ARG%" set "BLEND=%PROJ%\%ARG%"
     rem scene id: deliverable\blender\scenes\<id>.blend  (e.g. "bla")
@@ -104,6 +105,7 @@ echo   用法：打开大陆_流畅.bat            ^(默认最新大陆^)
 echo         打开大陆_流畅.bat 19         ^(区域裁剪 #19^)
 echo         打开大陆_流畅.bat list       ^(列出所有大陆/分块^)
 echo         打开大陆_流畅.bat lod        ^(远景碎片版^)
+echo         打开大陆_流畅.bat river     ^(远景碎片版 + 河道加深^)
 echo         打开大陆_流畅.bat ^<路径.blend^>
 echo.
 >>"%LOG%" echo [%date% %time%] open "%BLEND%"
