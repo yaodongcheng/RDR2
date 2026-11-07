@@ -6,3 +6,4 @@ pkg,dx,dy,dz,yaw,note
 # 构建会把自动对位结果追加到本表（只追加、**绝不覆盖你已经改过的行**）；删掉整行 = 回到自动。
 # 值内禁止半角逗号。
 cor_factb_int,-2.48,0.46,-4.47,-5.00,auto:fakeint
+rho_fenceshop_int,-0.20,-1.00,-2.08,auto:floor

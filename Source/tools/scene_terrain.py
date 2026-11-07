@@ -19,6 +19,7 @@
 
 import bpy
 import json
+import math
 import os
 import time
 
@@ -28,6 +29,22 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.dirname(HERE)
 RDR2 = r"D:/BrainMaker/大镖客2解包分析"
+
+_EXTENT = None
+
+
+def scene_extent():
+    """地图画面区 bbox `[x0, y0, x1, y1]`（`docs/世界与地编/scene_extent.json`，由
+    `tools/gen_scene_extent.py` 生成）；读不到就返回 None（不裁剪，保持旧行为）。"""
+    global _EXTENT
+    if _EXTENT is None:
+        p = os.path.join(SRC, 'docs', '世界与地编', 'scene_extent.json')
+        try:
+            d = json.load(open(p, encoding='utf-8'))
+            _EXTENT = d.get('map') or ()
+        except Exception:
+            _EXTENT = ()
+    return _EXTENT or None
 TERRAIN = os.path.join(RDR2, "deliverable", "terrain", "final")
 DEFAULT_CSV = os.path.join(SRC, "docs", "世界与地编", "scene_list.csv")
 DEFAULT_TEXDIR = os.path.join(RDR2, "deliverable", "blender", "scenes", "tex")
@@ -66,17 +83,21 @@ def crop_color(meta, fx0, fy0, fx1, fy1, out_png):
     return out_png
 
 
-def scene_water_level(fx0, fy0, fx1, fy1, default=40.5):
-    """该场景范围内的水位（取两级水位图的中位数；范围内没有水面就用 default）。
+def scene_water_level(fx0, fy0, fx1, fy1, min_share=0.05):
+    """该场景的水位 —— **全图只有两个值**：主水系 40.5 / 西盆地 −22（2026-11-07 用户裁定）。
 
-    水位图与 `tools/water_two_levels.py` 同一坐标系：X0/Y0 = 左下角，行 0 = 南。
+    返回 `None` = 这个场景不该铺水面（范围里只有高山湖，或根本没有水）。
+
+    🔴 旧版取"范围内所有水面像素的中位数"，把 40 个**高山小湖**（58~243 m）也算进去 ——
+       山地场景因此得到 238.4 / 200.4 / 149.9 之类的第三、第四个值，一块 238 m 的平面
+       盖住整个山谷。现在只认两大水系的**面积占比**：谁占比大用谁，两个都不足 5% 就不铺。
     """
     path = os.path.join(RDR2, "export", "world", "water_level_map_2lv.npy")
     if not os.path.exists(path):
-        return default
+        return 40.5
     lvl = np.load(path)
     if lvl.ndim != 2:
-        return default
+        return 40.5
     X0, Y0, WORLD = -7684.0, -8196.0, 12296.0
     P = lvl.shape[0]
     res = WORLD / P
@@ -87,8 +108,12 @@ def scene_water_level(fx0, fy0, fx1, fy1, default=40.5):
     sub = lvl[min(r0, r1):max(r0, r1) + 1, min(c0, c1):max(c0, c1) + 1]
     v = sub[np.isfinite(sub)]
     if v.size == 0:
-        return default
-    return float(np.median(v))
+        return None
+    main = float((np.abs(v - 40.5) < 0.6).sum()) / v.size
+    west = float((np.abs(v + 22.0) < 0.6).sum()) / v.size
+    if max(main, west) < min_share:
+        return None
+    return 40.5 if main >= west else -22.0
 
 
 def _water_plane(fx0, fy0, fx1, fy1, level, cx, cy, _mat_tex=None):
@@ -248,8 +273,11 @@ def build(scene, step=STEP, tex_dir=DEFAULT_TEXDIR, verbose=True):
     # 只有大地图才有两级）。水位取该场景范围内的水位中位数。
     try:
         lvl = scene_water_level(fx0, fy0, fx1, fy1)
-        _water_plane(fx0, fy0, fx1, fy1, lvl, cx, cy, mat)
-        print("[terrain] 水面：单平面 z=%.1f m（覆盖远景范围）" % lvl)
+        if lvl is None:
+            print("[terrain] 水面：该场景只有高山湖（或无水），**不铺水面**")
+        else:
+            _water_plane(fx0, fy0, fx1, fy1, lvl, cx, cy, mat)
+            print("[terrain] 水面：单平面 z=%.1f m（覆盖远景范围）" % lvl)
     except Exception as e:
         print("[terrain] 水面构建失败（跳过）：%s" % e)
     print("[terrain] 场景地形完成（%.1f s，贴图 %s）" % (time.time() - t0, os.path.basename(tex)))

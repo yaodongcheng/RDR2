@@ -6,8 +6,11 @@
 | 文件 | 规格 |
 |---|---|
 | `<id>_height_16bit.png` | 16 bit 灰度，**4 m/px**，**行 0 = 北**，范围 = 该场景远景框（按全局 4 m 格点取整） |
-| `<id>_mask.png` | 8 bit 灰度，**全 255**（RDR2 只有单层地形材质，不拆 8 层） |
-| `<id>_terrain.json` | 原点 / 分辨率 / 尺寸 / z 范围 / 编码公式（引擎换算用） |
+| `../tex/<id>_color.png` | **地表彩图**，**1 m/px**，同一矩形（从全图彩图裁出；json 里 `color_png` 指过去） |
+| `<id>_terrain.json` | 原点 / 分辨率 / 尺寸 / z 范围 / 编码公式 / 彩图路径（引擎换算用） |
+
+🔴 2026-11-07 用户裁定：**不再生成全 255 的 `_mask.png`**（"白图没有有效信息，是垃圾文件"）。
+   地形材质用彩图 `<id>_color.png`；若编辑器需要 materialmap，就用它自己那张单层权重，别用白图凑数。
 
 🔴 采样口径与场景网格**同一份实现**（`scene_terrain_core.sample_h`：最近邻 + 行偏移 −1），
    所以把导出的高度图按"行 0 = 北、4 m/px"朴素读取，值就和 blend 里的地形顶点一致（验收 ±0.05 m）。
@@ -64,9 +67,28 @@ def read_scenes(path=CSV_DEF):
                 fw, fh = float(r["远景宽_m"]), float(r["远景高_m"])
             except Exception:
                 continue            # 瓜玛：尺寸待定
-            out.append({"id": sid, "kind": r.get("kind"), "name": r.get("name"),
-                        "x": x, "y": y, "fw": fw, "fh": fh})
+            # 🔴 必须带上「能走范围 P」：裁剪规则会为保住 P 而外扩 128 的整数倍，
+            #   漏了 P ⇒ 高度图比 blend 里的地形小一圈（2026-11-07 实测 wild_01~10 全中）。
+            p = None
+            try:
+                v = [float((r.get(k) or "").strip())
+                     for k in ("能走_x0", "能走_y0", "能走_x1", "能走_y1")]
+                if v[2] > v[0] and v[3] > v[1]:
+                    p = tuple(v)
+            except Exception:
+                p = None
+            out.append(_clamp({"id": sid, "kind": r.get("kind"), "name": r.get("name"),
+                               "x": x, "y": y, "fw": fw, "fh": fh, "p": p}))
     return out
+
+
+def _clamp(sc):
+    """高度图/掩码必须与 blend 里的地形**同一个远景框**（地图边界裁剪，见 tools/scene_bounds.py）。"""
+    try:
+        from scene_bounds import clamp_scene_to_map
+        return clamp_scene_to_map(sc, verbose=False)
+    except Exception:
+        return sc
 
 
 def _grid_axis(a0, a1, step=STEP):
@@ -103,15 +125,20 @@ def export_scene(sid, meta=None, H=None, csv_path=CSV_DEF, outdir=OUTDIR, verbos
 
     os.makedirs(outdir, exist_ok=True)
     hp = os.path.join(outdir, "%s_height_16bit.png" % sid)
-    mp = os.path.join(outdir, "%s_mask.png" % sid)
     jp = os.path.join(outdir, "%s_terrain.json" % sid)
+    # 不再生成全 255 的 `_mask.png` —— 2026-11-07 用户裁定："白图没有任何有效信息，是垃圾文件"。
+    # 地形贴图用**彩图**：`scenes/tex/<id>_color.png`（同一矩形、1 m/px，从全图彩图裁出），
+    # 在 json 里以 `color_png` 指过去，不复制一份（56 张合计 741 MB）。
     # uint16 数组会自动落成 I;16（16 bit 灰度）；不要用已弃用的 fromarray(mode=...)
     Image.fromarray(v).save(hp)
-    Image.fromarray(np.full(v.shape, 255, dtype=np.uint8)).save(mp)
+    _color = os.path.join(os.path.dirname(outdir), 'tex', '%s_color.png' % sid)
 
     out = {
         "id": sid, "kind": sc.get("kind"), "name": sc.get("name"),
-        "height_png": os.path.basename(hp), "mask_png": os.path.basename(mp),
+        "height_png": os.path.basename(hp),
+        "color_png": (os.path.relpath(_color, outdir).replace("\\", "/")
+                      if os.path.exists(_color) else None),
+        "color_res_m": 1.0 if os.path.exists(_color) else None,
         "encoding": "z = zmin + v/65535*(zmax-zmin)",
         "zmin": meta["zmin"], "zmax": meta["zmax"],
         "res_m": STEP, "row0": "north",

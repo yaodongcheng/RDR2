@@ -56,11 +56,18 @@ def load_scene(sid, csv_path=DEFAULT_CSV):
                         p = tuple(v)
                 except Exception:
                     p = None
-                return {"id": sid, "kind": r.get("kind"), "name": r.get("name"),
-                        "x": n("x"), "y": n("y"),
-                        "aw": n("活动区宽_m"), "ah": n("活动区高_m"), "w": n("每边外扩_m"),
-                        "fw": n("远景宽_m"), "fh": n("远景高_m"), "p": p}
+                return _clamp_far_to_map({"id": sid, "kind": r.get("kind"), "name": r.get("name"),
+                                          "x": n("x"), "y": n("y"),
+                                          "aw": n("活动区宽_m"), "ah": n("活动区高_m"),
+                                          "w": n("每边外扩_m"),
+                                          "fw": n("远景宽_m"), "fh": n("远景高_m"), "p": p})
     raise SystemExit("[scene] scene_list.csv 里找不到 %s" % sid)
+
+
+def _clamp_far_to_map(sc):
+    """远景框按地图边界裁剪 —— **实现只有一份**：`tools/scene_bounds.clamp_scene_to_map`。"""
+    from scene_bounds import clamp_scene_to_map
+    return clamp_scene_to_map(sc)
 
 
 def rects(sc):

@@ -48,6 +48,12 @@ DEFAULT_HIDDEN = ('lod', 'terrain_lod', 'terrain_cell', 'underground', 'watertil
 # 技术类：内容纠错不覆盖（junc 硬规则除外）
 TECHNICAL = ('lod', 'underground')
 
+# `e_<8 位十六进制>` / `i_<8 位十六进制>` = 名字表里查不到、由程序合成的哈希名。
+#   `e_` = 世界实体（blender_continent 生成），`i_` = 室内件（scene_interiors 生成），
+#   `i_<hash>_lay` = 室内布局白模件。**它不是名字**，不能参与按名字的规则
+#   （十六进制里的字母会误命中 bed / cab / dec 这类裸词）。
+HASH_NAME = re.compile(r'^[ei]_[0-9a-f]{8}(?:_lay)?$', re.I)
+
 # 道路 / 废墟 判定词（分类与对账共用）
 ROAD = re.compile(
     r'(?<!b)road|junc|(?<![a-z])jun\d|track_dec|(?<![a-z])rut(?![a-z])|'
@@ -135,7 +141,12 @@ RULES = [
     ('veh', '载具', re.compile(
         # 2026-11-06：`wagonhse`（马车房，建筑）不能被裸 `wagon` 抓走 —— 实测
         # `van_horn_01_wagonhse01` 17×15×12 m 被分进载具。
-        r'wagon(?!_?hse)|cart(?!ridge)|carriage|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
+        # 2026-11-07（用户实机 `cal_carriage_house_ext`）：`carriage` 是裸词 —— 马车**房**
+        #   （carriage house）整族被判成"载具"：`bla_carriagehouse_int` / `cal_carriage_house_ext` /
+        #   `new_carriagehouse_props` 等。与 `wagon(?!_?hse)` 同一类坑。
+        #   守卫只挡"房子"语境（house / hse / _ext），**真车照旧**：`p_guncarriagewreck01x` /
+        #   `new_gar_06_carriage02` 仍是载具。实测全库影响 40 个（39 → 建筑、1 → 道具），不产生新的未分类。
+        r'wagon(?!_?hse)|cart(?!ridge|stop)|carriage(?!.*(?:house|hse|_ext))|coach|buggy|boat|canoe|skiff|ship|steam|locomotive|'
         r'p_train_|trolley|handcar|barge|raft|stagecoach|hull(?!.*_doors)|canetrain|coupler', re.I)),
     # 2026-10-31 用户样本（区域 #20）：`_em` = 自发光窗片/窗框，归道具
     # 2026-11-06：`_em_hd` 也是同一族（17 个，安尼斯堡/瓦伦丁的自发光窗），原来只认结尾 `_em`。
@@ -176,6 +187,14 @@ RULES = [
         r'housing|locker_room(?!.*_d(?=\d|_|$))|storage(?!box)(?!.*(_glue|decal))|'
         r'stable|station|factory|warehouse|school|office|theater|theatre|jail|sheriff|'
         r'depot|mill|livery|blacksmith|inn|infirmary|mansion|manor|house|home\d|courthouse|'
+        # 2026-11-07（用户实机逐条点名，均为 12~19 m、砖/石/木墙+屋顶的真房子）：
+        #   `str_01_carpenter`（木工房）· `eme_messhall`（食堂）· `mfr_01_traindep`（火车库）·
+        #   `mfr_04_cottage03`（小屋）· `but_01_hou_b`（hou = house 缩写）· `old_capt`（队长宅）·
+        #   `twi_01_twr_s_00`（塔楼，只认 `twr_s_` 写法，避开 `pumpstat_twr` 等）·
+        #   `gap_01__gap_s_002`（豁牙裂口的房子；注意它原来被 prop 的裸 `p_` 抓走 —— `gap_` 里含 "p_"）·
+        #   `gap_01_cartstop`（马车歇脚站，原来被 veh 的 `cart` 抓走）· `str_03_01_frt`（货运房，全库仅此 1 个）。
+        r'carpenter|mess_?hall|train_?dep|cottage|(?<![a-z])hou(?![a-z])|(?<![a-z])capt(?![a-z])|'
+        r'twr(?=_s_)|gap_s_\d|_\d\d_frt(?=_|$)|cart_?stop|'
         r'postoffice|storefront|res_?\d\d|'
         # 2026-11-06（用户实机，瓦伦丁 `val_05_res_a`）：住宅用**字母**后缀
         #   （`res_a` / `res_c` / `res_d` / `res_e`），原来的 `res_?\d\d` 只认数字 ⇒ 4 栋房子落 unknown。
@@ -306,10 +325,18 @@ _append_class('unknown', '未分类')
 
 
 def classify_name(name):
-    """名字层判定（RULES → LEFTOVER）；返回类 key 或 'unknown'。"""
+    """名字层判定（RULES → LEFTOVER）；返回类 key 或 'unknown'。
+
+    🔴 2026-11-07（用户实机 `cal` 体检发现）：**哈希名 `e_<8 位十六进制>` 不是名字，一律判 unknown** ——
+       以前它照样跑规则，十六进制里碰巧出现的英文字母会误命中裸词。实测：
+       `e_2adbed14` 因为含 "bed" 被判成「道具（床）」、`e_3dbedbf4` 同理 ——
+       于是它们绕过了后面的「贴图名带 `_lod` → 远景碎片」兜底，LOD 壳露在画面里。
+    """
     if not name:
         return 'unknown'
     b = re.sub(r'\.\d{3}$', '', name.split('/')[-1])
+    if HASH_NAME.match(b):
+        return 'unknown'          # 哈希名：不参与任何按名字的规则（贴图/位置兜底照跑）
     for key, _, rx in RULES:
         if key == 'veg' and VEG_EXCLUDE.search(b):
             continue

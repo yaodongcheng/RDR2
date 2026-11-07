@@ -59,6 +59,7 @@ def log(msg):
 
 
 def read_scenes():
+    from scene_bounds import clamp_scene_to_map      # 远景框按地图边界裁剪（与构建侧同一实现）
     rows = []
     with open(CSV_IN, encoding='utf-8-sig', newline='') as f:
         for r in csv.DictReader(f):
@@ -66,13 +67,22 @@ def read_scenes():
             aw = (r.get('活动区宽_m') or '').strip()
             if not sid or not aw:
                 continue            # 瓜玛：尺寸待定，先不跑
-            rows.append({
+            _p = None
+            try:
+                _v = [float((r.get(k) or '').strip())
+                      for k in ('能走_x0', '能走_y0', '能走_x1', '能走_y1')]
+                if _v[2] > _v[0] and _v[3] > _v[1]:
+                    _p = tuple(_v)
+            except Exception:
+                _p = None
+            rows.append(clamp_scene_to_map({
                 'id': sid, 'kind': r.get('kind') or '', 'name': r.get('name') or '',
                 'x': float(r['x']), 'y': float(r['y']),
                 'aw': float(r['活动区宽_m']), 'ah': float(r['活动区高_m']),
                 'w': float(r['每边外扩_m']),
                 'fw': float(r['远景宽_m']), 'fh': float(r['远景高_m']),
-            })
+                'p': _p,
+            }, verbose=False))
     return rows
 
 
@@ -349,9 +359,10 @@ def main():
             log('[%s] 地形图跳过（该行没有远景尺寸）' % sid)
         else:
             ck = tm['check']
-            log('[%s] 地形图 %s / %s（%d×%d，最大误差 %.3f m，%s）'
-                % (sid, tm['height_png'], tm['mask_png'], tm['width'], tm['height'],
-                   ck['max_err_m'], ck['status']))
+            log('[%s] 地形图 %s%s（%d×%d，最大误差 %.3f m，%s）'
+                % (sid, tm['height_png'],
+                   (' + 彩图 %s' % tm['color_png']) if tm.get('color_png') else '（无彩图）',
+                   tm['width'], tm['height'], ck['max_err_m'], ck['status']))
             if ck['status'] != 'PASS':
                 row['status'] = 'failed'; row['note'] = '地形图自检 FAIL'
                 status[sid] = row; write_status([status[k] for k in sorted(status)])

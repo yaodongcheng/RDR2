@@ -1,7 +1,77 @@
-# TODO —— 交接版（2026-11-05）
+# TODO —— 交接版（2026-11-07）
 
-> 交接阅读顺序：1) 本文（**先读最上面「2026-11-06 本轮总结：坑点清单 + 场景状态 + 待办」**；其下是历史记录）2) `docs/格式与资产/分类体系与判定规则.md`（22 类 / 判定顺序 / 纠错清单）3) `docs/AGENTS.md`（**§6 场景地形全部教训**；室内看 **§6.14 / §6.14b / §6.15 / §6.23**，地形看 **§6.20**）4) `docs/交接与状态/README_交接.md`（历史）。
-> **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2（RPF 锁）。
+> 🔴 **先读下面「2026-11-07 会话总结」**，再按需翻历史记录。
+> 细则：分类看 `docs/格式与资产/分类体系与判定规则.md`；室内管线速查看 `docs/AGENTS.md` **§6.24**；
+> 场景代号↔中文名看 `docs/世界与地编/场景对照表.md`。
+> **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2 与 Blender。
+
+---
+
+## 🟢 2026-11-07 · 本会话总结
+
+### 一、已解决（每条都有实测证据）
+
+| # | 问题 | 结果 |
+|---|---|---|
+| 1 | **分类：住宅字母后缀** `val_05_res_a/c/d/e` 落未分类 | `bldg` 补 `res_[字母]`（带边界，避开 `metaped_textures_a`） |
+| 2 | **分类：名字判不出但贴图是墙瓦** | 新增 `apply_texture_bldg`：unknown + 占地 ≥6×6 m + 高 ≥3 m + 贴图过半是墙/瓦/砖/梁 → 建筑；**LOD 贴图一律让路** |
+| 3 | **vfx 特效件当常驻模型显示**（`bra_vfx_man_window_fire`） | `vfx` → 占位代理（默认隐藏）；全库影响约 75 个可见对象 |
+| 4 | **假室内壳和真室内重叠**（`cor_factoryes_fakeint`） | `fakeint` → 占位（**不显示**），但**仍作对位参照** |
+| 5 | **无 albedo 的 6,542 个对象是暖灰**（`i_c4db87de.003`） | 猜色机制原来只在「三张图全缺」触发（实测 0 个对象）；现在 **albedo 缺就走类别猜材质**（木/金属/石…）→ `bra` 实测 `ntex_wood` |
+| 6 | **室内件用哈希名**（`i_8435e65c`） | 查得到模型名就用模型名（`cor_factb_shell_int`），哈希存 `ob['hash']` |
+| 7 | **`cor_factb_int` 室内歪 80°** | LOD 朝向不可信 + 外壳名对不上 → `HOST_OVERRIDE` 显式对位；闸门锁定 ≈ −5° |
+| 8 | **室内位置偏移**（套合整段没跑） | `_ov_host` 不认对位表 → 统一走 `PM.host_for()`；水平按 fakeint 对中 + 重合率求解，竖直顶部对齐 fakeint |
+| 9 | **室内顶穿屋顶** | 用户原则写死：**室内任意一点上方必须有建筑**；`_roof_clearance_drop` 自检（只报警，不自动压） |
+| 10 | **对位无台账、不好反查** | `docs/世界与地编/interior_fit.csv`（149 行/33 场景，自动生成）+ `interior_fit_overrides.csv`（人工绝对覆盖，**含 yaw，绕包原点竖轴**） |
+| 11 | **`carriage` 把马车房判成载具**（`cal_carriage_house_ext`） | `carriage(?!.*(?:house\|hse\|_ext))`，全库 40 个归位 |
+| 12 | **哈希名被当英文词**（`e_2adbed14` 含 "bed" → 床） | `HASH_NAME`（`e_`/`i_` 共 3 种写法）名字层直接 unknown |
+| 13 | **用户点名的 10 栋建筑分错类** | 全部补词归建筑（见下「分类补词清单」） |
+| 14 | **远景框超地图边界** | `scene_bounds.py` 统一裁剪（夹进地图画面区 → 向内 128 → 保住 P）；预览页画地图边界 + 远景框尺寸 |
+| 15 | **各区域水面高度不一致**（238.4 / 200.4 …） | 根因是「中位数」把 40 个高山湖算进来 → 改为**全图只有两个值**：主系 40.5 / 西盆地 −22；只有山湖的场景**不铺水面** |
+
+**分类补词清单（第 13 条）**：`str_01_carpenter`（木工房）· `str_03_01_frt`（货运房，全库仅 1 个）·
+`but_01_hou_b`（hou=house）· `eme_messhall`（食堂）· `old_capt`（队长宅）· `mfr_01_traindep`（火车库）·
+`mfr_04_cottage03`（小屋）· `twi_01_twr_s_00`（塔楼）· `gap_01__gap_s_002`（原来被裸 `p_` 抓成道具）·
+`gap_01_cartstop`（原来被 `cart` 抓成载具）。规则自检 **PASS，149 条用例**。
+
+**本轮新增/改动的工具**
+
+| 工具 | 作用 |
+|---|---|
+| `tools/scene_bounds.py`（新） | 远景框按地图边界裁剪（**唯一实现**，构建/验收/高度图三处共用） |
+| `tools/gen_scene_extent.py`（新） | 生成 `docs/世界与地编/scene_extent.json`（地图画面区 + 地形数据区 bbox） |
+| `tools/gen_scene_water_md.py`（新） | 生成 `场景水位表.md` + `scene_water.csv`（40.5 / −22 / 不铺） |
+| `tools/gen_scene_list_md.py`（新） | 生成 `场景对照表.md`（id ↔ 中文名 ↔ 规模） |
+| `tools/scene_terrain.py`（改） | `scene_water_level` 改为「只认两大水系、按面积占比二选一、都不足 5% 不铺」 |
+| `tools/export_scene_terrain_maps.py`（改） | 停止生成白 mask；json 增加 `color_png` / `color_res_m`；接上地图边界裁剪（含 P） |
+| `docs/世界与地编/regions_viewer.html`（改） | 蓝色**地图边界**框；选中场景画**远景框 + 尺寸**（被裁的标红）；右侧面板显示**活动区/远景框面积与占比** |
+
+### 二、待解决（按优先级）
+
+| # | 事项 | 状态 |
+|---|---|---|
+| 1 | ✅ **水面口径已定案（不需要重建）** | 用户 2026-11-07 裁定：**blend 里的水是假的占位，不用重建**；真正要的是"导入骑砍2 时每张地图的水位"，已出文档：**`docs/世界与地编/场景水位表.md`** + 机器可读的 **`scene_water.csv`**（`python -X utf8 tools/gen_scene_water_md.py` 生成）。口径 = 全图只有 **40.5（主系，41 张）/ −22（西盆地，8 张）** 两个值，两个都不足 5% 的 **7 张不铺水面**。代码 `scene_terrain.scene_water_level` 已同步（后续重建自动按此口径） |
+| 2 | 🔴 **6 张野地的高度图要重导** | `export_scene_terrain_maps` 漏传 P → PNG 比 blend 地形小一圈：`wild_01` `wild_02` `wild_03` `wild_05` `wild_08` `wild_10`（代码已修，重导即可，**不用重建场景**） |
+| 3 | ⚠️ **地图边界裁剪方向待确认** | 现在按地图画面区裁（`sdn` 圣丹尼斯东侧切 768 m、`wild_03` 右边切 1024 m）。若想保留那段远景 → 回退 |
+| 4 | `cor` 的 58 个工业件未分类 | `derrick` / `es_pipe` / `bigtank` / `factb_tanks23` / `module`；现在是「未分类」（可见，不影响画面）；**用户暂未决定补不补** |
+| 5 | 4 个「裸 slod」名字未处理 | `new_pie_03_wdpile_prxslod` 等（LOD 规则只认 `_slod`）；影响 1 个可见对象 |
+| 6 | 远景碎片材质（可选） | 想让碎片也吃到「猜材质」→ 对 `continent_lod_split_v24.blend` 跑 `relink_materials.py`，不用重建库 |
+| 7 | 25 个历史遗留探针 | `tools/_probe_*.py`（`_probe_ann_view` / `_probe_rds*` 等），早期文档引用过，未清 |
+| 8 | git 未提交 | **改**：`docs/AGENTS.md` `docs/TODO.md` `docs/世界与地编/{interior_fit.csv, interior_fit_overrides.csv, regions_viewer.html, scene_list.csv?}` `tools/{build_scenes, class_rules, export_scene_terrain_maps, scene_terrain, scene_trim}.py` `tools/rules_cases.csv`；**新增**：`docs/世界与地编/{scene_extent.json, 场景对照表.md, 场景水位表.md, scene_water.csv}` `tools/{gen_scene_extent, gen_scene_list_md, gen_scene_water_md, scene_bounds}.py`。**提交由用户执行** |
+
+### 三、交付骑砍2 资源（用户 2026-11-07：七七八八差不多了）
+
+**每张场景的交付物**（与 `plans/大镖客2还原/00-总纲.md` 一致）：
+
+| 件 | 现状 |
+|---|---|
+| 高度图（16 bit · 4 m/px · 行 0 = 北） | ✅ 每张构建自动出，自检 PASS（但注意上面第 2 条：6 张要重导） |
+| **地表彩图**（1 m/px） | ✅ 每张场景已有：`deliverable/blender/scenes/tex/<id>_color.png`（与高度图**同一矩形**，从全图彩图裁出；56 张合计 741 MB）；`<id>_terrain.json` 里 `color_png` 指过去。<br>🔴 **不再生成全 255 的 `_mask.png`**（用户 2026-11-07："白图没有有效信息，是垃圾文件"） |
+| **水位（每张地图）** | ✅ **`docs/世界与地编/场景水位表.md` + `scene_water.csv`**（40.5 / −22 / 不铺；blend 里的水面只是占位，以此表为准） |
+| 模型 **TRF**（带 7 档 LOD 链） | ⚠️ 导出脚本已通（`Scripts/export_rdr2_trf_from_scenes.py`，sdn 样本验证）；**批量前缺 TRF 读回闸门**（现在只查面数/文件大小） |
+| 贴图 **DDS** | ⚠️ 方案已定（源池 → DDS，落地 DXT5）；未批量转 |
+
+**开工前还差三件**：① 6 张野地高度图重导（水面已改成出表，不用重建）；② TRF 读回闸门；③ 用户确认地图裁剪方向。
 
 ---
 
@@ -45,7 +115,19 @@
    全库名字带 vfx 且有模型的 113 个，落在可见类的约 75 个（未分类 58 / 道具 8 / 载具 4 / 贴花 2 / 部件 2 / 岩石 1）。
    更早的规则仍优先：`a_water_01_vfx*` 归水面块、`*_vfx*_slod` 归远景碎片。
    ⚠️ 连带：`bra_vfx_man_roof_burn_decals`、`p_vfxbloodspatter`（贴花）也会一起进隐藏的占位类。
-6. 用例 `tools/rules_cases.csv` **128 条**，`python tools/_check_rules.py` → **PASS**
+6. 🔴 **哈希名不参与名字规则**（2026-11-07 用户追问发现）：`e_<8位十六进制>`（世界实体）与
+   `i_<8位十六进制>`（室内件，含 `_lay` 白模件）是**程序合成的哈希名，不是名字** ——
+   以前照样跑规则，十六进制里碰巧出现的字母会误命中裸词：`e_2adbed14` 含 "bed" → 被判成「道具（床）」，
+   于是绕过「贴图名带 `_lod` → 远景碎片」的兜底，**远景壳露在画面里**（`val` / `bla` 各 1 个）。
+   修法：`class_rules.HASH_NAME`，名字层直接返回 unknown，贴图/位置兜底照跑。
+7. **`carriage` 裸词误伤马车房**（2026-11-07 用户实机 `cal_carriage_house_ext`）：改成
+   `carriage(?!.*(?:house|hse|_ext))`，全库影响 40 个（39 → 建筑、1 → 道具、0 新增未分类）。
+8. **`fakeint` → 占位**（2026-11-07 用户裁定）：假室内壳算坐标要用、但不显示。
+9. 用例 `tools/rules_cases.csv` **139 条**，`python tools/_check_rules.py` → **PASS**
+
+> 🔴 **2026-11-07 09:52 状态：56 张场景全部重建到最新口径**（blend 时间戳全部是 11-07）。
+> 其中 10 张已由用户验收（`val` `bla` `ann` `sdn` `van` `cor` `bra` `cal` `sha` `dewclm`），
+> **其余 46 张从未看过**（34 据点 + 12 野地），等用户抽查。
 
 ### 三、待办：一张一张来
 
@@ -55,6 +137,16 @@
 
 `val` `bla` `ann` `sdn` `van` `rho` `hso` `bra` `cal` `sha` `dewclm`
 —— 只重建、不用重新验收内容（外观变化仅：vfx 消失、部分暖灰变木纹/石纹、室内件改可读名）。
+
+- [x] **`bra` / `cal` / `sha` / `dewclm` 已重建（2026-11-07 08:06~08:08）**，待用户验收
+  · `bra` 3558 对象 / 室内 6 包 1423 件 · unknown 9 · 风险项 0
+  · `cal` 3386 / 室内 3/586 · unknown 1 · 风险项 0
+  · `sha` 3069 / 室内 1/1273 · unknown 2 · 风险项 0
+  · `dewclm` 3016 / 无室内 · unknown 0 · 风险项 0
+  · 实测 `bra`：1423 个室内件**全部用模型名**（`bra_boat_int_shell` / `bra_01_int_mirror_01` …），
+    且全部带 `built_loc`（`tools/interior_pkg_tool.py` 可用）
+- [x] `val` `bla` `ann` `sdn` `van` `rho` `hso` **已全部刷完**（2026-11-07 08:48~09:15），
+  其中 `val` / `bla` / `sdn` 又因「哈希名不参与规则」重跑过一遍，风险项归零
 
 **A. 大型（✅ 2026-11-06 全部重建完毕）**
 
@@ -73,20 +165,20 @@
 `derrick`（井架）/ `es_pipe`（管路）/ `bigtank` / `factb_tanks23`（复数罐）/ `module`（装置模块）。
 现在 bldg 只认 `tank\d`、part 只认 `_pipes$`，复数与连字符写法全漏。补词前要先扫全库防误伤。
 
-**B. 中型（1000–3000，15 张）**
+**B. 中型（1000–3000，15 张）—— ✅ 2026-11-07 09:19~09:25 全部重建完毕，待用户验收**
 
 `bee` 比彻之愿 · `cle` 克莱蒙斯岬 · `str` 草莓镇 · `but` 布彻河村 · `arm` 犰狳镇 ·
 `eme` 翡翠牧场 · `tum` 风滚草镇 · `lag` 拉格拉斯 · `old` 华莱士堡 · `man` 石兰贸易站 ·
 `wap` 瓦匹缇 · `mfr` 麦克法兰牧场 · `lak` 拉凯 · `sis` 西西卡监狱 · `han` 垂犬牧场
 
-**C. 小型（<1000，17 张）**
+**C. 小型（<1000，17 张）—— ✅ 2026-11-07 09:26~09:32 全部重建完毕，待用户验收**
 
 `dow` 唐斯牧场 · `pro` 叉角羚牧场 · `fom` 布商堡 · `ora` 奥兰治种植园 · `rid` 脊木农场 ·
 `mic` 迈卡藏身处 · `wal` 华莱士车站 · `col` 犁刀村 · `adl` 阿德勒牧场 · `twi` 双子岩 ·
 `gap` 豁牙裂口 · `lon` 朗尼棚屋 · `abe` 阿伯丁猪场 · `rat` 岔路酒馆 · `roc` 威拉德之息 ·
 `che` 切兹波特 · `sod` 草皮屋
 
-**D. 野地（12 张，无室内，对象量大）**
+**D. 野地（12 张，无室内）—— ✅ 2026-11-07 09:33~09:52 全部重建完毕（`wild_04` 17909 对象 / 风险项 0）**
 
 `wild_01` · `wild_02` · `wild_03` · `wild_04` · `wild_05` · `wild_06` ·
 `wild_07` · `wild_08` · `wild_09` · `wild_10` · `wild_11` · `wild_12`
