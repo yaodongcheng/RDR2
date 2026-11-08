@@ -5,7 +5,7 @@
 > 机读版索引：`deliverable\handoff\`（`asset_import_*` / `lod_fragments.csv` / `settlements_world_v2.csv` / `handoff_meta.json`）
 >
 > 🔴 **2026-11-07 状态（先看这条）**：
-> - **56/56 子场景已全部建成并重建到最新口径**（11-07，每张 0 超界、地形自检 PASS）；
+> - **57/57 子场景已全部建成并重建到最新口径**（11-07/11-08；每张 0 超界、地形自检 PASS）；
 > - **旧 sdn 实验作废**（`rdr2_sanit_denis` / 5,211 个 FBX / 旧 tpac），圣丹尼斯城要按新素材重做；
 > - **模型走 TRF**（7 槽位 LOD，场景 blend 直出已验证）；**贴图走 DDS**（源更小，落地 DXT5 与 PNG 一致）；
 > - **骑砍2 侧的落地计划 = `Modules/LivingWorldNpcs/plans/大镖客2还原/00-总纲.md`**（本文只做数据契约）；
@@ -28,14 +28,14 @@
 ```
 deliverable\  35.05 GB / 48,247 files
 ├─ blender\                                        31.80 GB
-│  ├─ scenes\          56 张子场景（主体）          11.53 GB / 454 files      ★
+│  ├─ scenes\          57 张子场景（主体）          11.7 GB / 456 files       ★
 │  ├─ continent\       大地图（v23 + v24 + 贴图池） 19.70 GB / 46,970 files   ★
 │  ├─ regions_support\ 纠错清单 + 区域清单           0.26 GB / 88 files       ⚙️ 必留·不交
 │  ├─ guarma\          瓜玛整岛（无地形，非场景）    0.29 GB / 1 file         🟡 待定
 │  └─ characters\      3 个角色示例 blend           10.2 MB / 4 files        🟡
 ├─ terrain\                                        3.12 GB / 517 files
 │  ├─ stages\          02_river_carve = 大地图高度源  0.33 GB / 16 files       ★
-│  ├─ final\           彩图 + 高度对照               153.3 MB / 5 files       ★
+│  ├─ final\           彩图 + 原生高度（3 个文件）   147 MB                      ★
 │  ├─ tiles\           0.25 m/px 原生彩图瓦片        2.55 GB / 482 files      🟡
 │  ├─ on_map\          对齐官方地图的裁剪版          67.2 MB / 5 files        🟡
 │  └─ weights\         7 层材质权重                  42.4 MB / 13 files       ⚙️ 必留·不交
@@ -124,16 +124,16 @@ deliverable\  35.05 GB / 48,247 files
 
 ### ★3 子场景：一张场景 = 一套文件，认文件名就行
 
-`blender\scenes\` 下 **56 张**（44 据点 + 12 野地；瓜玛未建）。每张场景对应固定一组文件：
+`blender\scenes\` 下 **57 张**（44 据点 + 12 野地 + 瓜玛）。每张场景对应固定一组文件：
 
 | 件 | 文件 | 数量 | 现状 |
 |---|---|---|---|
-| 场景 | `<id>.blend` | 56 | ✅ 11-07 最新，打开即可预览 |
-| 高度图 | `terrain\<id>_height_16bit.png` + `<id>_terrain.json` | 56 套 | ✅ 4 m/px、行 0 = 北；json 给世界矩形与自检结果 |
-| 彩色地形图 | `tex\<id>_color.png` | 56 | ✅ 1 m/px，与高度图同一矩形（6 张野地例外，见 ★7） |
-| 对象清单 | `manifest_<id>.json` + `manifest_<id>.jsonl` | 56 套 | ✅ 11-07；**只有名称/类/包围盒，没有位置旋转** |
-| 裁剪报告 | `scene_report_<id>.json` | 56 | ✅ 含活动区/远景矩形、各类计数、超界检查 |
-| 摆位表（旧） | `placement_<id>.jsonl` | 56 | ⛔ 11-04 旧版，与当前 blend 不一致，**别用** |
+| 场景 | `<id>.blend` | 57 | ✅ 11-07 最新，打开即可预览 |
+| 高度图 | `terrain\<id>_height_16bit.png` + `<id>_terrain.json` | 57 套 | ✅ 4 m/px、行 0 = 北；json 给世界矩形与自检结果 |
+| 彩色地形图 | `tex\<id>_color.png` | 57 | ✅ 1 m/px，与高度图同一矩形（6 张野地例外，见 ★7） |
+| 对象清单 | `manifest_<id>.json` + `manifest_<id>.jsonl` | 57 套 | ✅ 11-07；**只有名称/类/包围盒，没有位置旋转** |
+| 裁剪报告 | `scene_report_<id>.json` | 57 | ✅ 含活动区/远景矩形、各类计数、超界检查 |
+| 摆位表（旧） | `placement_<id>.jsonl` | 56（瓜玛无旧表） | ⛔ 11-04 旧版，与当前 blend 不一致，**别用** |
 
 **命名规则**：`<id>` = 据点短码（`sdn` / `val` / `roc`…）或野地 `wild_01`…`wild_12`；场景 id 统一 `rdr2_<id>`。
 **总表**：`scene_build_status.csv`（每张的对象数/耗时/状态）、`manifest.json`（最近一次构建）、`shots\`（4 张预览）。
@@ -143,11 +143,11 @@ deliverable\  35.05 GB / 48,247 files
 | 件 | 文件 | 数字 | 用途 |
 |---|---|---|---|
 | **远景碎片版（主）** | `blender\continent\continent_lod_split_v24.blend` | 343 MB / **2,481 件 / 56 组** | 进游戏拼 prefab、铺远景 |
-| **完整版（副）** | `blender\continent\continent_v23.blend` | 7.42 GB / **184,035 对象** | 看全貌、重摆、二次加工 |
+| **完整版（主）** | `blender\continent\continent_v25.blend` | **7.83 GB / 186,473 对象** | 11-08 重建：高度 = 01 未刻版、LOD append 2,436 件、分类新口径；`continent_v23.blend` 转为历史存档 |
 | 碎片清单 | `handoff\lod_fragments.csv` + `lod_groups.json` + `lod_split_parts.json` | 2,481 件；**56 组有碎片**（JSON 里共 60 条记录，含 4 个空组） | 带完整变换，拼 prefab 用这个 |
 | 高度图（**大地图·刻河道版**） | `terrain\stages\02_river_carve\height_16bit_4m.png` + `meta.json` | 2692×2006 @4 m；zmin −56.9 / zmax 690.3 | 01 级 + **河床加深**：水网内全部刻到水位以下（东 40.5 / 西 −22），水网外低地最小抬升 +1 m |
 | 高度图（**大地图·未刻版**） | `terrain\stages\01_plateau_plain\height_16bit_4m.png` + `meta.json` | 同尺寸；zmin −56.9 | 原生 + 自然界过渡、**未加深** |
-| 高度图（**子场景专用**） | `terrain\final\height_4m_16bit_native.png` | 同尺寸；zmin −34.9 | **100% 原生 H4**，56 张子场景一律用这张（不加深、不抬升） |
+| 高度图（**子场景专用**） | `terrain\final\height_4m_16bit_native.png` | 同尺寸；zmin −34.9 | **100% 原生 H4**，57 张子场景一律用这张（不加深、不抬升） |
 | ~~高度图（旧挖水系版，弃用）~~ | `heightmap\continent_height_4m.png` + `.r16.raw` | 同尺寸 | 🔴 旧脚本的产物：地图 JPEG 判水 + 单水位（西南被并成 42.1）+ 陆地抬到水位+2 m → 西盆地被填平。**不要用** |
 | 大地图彩图 | `terrain\final\color_1m.png` | 10768×8024 @1 m | 导大地图地表 |
 | 水 | `heightmap\water_mask.png` / `water_depth.png` | 8.10 km² | 参考掩码；Blender 大地图用**两块矩形平面**（西 −22 / 东 40.5，分割线 x=−1000） |
@@ -158,7 +158,7 @@ deliverable\  35.05 GB / 48,247 files
 |---|---|---|
 | **大地图 · 未刻河道** | `continent_lod_split_v25.blend` | `terrain\stages\01_plateau_plain\height_16bit_4m.png`（原生 + 自然界过渡） |
 | **大地图 · 已刻河道** | `continent_lod_split_v25_river.blend` | `terrain\stages\02_river_carve\height_16bit_4m.png`（01 + 河床加深，东 40.5 / 西 −22） |
-| **子场景（56 张）** | `blender\scenes\<id>.blend` | `terrain\final\height_4m_16bit_native.png`（**100% 原生 H4**） |
+| **子场景（57 张）** | `blender\scenes\<id>.blend` | `terrain\final\height_4m_16bit_native.png`（**100% 原生 H4**）；瓜玛用 `terrain\outside\guarma\` 的独立地形源 |
 
 - 两版大地图的水面都是**两块水平面**：东 `x≥−1000` @ **40.5 m**、西 `x<−1000` @ **−22 m**（水位在物体变换里，顶点局部 z=0）。
 - 刻河道版的做法：水网内全部刻到 `水位 − 深度`（深度按河道宽度 4~35 m）；水网外低于水位的陆地最小抬升到 `水位 +1 m`；**水面绝不跟河床抬高**。
@@ -169,7 +169,7 @@ deliverable\  35.05 GB / 48,247 files
 | 对象 | 唯一可用来源 | 带旋转/缩放？ |
 |---|---|---|
 | 大地图远景碎片 | `handoff\lod_fragments.csv`（`wx,wy,wz` / `qx..qw` / `sxy,sz` / `gx,gy,gz`） | ✅ |
-| 大地图完整场景 | `blender\continent\manifest_continent_v23.jsonl`（`p` = 位置）或直接读 blend | ❌ 只有位置 |
+| 大地图完整场景 | `blender\continent\manifest_continent_v25.jsonl`（`p` = 位置）或直接读 blend | ❌ 只有位置 |
 | 子场景 | **blend 里的对象变换**；`placement_*.jsonl` 必须用 `tools\export_scene_placements.py` 在 11-07 场景上重跑 | ✅（重跑后） |
 
 ### ★6 不进交付 / 待重建（附体积）
@@ -200,7 +200,7 @@ deliverable\  35.05 GB / 48,247 files
 | 2 | **prefab 落后一版** | `prefabs\` 55 个，当前是 56 组有碎片；**31 组数量对不上**；`dow` 缺 prefab |
 | 3 | **资产清单是 11-05 的** | `asset_inventory_*` / `asset_import_*` 按 11-05 场景统计（206,790 对象），11-07 重建后是 226,487，**差 19,697** |
 | 4 | **blend 贴图路径指向包外** | 全部指向 `D:\BrainMaker\大镖客2解包分析\assets\lib_native\tex`；包单独拷走会全部丢失 |
-| 5 | **完整版大地图的 LOD 是旧的** | `continent_v23.blend` 里 2,290 件，碎片版是 2,481 件 ⇒ 交付前要重合成一次 |
+| 5 | ~~完整版大地图的 LOD 是旧的~~ | ✅ 已解决：`continent_v25.blend`（11-08 重建，LOD append 2,436 件 / 高度 = 01 未刻版） |
 
 ### ★8 接手顺序（读什么 → 做什么）
 
@@ -230,7 +230,7 @@ deliverable\  35.05 GB / 48,247 files
 
 | 类别 | 现有产物 | 骑砍2 用途 | 状态 |
 |---|---|---|---|
-| ① **世界与地编** | `docs/世界与地编/scene_list.csv`（58 行）+ `scene_specs.json`（P 多边形）+ 高度图/彩图 + `deliverable/blender/scenes/`（56 张 blend） | 建 56 张场景、接入口、扎营落点 | ✅ **56/56 已建成**（2026-11-04，0 超界、地形图全 PASS）；**等用户验收（TODO-6）**，验完就轮到骑砍2 建场景 |
+| ① **世界与地编** | `docs/世界与地编/scene_list.csv`（58 行）+ `scene_specs.json`（P 多边形）+ 高度图/彩图 + `deliverable/blender/scenes/`（**57 张 blend**） | 建 57 张场景、接入口、扎营落点 | ✅ **57/57 已建成**（11-07/11-08，0 超界、地形图全 PASS）；**等用户验收（TODO-6）** |
 | ② **建筑/道具模型** | 全量清单 `deliverable/handoff/asset_import_models.csv`（**24,424 个模型**）+ `asset_import_textures.csv`（**22,504 张贴图**） | 场景里的房子/道具/铁路/植被… | 🔴 **旧 FBX 路径作废**（`rdr2_bld_fbx` / `rdr2_sanit_denis`）；新口径 = **场景 blend 直出 TRF + 贴图 DDS**（§0.5.3） |
 | ③ **角色外观/服饰/人头** | `docs/角色与物品/RDR2_服饰全清单与换装修复.md`、`RDR2_角色眼睛与服饰贴图修复.md`、`docs/格式与资产/RDR2骨架_yft格式.md` | 让 NPC / 主角长得像大镖客 | 🟡 已研究 + 修复方案，**未成包** |
 | ④ **武器/道具/载具** | `docs/角色与物品/RDR2_武器道具模型与剧本对白.md`、`RDR2_武器金属材质修正.md`、`RDR2_载具与UI与兵种覆盖审计.md`、`RDR2_模型图标与综合查看器.md` | 武器、道具、载具、图标 | 🟡 已研究 + 提取管线，**未成包** |
@@ -256,7 +256,7 @@ deliverable\  35.05 GB / 48,247 files
 
 **要几何时读 `scene_specs.json`**：`settlements[i].P` / `wilds[i].P` = 能走范围（环列表；野地是 4 角矩形）；`AW/AH/FW/FH` = 活动区/远景范围；`frame` = 地图框；`outside` = 地图外（只做远景）；`gaps`/`overlaps`/`issues` 只给页面看，**建场景不用**。
 
-**尺寸分布**：据点活动区 512 / 640 / 768 / 896 / 1,024 / 1,152 / 1,536（圣丹尼斯），每边外扩 512 / 640 / 896 / 1,280；野地活动区 = 矩形本身（1,792–4,352），每边外扩 1,024；瓜玛 2 张 **尺寸待定**。
+**尺寸分布**：据点活动区 512 / 640 / 768 / 896 / 1,024 / 1,152 / 1,536（圣丹尼斯），每边外扩 512 / 640 / 896 / 1,280；野地活动区 = 矩形本身（1,792–4,352），每边外扩 1,024；**瓜玛 1 张**：活动区 1,280×1,152、外扩 128、远景 1,536×1,280（2026-11-08 已建）。
 
 **规则（用户裁定）**：据点能走范围 = 外切矩形（互不重叠）；野地 = 横平竖直矩形（**宁可重叠不留缺口**）；野地矩形含据点范围（野地场景里据点用 `C_lod_远景碎片`，走进据点弹「是否进入」）；地图区 = 官方地图有画面的部分（空白羊皮纸只做远景，水面算可走）。
 
@@ -289,7 +289,7 @@ deliverable\  35.05 GB / 48,247 files
 
 ### 0.5.3 全量资产清单与导入口径（2026-11-05）
 
-**清单（大地图 ∪ 56 张子场景）**
+**清单（大地图 ∪ 57 张子场景）**
 
 | 文件 | 内容 |
 |---|---|
@@ -325,16 +325,16 @@ deliverable\  35.05 GB / 48,247 files
 | 大地图 | **1** | 战役地图（已有 `continent_lod_split_v23.blend` 预览，用户基本满意） |
 | 据点子场景 | **44** | 一个据点一张 Mission |
 | 野地子场景 | **12** | 一块矩形一张 Mission |
-| 瓜玛 | **1** | 两处相距约 342 m，**合并成一张**（2026-11-04 用户裁定）；尺寸待定 |
+| 瓜玛 | **1** | 两处相距约 342 m，**合并成一张**；活动区 1,280×1,152（有网格区域外接矩形）、远景 1,536×1,280（2026-11-08 已建） |
 | **合计** | **58** | **57 张子场景** + 1 张大地图 |
 
 ### B. 每张子场景交付 5 件
 
 | # | 交付物 | 规格 | 现状 |
 |---|---|---|---|
-| 1 | **高度图** | 16 bit PNG（或 raw），**4 m/px**，行 0 = 北；范围 = 该场景远景范围（按全局 4 m 格点取整） | ✅ 已出：`deliverable/blender/scenes/terrain/<id>_height_16bit.png`（56 张） |
+| 1 | **高度图** | 16 bit PNG（或 raw），**4 m/px**，行 0 = 北；范围 = 该场景远景范围（按全局 4 m 格点取整） | ✅ 已出：`deliverable/blender/scenes/terrain/<id>_height_16bit.png`（57 张） |
 | 2 | **彩色地形图**（1 m/px） | RDR2 只有单层地表色 → 直接用烘好的彩图；**不再出 8 bit 全 255 的 mask**（2026-11-07 用户裁定："白图没有有效信息"） | ✅ 已出：`tex\<id>_color.png`；`<id>_terrain.json` 的 `color_png` 指过去 |
-| 3 | **场景 blend** | 打开即可预览（地编信息全在里面） | ✅ **56/56 已建**（11-07 重建；56 个 blend 合计 10.7 GB） |
+| 3 | **场景 blend** | 打开即可预览（地编信息全在里面） | ✅ **57/57 已建**（11-08；57 个 blend 合计约 11.7 GB） |
 | 4 | **对象摆放清单** | 一行一个对象：模型 hash / 位置 / 旋转 / 缩放 / 分类 / 是否远景 | ⚠️ 现有 56 个 `placement_<id>.jsonl` 是 **11-04 旧版**，与 11-07 场景不一致 → **必须重跑** `tools\export_scene_placements.py`；当前最新的 `manifest_<id>.jsonl` 只有名称/类/包围盒，**没有摆位** |
 | 5 | **网格库 + 三类贴图** | 全局一份：漫反射（alb）/ 法线（nm）/ 高光（ORM、`_ma`） | ✅ `mesh_texture_audit.csv` + `texture_list.csv`（`tools/audit_mesh_textures.py`） |
 
@@ -375,8 +375,8 @@ deliverable\  35.05 GB / 48,247 files
 | # | 事项 | 改哪里 | 验收（可复核） |
 |---|---|---|---|
 | **TODO-0** | **远景碎片两类落地**：分类器新增 `lod_out`（远景碎片·区外，默认显示）；场景裁剪把"完全在活动区外"的碎片改标为 `lod_out`，活动区内保持 `lod`（默认隐藏）；跨边界留在 `lod`；**不删对象** | `tools/class_rules.py` + `tools/scene_trim.py` | 打开 `bla.blend`：分类面板有 `远景碎片` / `远景碎片·区外` 两行；活动区内看不到 lod；活动区外可见；地形回归点 PASS |
-| **TODO-1** | 用修好的口径**重建 58 张子场景 blend** | ✅ `tools/build_scenes.py` | ✅ **56/56 done**（瓜玛无尺寸不跑）：全部 0 超界、地形自检 PASS、`rooms` 已入表；远景碎片来自打散分组远景库 |
-| **TODO-2** | 每张场景出**高度图 + 彩色地形图** | ✅ `tools/export_scene_terrain_maps.py`（已接进 `build_scenes.py`，每建完一张自动导） | ✅ 56 张全 PASS：高度图与 blend 用**同一套采样**（`scene_terrain_core`），自检最大误差 0.000 m；彩图 `<id>_color.png`（1 m/px、与高度图同矩形；**6 张野地例外，见 ★7**）；元数据 `<id>_terrain.json` |
+| **TODO-1** | 用修好的口径**重建 58 张子场景 blend** | ✅ `tools/build_scenes.py` | ✅ **57/57 done**（含瓜玛）：全部 0 超界、地形自检 PASS、`rooms` 已入表；远景碎片来自打散分组远景库 |
+| **TODO-2** | 每张场景出**高度图 + 彩色地形图** | ✅ `tools/export_scene_terrain_maps.py`（已接进 `build_scenes.py`，每建完一张自动导） | ✅ 57 张全 PASS：高度图与 blend 用**同一套采样**（`scene_terrain_core`），自检最大误差 0.000 m；彩图 `<id>_color.png`（1 m/px、与高度图同矩形；**6 张野地例外，见 ★7**）；元数据 `<id>_terrain.json` |
 | **TODO-3** | 出**全局网格库清单 + 三类贴图清单** | ✅ `tools/audit_mesh_textures.py` | ✅ 用到模型 **39,946** / 贴图 **20,888** 张（文件缺失 **0**）；缺 albedo **1,688**、缺 normal **6,529**、缺 ma **7,267** —— 清单在 `deliverable/handoff/mesh_texture_audit.csv` / `texture_list.csv`。🔴 **缺 albedo 是已知接受缺口**（本项目 README §6「小道具贴图缺失」：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替），**不要再重新解包** |
 | **TODO-4** | 每场景出**对象摆放清单**（供骑砍2 生成 xscene） | ⚠️ `tools/export_scene_placements.py`（脚本可用，但 11-07 重建后**未重跑**） | ⚠️ 56 个 `placement_<id>.jsonl`（69 MB）是 **11-04 版**：`hash / model_hash / cls / ring / loc / quat / scale / bbox / part_key / split_of / int_pkg / tile`。**交付前必须重跑**（现有文件与 11-07 场景不一致） |
 | **TODO-5** | 大地图**按据点分组的 prefab** | ⚠️ `tools/build_lod_prefabs.py`（11-07 未重跑） | ⚠️ 现有 **55 组 / 2,324 碎片**，是 11-04 版；当前分组是 **56 组 / 2,481 碎片**，**31 组数量对不上、`dow` 缺** ⇒ **交付前必须重跑**。输出 `deliverable/handoff/prefabs/<group_id>.json` + `prefabs_index.json`。空组兜底**用现成** `tools/build_miniatures.py`（46 据点已全生成，合计 84,502 面），**不要另造减面工具** |
@@ -392,7 +392,7 @@ deliverable\  35.05 GB / 48,247 files
 |---|---|---|---|
 | **大地图高度图（刻河道版）** | `deliverable/terrain/stages/02_river_carve/height_16bit_4m.png`（编码见同目录 `meta.json`） | 2692×2006，4 m/px，16 bit，行 0 = 北；zmin −56.9 | 01 自然过渡 + **河床加深**（水网内刻到水位以下；水网外低地 +1 m） |
 | **大地图高度图（未刻版）** | `deliverable/terrain/stages/01_plateau_plain/height_16bit_4m.png` | 同尺寸；zmin −56.9 | 原生 + 自然界过渡，未加深 |
-| **子场景高度图（16 bit）** | `deliverable/terrain/final/height_4m_16bit_native.png` | 同尺寸；zmin −34.9 | **100% 原生 H4**，56 张子场景一律用这张 |
+| **子场景高度图（16 bit）** | `deliverable/terrain/final/height_4m_16bit_native.png` | 同尺寸；zmin −34.9 | **100% 原生 H4**，57 张子场景一律用这张 |
 | 高度图 r16（引擎直读） | 两个 stage 目录下的 `height_r16.raw` | 同尺寸，uint16 **小端**，逐行 | 与同目录 PNG 逐值一致，行 0 = 北 |
 | 高度图元数据 | 各 stage 目录的 `meta.json` | zmin/zmax/公式/原点 | 换算公式见 §3.1 |
 | 水面 / 水深（参考） | `deliverable/terrain/stages/02_river_carve/water_mask.png`、`water_depth.png` | 2692×2006 | 水面 8.10 km²；与 `terrain/weights/w_water.png` **同一张** |

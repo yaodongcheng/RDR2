@@ -75,14 +75,17 @@ def read_scenes():
                     _p = tuple(_v)
             except Exception:
                 _p = None
-            rows.append(clamp_scene_to_map({
+            sc = {
                 'id': sid, 'kind': r.get('kind') or '', 'name': r.get('name') or '',
                 'x': float(r['x']), 'y': float(r['y']),
                 'aw': float(r['活动区宽_m']), 'ah': float(r['活动区高_m']),
                 'w': float(r['每边外扩_m']),
                 'fw': float(r['远景宽_m']), 'fh': float(r['远景高_m']),
                 'p': _p,
-            }, verbose=False))
+            }
+            # 地图框外场景（瓜玛）有自己的地形源，不能按地图边界裁
+            outside = os.path.exists(os.path.join(ROOT, 'deliverable/terrain/outside', sid, 'meta.json'))
+            rows.append(sc if outside else clamp_scene_to_map(sc, verbose=False))
     return rows
 
 

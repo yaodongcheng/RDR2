@@ -84,6 +84,11 @@ def read_scenes(path=CSV_DEF):
 
 def _clamp(sc):
     """高度图/掩码必须与 blend 里的地形**同一个远景框**（地图边界裁剪，见 tools/scene_bounds.py）。"""
+    import os
+    p = os.path.join(r'D:/BrainMaker/大镖客2解包分析', 'deliverable', 'terrain',
+                     'outside', sc.get('id') or '', 'meta.json')
+    if sc.get('id') and os.path.exists(p):
+        return sc            # 框外场景（瓜玛）：不按地图边界裁
     try:
         from scene_bounds import clamp_scene_to_map
         return clamp_scene_to_map(sc, verbose=False)
@@ -107,7 +112,14 @@ def export_scene(sid, meta=None, H=None, csv_path=CSV_DEF, outdir=OUTDIR, verbos
     if sc is None:
         return None
     if meta is None or H is None:
-        meta, H = _data()
+        # 框外场景（瓜玛）：用它自己的地形源，别拿地图框的高度图去采（会采错区域）
+        om = os.path.join(r'D:/BrainMaker/大镖客2解包分析', 'deliverable', 'terrain',
+                          'outside', sid, 'meta.json')
+        if os.path.exists(om):
+            meta = C.load_meta(scene_id=sid)
+            H = C.heights(meta)
+        else:
+            meta, H = _data()
 
     fx0, fy0 = sc["x"] - sc["fw"] / 2, sc["y"] - sc["fh"] / 2
     fx1, fy1 = sc["x"] + sc["fw"] / 2, sc["y"] + sc["fh"] / 2

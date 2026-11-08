@@ -66,6 +66,10 @@ def load_scene(sid, csv_path=DEFAULT_CSV):
 
 def _clamp_far_to_map(sc):
     """远景框按地图边界裁剪 —— **实现只有一份**：`tools/scene_bounds.clamp_scene_to_map`。"""
+    p = os.path.join(r'D:/BrainMaker/大镖客2解包分析', 'deliverable', 'terrain',
+                     'outside', sc.get('id') or '', 'meta.json')
+    if sc.get('id') and os.path.exists(p):
+        return sc            # 框外场景（瓜玛）有自己的地形源，禁止按地图边界裁
     from scene_bounds import clamp_scene_to_map
     return clamp_scene_to_map(sc)
 

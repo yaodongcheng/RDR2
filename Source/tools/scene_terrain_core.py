@@ -29,7 +29,26 @@ ROW_SHIFT = 1.0     # 见上：dy = -1 格
 NATIVE_HFILE = 'height_4m_16bit_native.png'
 
 
-def load_meta(path=None):
+def load_meta(path=None, scene_id=None):
+    # 2026-11-07：地图框外场景（瓜玛）用自己的一套地形源
+    if scene_id:
+        p = os.path.join(RDR2, "deliverable", "terrain", "outside", scene_id, "meta.json")
+        if os.path.exists(p):
+            m = json.load(open(p, encoding="utf-8"))
+            h, c = m["height"], m["color"]
+            base = os.path.dirname(p)
+            return {
+                "x0": m["world"]["x0"], "y0": m["world"]["y0"],
+                "x1": m["world"]["x1"], "y1": m["world"]["y1"],
+                "hfile": os.path.join(base, h["file"]),
+                "hw": h["px"][0], "hh": h["px"][1], "hres": h["m_per_px"],
+                "zmin": h["zmin"], "zmax": h["zmax"],
+                "cfile": os.path.join(base, c["file"]),
+                "cw": c["px"][0], "ch": c["px"][1],
+                "cres": c["m_per_px"],
+                "row_shift": 0.0,
+                "source": "outside:" + scene_id,
+            }
     m = json.load(open(path or os.path.join(TERRAIN, "meta.json"), encoding="utf-8"))
     h = m["height"]
     meta = {

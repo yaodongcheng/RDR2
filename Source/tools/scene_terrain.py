@@ -226,7 +226,7 @@ def build(scene, step=STEP, tex_dir=DEFAULT_TEXDIR, verbose=True):
     2026-11-03 用户裁定：不要粗细两级 —— 活动区和远景都用 4 m。
     """
     t0 = time.time()
-    meta = load_meta()
+    meta = load_meta(scene_id=scene.get("id"))
     H = heights(meta)
     cx, cy = scene["x"], scene["y"]
     # 🔴 2026-11-04：活动区 = 能走范围 P（P 外一律按远景处理）。地形仍按**整块远景框**

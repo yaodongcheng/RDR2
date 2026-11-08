@@ -1,9 +1,74 @@
-# TODO —— 交接版（2026-11-07）
+# TODO —— 交接版（2026-11-08）
 
-> 🔴 **先读下面「2026-11-07 会话总结」**，再按需翻历史记录。
+> 🔴 **先读下面「2026-11-08 会话总结」**，再按需翻历史记录。
 > 细则：分类看 `docs/格式与资产/分类体系与判定规则.md`；室内管线速查看 `docs/AGENTS.md` **§6.24**；
 > 场景代号↔中文名看 `docs/世界与地编/场景对照表.md`。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2 与 Blender。
+
+---
+
+## 🟢 2026-11-08 · 本会话总结（大地图两版 + 完整大陆 + 瓜玛）
+
+> **一句话**：大地图定稿成「两版 LOD」（未刻 / 刻过河床）+ 两版高度图；完整大陆用未刻版高度重建；瓜玛子场景补上，**57/57 场景齐**。
+
+### 一、已完成
+
+| # | 事项 | 产物 / 结果 |
+|---|---|---|
+| 1 | 交付包结构理清 + 交接文档新增「★ 交付物总览」章 | `docs/README_骑砍2交接.md`：目录全图、handoff 40 个文件逐个说明、已知不一致、两版大地图表 |
+| 2 | **大地图两版 LOD** | `deliverable/blender/continent/continent_lod_split_v25.blend`（未刻，高度=01）· `continent_lod_split_v25_river.blend`（刻过，高度=02） |
+| 3 | **高度源定线** | 子场景 = 原生 H4；大地图 = 01 自然界过渡 / 02 再刻河床；旧 `heightmap/continent_height_4m.png` **弃用** |
+| 4 | **河道加深脚本重写** | `tools/carve_rivers.py`：水网内全部刻到水位以下（东 40.5 / 西 −22）、水网外低地最小抬升 +1 m、只降不抬 |
+| 5 | **完整大陆重建** | `deliverable/blender/continent/continent_v25.blend`（7.3 GiB，186,473 对象，高度=01 未刻版，LOD append 2,436 件） |
+| 6 | **完整大陆高度覆盖入口** | `blender_continent.py` 新增 `RDR2_HEIGHT_PNG` / `RDR2_HEIGHT_META`：框内用交付高度、框外仍用 H4 |
+| 7 | **瓜玛子场景** | `deliverable/blender/scenes/guarma.blend`：活动区 1280×1152（**有网格区域的外接矩形**）、远景 1536×1280、高度 385×321（PASS 0.000）、2,847 对象、LOD 2 组 / 45 件 |
+| 8 | **框外地形源机制** | `deliverable/terrain/outside/<id>/` + `tools/make_outside_scene_terrain.py`；`scene_terrain_core.load_meta(scene_id=)` 优先读它 |
+| 9 | **启动器** | `打开大陆_流畅.bat`：`lod` 改为按最新版本、新增 `river` 入口 |
+| 10 | 场景总数 | **57/57**（44 据点 + 12 野地 + 瓜玛） |
+
+**关键数字**：刻河版水格高于水位 **0 格**；俯视蓝色 vs `w_water` 掩码 **IoU 0.90**（1600×1200 渲染，细河被抗锯齿）；水网外被挖 **0.000 km²**；填低地 3.68 km²。
+
+### 二、踩的坑（按严重度）
+
+| # | 坑 | 症状 / 根因 | 修法 |
+|---|---|---|---|
+| 1 | **高度源三条线搞混** | `final` 不等于最终；返工三次：先挖水系版（河床 7.1 m）、再原生 H4（丢掉自然过渡） | 定死：子场景=原生 H4；大地图=01/02 |
+| 2 | 旧河道脚本 4 个 bug | 官方地图 JPEG 判水（游戏掩码算而未用）/ 单水位 42.1 / 把低地抬到水位+2 / 平底深度无条件赋值 | 重写 `carve_rivers.py` |
+| 3 | **numpy 建面法线朝下** | 顶点顺时针 → 视口背面剔除 → 看起来"水面是一堆三角碎片" | 一律逆时针（NW→SW→SE→NE） |
+| 4 | 水面 z 写在顶点里 | 物体变换面板 z=0，被误判"水位没设" | 顶点局部 z=0，`object.location.z=水位` |
+| 5 | Workbench 渲染两坑 | `clip_end` 默认 100 m → 全白；`FLAT` 光照看不出地形 | `clip_end=20000`；`STUDIO` |
+| 6 | `append_lod_groups(None)` | 全量构建（非 `--scene`）调 `scene_trim.rects(None)` 崩 | scene 为 None 时按全图取碎片 |
+| 7 | `group_type == 'guama'` 拼写错 | 数据是 `guarma` → 瓜玛碎片永远取不到 | 改 `'guarma'` |
+| 8 | 框外场景被三处裁剪 | `build_scenes` / `scene_trim` / `export_scene_terrain_maps` 都按地图边界裁 → 瓜玛远景被裁成 2176×1664、高度图对不上 | 三处都跳过「有 outside meta」的场景 |
+| 9 | `load_meta` outside 路径拼错 | 拼成 `terrain/final/outside/...`，一直读回地图框源 | 用 `RDR2/deliverable/terrain/outside/<id>` |
+| 10 | 场景高度图采样错源 | 导出时用地图框高度图去采瓜玛坐标 → 高度只到 41 m（真实 344 m） | 框外场景用自己的高度源 |
+| 11 | 平面水面 vs 水网 | 整矩形会在低于水位的陆地出水（东南 2.27 km² 假水洼）；让水面跟河床抬又违反"只两块水平面" | 水网内刻到水位下 + 水网外低地填到水位上；**水面绝不跟河床抬** |
+| 12 | 瓜玛远景带进邻岸 | 外扩 512 → 框进西侧 140–170 m、南侧 180–300 m 邻岸，切出方块 | 外扩 512→128，南边贴岛缘 0 |
+
+### 三、TODO（未完成）
+
+| # | 事项 | 说明 |
+|---|---|---|
+| 1 | ~~完整大陆没摆室内~~ | ✅ **2026-11-08 用户裁定：完整大陆不摆室内**（`continent_v25.blend` 就保持现状） |
+| 2 | **彩图仍有 10 块补色方块** | `combine_ground.py` 用 128 m 中位色回填（非城区）；未修 |
+| 3 | 交付包仍缺三大件 | 模型网格本体（TRF 未批量）、角色/武器模型 + 名单、贴图 DDS 批量 |
+| 4 | 清单过期 | `asset_import_*` 是 11-05 的（比 11-07 场景少 19,697 对象）；`prefabs` 55 vs 56 组；`placement_*.jsonl` 是 11-04 旧版 —— 都要重跑 |
+| 5 | 贴图路径没改包内 | 所有 blend 指向 `assets/lib_native/tex`，包单独拷走会丢贴图 |
+| 6 | 游戏侧地形没切源 | `Scripts/gen_rdr2_terrain.py` 仍读旧 `continent_height_4m.png` |
+| 7 | 完整大陆只有未刻版 | 是否也要一版刻河床的完整大陆，待定 |
+| 8 | 瓜玛远景碎片全在活动区 | `ring=0`（45 件都落在活动区内、归 `lod` 隐藏）——是否符合野地规则待确认 |
+
+### 四、关键文件（本会话新增/改动）
+
+| 文件 | 作用 |
+|---|---|
+| `tools/build_continent_map.py` | 从交付高度图建 LOD 大地图（两块水面、54 组碎片、去掉瓜玛） |
+| `tools/carve_rivers.py` | 河道/河床加深（大地图专用，两块水位） |
+| `tools/make_outside_scene_terrain.py` | 给地图框外场景生成地形源 |
+| `tools/blender_continent.py` | 高度覆盖入口；`None` 场景取碎片；`guarma` 拼写 |
+| `tools/scene_terrain_core.py` / `scene_terrain.py` | per-scene outside 地形源 |
+| `tools/scene_trim.py` / `build_scenes.py` / `export_scene_terrain_maps.py` | 框外场景跳过地图边界裁剪 |
+| `tools/README` 之外：`docs/README_骑砍2交接.md` | 交付契约（57/57、两版大地图、完整版 v25） |
 
 ---
 

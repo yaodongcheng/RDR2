@@ -33,6 +33,39 @@ GROUND_TEX = os.environ.get('RDR2_GROUND', os.path.join(ROOT, 'export/world/worl
 GROUND_MASK = os.environ.get('RDR2_MASK', os.path.join(ROOT, 'export/world/world_ground_mask.png'))
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 X0, Y0, RES = -7684.0, -8196.0, 4.0
+
+# 2026-11-07：完整大陆可选「用交付高度图覆盖地图框内高程」
+#   RDR2_HEIGHT_PNG + RDR2_HEIGHT_META → 框内用该图（与 LOD 大地图同一份地形），框外仍用 H4
+_HEIGHT_PNG = os.environ.get('RDR2_HEIGHT_PNG', '')
+_HEIGHT_META = os.environ.get('RDR2_HEIGHT_META', '')
+_H4_CACHE = None
+
+
+def load_h4():
+    global _H4_CACHE
+    if _H4_CACHE is not None:
+        return _H4_CACHE
+    H = np.load(H4)
+    if _HEIGHT_PNG and os.path.exists(_HEIGHT_PNG):
+        import json as _json
+        from PIL import Image as _Image
+        mh = _json.load(open(_HEIGHT_META, encoding='utf-8'))['height']
+        z = mh['zmin'] + np.asarray(_Image.open(_HEIGHT_PNG), dtype=np.float32) / 65535.0 * (mh['zmax'] - mh['zmin'])
+        hh, ww = z.shape
+        x = -6844.0 + np.arange(ww) * RES
+        y = 3224.0 - np.arange(hh) * RES
+        cc_all = ((x - X0) / RES).astype(np.int32)
+        rr_all = ((y - Y0) / RES).astype(np.int32)
+        okc = (cc_all >= 0) & (cc_all < H.shape[1])
+        okr = (rr_all >= 0) & (rr_all < H.shape[0])
+        cc, rr = cc_all[okc], rr_all[okr]
+        H[np.ix_(rr, cc)] = z[np.ix_(okr, okc)]
+        print('[height] override %s -> H4 rows %d..%d cols %d..%d' %
+              (os.path.basename(_HEIGHT_PNG), rr.min(), rr.max(), cc.min(), cc.max()))
+    _H4_CACHE = H
+    return H
+
+
 BUILD_STATS = {}   # build_entities 的统计（遍历/缺模型/落地），给末尾一行校验用
 USE_PAD = False    # 城区地台压平：只有显式 --pad 才开（地形与 ground_z 共用这个开关）
 VEG_MODE = 'hide'  # 植被处理：hide 隐藏 / delete 真删 / keep 原样
@@ -260,7 +293,7 @@ def pad_field():
     return np.where(cnt > 0, tot / np.maximum(cnt, 1), np.nan)
 
   # 只做"高程修正量"，不压平：瓦伦丁这种坡地城镇必须保留坡度，否则低处房子被埋
-  H = np.load(H4)
+  H = load_h4()
   delta = np.full((N, N), np.nan, np.float32)
   for (i, j), zs in cells.items():
     if len(zs) < 3:
@@ -389,7 +422,7 @@ def ground_z(x, y):
   """实体落点的高程：H4 与城区地台按权重混合（与地形网格同一套公式）。"""
   global _H4C
   if _H4C is None:
-    _H4C = np.load(H4)
+    _H4C = load_h4()
   H = _H4C
   r = int(round((y - Y0) / RES)); c = int(round((x - X0) / RES))
   z = float(H[r, c]) if (0 <= r < H.shape[0] and 0 <= c < H.shape[1]) else 0.0
@@ -408,7 +441,7 @@ def ground_z(x, y):
 
 
 def terrain(step, use_pad=False):
-  H = np.load(H4)
+  H = load_h4()
   ny, nx = H.shape
   print('H4', H.shape, 'res', RES, 'step', step)
   print('PAD %s' % ('ON（显式 --pad）' if use_pad else 'OFF（地形只用原生 H4，未压平）'))
@@ -833,7 +866,11 @@ def append_lod_groups(scene, verbose=True):
     print('[lod] 缺远景库/分组表，跳过：%s / %s' % (LOD_SPLIT_BLEND, LOD_GROUPS_JSON))
     return 0
   import scene_trim as _st
-  act, far = _st.rects(scene)
+  if scene is None:
+    # 完整大陆构建（非 --scene 模式）：没有场景矩形，按整幅地图取全部远景碎片
+    far = (X0, Y0, X0 + 12296.0, Y0 + 12296.0)
+  else:
+    act, far = _st.rects(scene)
   meta = json.load(open(LOD_GROUPS_JSON, encoding='utf-8'))
   names = []
   for g in meta.get('groups') or []:
@@ -847,7 +884,7 @@ def append_lod_groups(scene, verbose=True):
       names.append('S_%s_%s' % (gid, g.get('name_zh')))
     elif gt == 'wild':
       names.append('W_%s' % gid)
-    elif gt == 'guama':
+    elif gt == 'guarma':
       names.append('G_%s_%s' % (gid, g.get('name_zh')))
   names = [n for n in names if n]
   if not names:

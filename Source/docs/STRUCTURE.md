@@ -24,7 +24,7 @@
 ├── deliverable/handoff/            机读交接清单（model_manifest.csv / settlements_world.csv / meta）
 ├── deliverable/heightmap/          权威高度图（16bit + r16 + 水掩码/水深 + meta）
 ├── deliverable/terrain/            🔴 地形唯一入口（明细见 `deliverable/terrain/README.md`）
-│   ├── final/                      最终交付：高度 4 m 16bit + 彩图 1 m + 对位 meta
+│   ├── final/                      彩图 1 m + 原生高度 4 m 16bit + meta（旧挖水系高度已挪到 archive/）
 │   ├── stages/                     四级管线（原始→高原/平原→水域加深→统一水位），见内部 README
 │   ├── weights/                    7 层材质权重 + 打包 RGB + 自检图（**进游戏用的 mask**）
 │   ├── tiles/                      480 块原生地形彩图瓦片（0.25 m/px）

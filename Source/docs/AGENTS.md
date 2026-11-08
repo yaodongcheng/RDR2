@@ -402,9 +402,10 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 打开场景：**复用 `launchers/打开大陆_流畅.bat`**，直接敲 id 即可
 （`打开大陆_流畅.bat bla` → `deliverable/blender/scenes/bla.blend`；**禁止另造启动 bat**）。
 
-### 6.1 地形采样必须与 `continent_v23` 同算法（三条，缺一处就错 2~3 m）
+### 6.1 地形采样必须与大陆/场景同算法（三条，缺一处就错 2~3 m）
 
-实测基准：`continent_v23.blend` = **H4 + 全球 4 m 格点 + 最近邻**（构建命令没有 `--step`）。
+实测基准：**4 m 全局格点 + 最近邻**（构建命令没有 `--step`）。
+⚠️ 2026-11-08 起完整大陆换成了 `continent_v25.blend`：**框内高度 = `stages/01_plateau_plain`（H4 派生），框外仍是 H4**，但采样算法不变。
 
 1. **行索引差一格**：交付物高度图与 H4 的最佳对齐是 `dy = -1`
    （实测 shift(0,-1) 中位差 **0.014 m**；shift(0,0) 中位差 **0.678 m**）。
@@ -426,7 +427,7 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 
 ### 6.2 基准别选错
 
-- **`continent_v23.blend` = 权威**（4 m 原生）；
+- **`continent_v25.blend` = 权威**（11-08 重建；4 m，框内高度 = 01 未刻版）；`continent_v23.blend` 转历史存档；
 - `regions/18_*.blend` 是 **8 m**（`--step 8` 是 2026-10-31 给分区瘦身用的参数，git `b9f3482` 可查，
   **从来不是精度标准**），拿它当标尺会得出"4 m 不如 8 m"的错误结论。
 
@@ -972,6 +973,9 @@ return all(DECAL_TEX.search(n) for n in names)
 |---|---|
 | 区域 / 大陆（`blender_continent`） | **原生** `work/terrain/H4.npy` ✅ |
 | **场景（`scene_terrain`）** | `deliverable/terrain/final/height_4m_16bit.png` ❌ |
+
+> 🔴 **2026-11-08 更新**：该文件已挪到 `archive/deprecated_height_4m_16bit.png`（连同 `height_meta.json`）；
+> `final/` 现在只剩 **彩图 `color_1m.png` + 原生高度 `height_4m_16bit_native.png`**，`meta.json` 的高度指向已改为 native。
 
 而那只 PNG 来自 `build_final_map_heightmap.py` —— **它是给骑乘2 大地图用的，会主动改地形**：
 抬西北高原（+150 m）、压南边平原、**把内陆水系挖平到固定深度**（河 12~35 / 塘 8~18 / 湖 25~60 / 海 90~300）。
