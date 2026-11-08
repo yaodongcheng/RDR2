@@ -11,7 +11,7 @@ export/levels/world/mission_dialogues.json 对白（分步骤）
 export/levels/world/mission_schedule.json  生成表（spawn 模型名 / 任务指令统计）
 export/levels/world/mission_coords.csv     场地坐标（tools/extract_mission_coords.py 产出）
 export/world/bannerlord/camp_scenes.json   野外网格 + 据点锚定场景（坐标换算权威参数）
-deliverable/handoff/settlements_world_v2.csv
+deliverable/manifests/settlements_world_v2.csv
 
 输出
 ----
@@ -76,7 +76,7 @@ def main():
     dlg = load_json(os.path.join(W, "mission_dialogues.json"))
     sched = load_json(os.path.join(W, "mission_schedule.json"))
     coords = {r["mission_id"]: r for r in load_csv(os.path.join(W, "mission_coords.csv")) if r["mission_id"]}
-    settlements = load_csv(os.path.join(ROOT, "deliverable", "handoff", "settlements_world_v2.csv"))
+    settlements = load_csv(os.path.join(ROOT, "deliverable", "manifests", "settlements_world_v2.csv"))
 
     def world_to_campaign(x, y):
         return round((x - OX) / M, 2), round((OY - y) / M, 2)

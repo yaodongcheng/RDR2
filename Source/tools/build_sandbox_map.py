@@ -21,7 +21,7 @@ HEIGHT_RAW = os.path.join(ROOT, 'deliverable/heightmap/continent_height_r16.raw'
 HEIGHT_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
 GROUND = os.path.join(ROOT, 'export/world/world_ground_final.png')
 GROUND2 = os.path.join(ROOT, 'export/world/world_color_4096.png')
-SETTLE = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
+SETTLE = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
 AUDIT = os.path.join(ROOT, 'deliverable/miniatures/audit.json')
 OUT = os.path.join(ROOT, 'deliverable/miniatures/map/data')
 

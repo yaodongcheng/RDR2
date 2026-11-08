@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""给 terrain/stages/ 出对比图：两级并排（高度/彩图）+ 逐级差量。
+"""给 terrain/stages/ 出对比图：三级并排（高度/彩图）+ 逐级差量。
 
     python tools/make_terrain_stage_compare.py
 
-2026-11-02：管线只剩 00_raw / 01_plateau_plain 两级（「水域加深」「统一水位修正」都去掉了）。
+三级 = 00_raw（底图）/ 01_plateau_plain（地形平整）/ 02_river_carve（刻河）；
+彩图只有一份（terrain/color_1m.png），三级共用。
 """
 import json
 import os
@@ -15,8 +16,9 @@ Image.MAX_IMAGE_PIXELS = None
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 ST = os.path.join(ROOT, 'deliverable/terrain/stages')
 OUT = os.path.join(ST, '_compare')
-STAGES = ['00_raw', '01_plateau_plain']
-LABEL = {'00_raw': '0 原始', '01_plateau_plain': '1 高原/平原'}
+STAGES = ['00_raw', '01_plateau_plain', '02_river_carve']
+LABEL = {'00_raw': '0 原始', '01_plateau_plain': '1 高原/平原', '02_river_carve': '2 刻河'}
+COLOR = os.path.join(os.path.dirname(ST), 'color_1m.png')   # 唯一地形材质图（三个模式共用）
 W = 1000          # 每格宽度
 
 
@@ -73,8 +75,8 @@ def main():
     Z = {s: load_h(os.path.join(ST, s, 'height_16bit_4m.png')) for s in STAGES}
     sheet([(s, gray(Z[s])) for s in STAGES], os.path.join(OUT, 'stages_height.png'),
           title='高度（黑=低 白=高，同一套线性归一化，未分级）')
-    sheet([(s, Image.open(os.path.join(ST, s, 'color_1m.png'))) for s in STAGES],
-          os.path.join(OUT, 'stages_color.png'), title='地形材质图（第 1 级只重上色被改动过的区域）')
+    sheet([(s, Image.open(COLOR)) for s in STAGES],
+          os.path.join(OUT, 'stages_color.png'), title='地形材质图（唯一一份，三个模式共用）')
 
     # 逐级差量（抬升=红 / 下挖=蓝）
     diffs = []

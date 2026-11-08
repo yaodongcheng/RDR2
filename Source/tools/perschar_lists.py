@@ -9,7 +9,7 @@
   raw/sdn/ai/data/ai/ambientpedmodelsets.meta                 971 个 CAmbientModelSet
   _scratch/perschar_roster/toc_metapeds*.txt                  5 个 metapeds*.rpf 的 TOC
       ↑ 缺了会自动用 rdr2rpf list 现生成（需要 raw/npc/meta/.../metapeds*.rpf 在位）
-输出：deliverable/handoff/
+输出：deliverable/manifests/
   perschar_roster.csv  perschar_by_zone.csv
   ped_model_catalog.csv
   ambient_modelsets.csv  ambient_modelsets_summary.csv  ambient_by_group.csv
@@ -31,7 +31,7 @@ SCRIPT = os.path.join(ROOT, 'raw/script_full/1491.50/init_all_sp.c')
 META = os.path.join(ROOT, 'raw/sdn/ai/data/ai/ambientpedmodelsets.meta')
 # 中间产物（rpf 目录清单缓存）**不落在项目里**，只写系统临时目录
 SCRATCH = os.path.join(tempfile.gettempdir(), 'rdr2_perschar_toc')
-OUT = os.path.join(ROOT, 'deliverable/handoff')
+OUT = os.path.join(ROOT, 'deliverable/manifests')
 NAMES_TXT = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
 RP_TOOL = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/rdr2rpf.exe')
 METAPED_DIR = os.path.join(ROOT, 'raw/npc/meta/packs/base/data/metapeds')
@@ -44,7 +44,7 @@ METAPED_PACKS = ('metapeds', 'metapeds_sd', 'metapeds_val', 'metapeds_rhd', 'met
 #     prefix+code        前缀与本项目据点编码一致（ORA/APF/CHE/WAL/CLE…）
 #     prefix+group       perschar 前缀与 ambientpedmodelsets 的 AIMemoryGroup 对得上
 #     推断               只有间接线索（如 long_update 的 "ea_logCampRestrict"）
-#   官方中文来源：deliverable/handoff/official_names_settlements.csv（.yldb 官方译名）
+#   官方中文来源：deliverable/manifests/official_names_settlements.csv（.yldb 官方译名）
 # ---------------------------------------------------------------------------
 ZONE_INFO = {
     -1:  ('',      '',                          '无区域校验',            'func_34 跳过区间检查'),

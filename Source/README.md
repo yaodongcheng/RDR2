@@ -1045,7 +1045,7 @@ A/B 像素差只有 **2%（强差 0%）**——3D 铁路的价值在近景的枕
 │   │   ├── weights/             7 层材质权重 + 自检图（**进游戏用的 mask**）
 │   │   ├── tiles/               480 块原生地形彩图瓦片（0.25 m/px，最高精度源）
 │   │   └── on_map/              对齐官方地图内容框的裁剪版 + 叠图证明 + 瓜玛取点网格
-│   ├── handoff/                 机读清单（model_manifest / settlements / npc）★ sdn_flat_table.csv / sdn_landmark_church.json
+│   ├── manifests/               机读清单（model_manifest / settlements / npc）★ sdn_flat_table.csv / sdn_landmark_church.json
 │   ├── blender/                 continent / guarma / sdn 三个成品
 │   ├── miniatures/              46 据点微缩模型（models/ tex/ map/ audit）+ 地图 demo
 │   └── map_check/               水陆一致性证据
@@ -1102,8 +1102,8 @@ A/B 像素差只有 **2%（强差 0%）**——3D 铁路的价值在近景的枕
 
 | 文件 | 内容 |
 |---|---|
-| `deliverable/handoff/sdn_flat_table.csv` | **17 433 行 / 26 列**：一行 = 一个实例的一个图元 |
-| `deliverable/handoff/sdn_landmark_church.json` | 地标基准（大教堂）：世界坐标 / AABB / 四元数 / 参考机位 |
+| `deliverable/manifests/sdn_flat_table.csv` | **17 433 行 / 26 列**：一行 = 一个实例的一个图元 |
+| `deliverable/manifests/sdn_landmark_church.json` | 地标基准（大教堂）：世界坐标 / AABB / 四元数 / 参考机位 |
 | `tools/build_flat_table.py` | 生成脚本，任意城镇可用：`--town val` |
 
 字段（坐标系 = **RDR2 原生 X 东 / Y 北 / Z 上，米**）：
@@ -1307,7 +1307,7 @@ dotnet tools/rdr2rpf/bin/Release/net9.0/rdr2rpf.dll list <rpf>
 | **未命名部件（已澄清：不是缺口）** | 旧说法「**49,778 种 / 50,007 实例**没模型」**已推翻**：其中 **46,532 个 hash / 46,536 个实例是 LOD 合并块**（`*_lod_combine_metadata*` 定义、bbox 中位 **64 m**、P90 128 m；磁盘上没有独立 `.ydr`，游戏运行时现场合并）。真实缺件只剩 **3,783 个实例**（`real_ytyp` 3,268 + `no_definition` 515）。证据与逐条明细见 `docs/世界与地编/RDR2_整图覆盖率核查_20261026.md` §10 与 `export/world/missing_classified.json`；口径脚本 `tools/audit_missing_models.py` |
 | **白块** | 可装实例的 **36.5%（53,312）** 引用含 `tex_id=-1` submesh 的模型；灰白/纯白板 |
 | **地面贴花 alpha 未接** | `_mat_for()` 只取 RGB，没把贴图 alpha 接到 BSDF Alpha → 污渍/贴花变不透明黑或白板。修法：`blend_method='BLEND'` + Alpha 连线（注意排序副作用） |
-| **小道具贴图缺失** | 硬币/罐头/书/杯子：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替。**2026-11-04 审计复核**：56 张场景用到 39,946 个模型，其中 **1,688 个缺 albedo**（15,107 实例，bldg 421），清单在 `deliverable/handoff/mesh_texture_audit.csv`——**已接受缺口，不要再重新解包** |
+| **小道具贴图缺失** | 硬币/罐头/书/杯子：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替。**2026-11-04 审计复核**：56 张场景用到 39,946 个模型，其中 **1,688 个缺 albedo**（15,107 实例，bldg 421），清单在 `deliverable/manifests/mesh_texture_audit.csv`——**已接受缺口，不要再重新解包** |
 | **碰撞体** | 12 331 个 `.ybn` 已抽出，但**还没有转换器**（骑砍2 物理要用） |
 | **兵种穿着配方** | `metapeds.ymt` 的 `PedComponentSetName` 指向的部件集未解 → **gameplay 兵种导不出模型**。清单/骨骼/表情都在，缺"穿哪几件"。详见 `docs/角色与物品/RDR2_载具与UI与兵种覆盖审计.md` §3 |
 | **SP 武器数值** | base `weapons.ymt` 142 条记录几乎全是默认值（记录间只差 4 个字段），真实数值在嵌套 `CWeaponInfoBlob`，需给 `tools/pso_xml` 加指针/数组解析。**MP 24 条有完整数值** |

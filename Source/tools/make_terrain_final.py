@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
-"""把最终交付的地形两张图收进一个干净目录（高度 + 材质彩图），附口径说明。
+"""⚠️ 2026-11-08 已停用（保留代码仅作历史参考）。
 
-    python tools/make_terrain_final.py
+`deliverable/terrain/final/` 已改名 `deliverable/terrain/scene_native/`
+（它只放**子场景原生 H4**，不是"最终地形"）；彩图归 `deliverable/terrain/color_1m.png`。
+本脚本会重建旧 `final/` 并拷入弃用的 `heightmap/continent_height_4m.png`，**不要再用**。
 
-产物 `deliverable/terrain/final/`：
-
-    height_4m_16bit.png     高度图：16bit 灰度，4 m/px，2692×2006
-                            = `deliverable/heightmap/continent_height_4m.png`（原样拷贝）
-    height_meta.json        高度口径：世界范围 / z 区间 / 换算（原样拷贝）
-    color_1m.png            材质彩图：RGB，1 m/px，10763×8018（裁到同一地图框）
-                            源 = `export/world/world_ground_final_out.png`（**含外延补全**）
-    meta.json               两张图的对位关系（世界坐标 ↔ 像素）
-
-约定（与骑砍2 大地图地形一致）：
-  · 世界 X 东 / Y 北 / Z 上，单位米；原点 (-6844, -4800)，范围 10768 × 8024 m；
-  · **两张图都是行 0 = 北、列 0 = 西**，同一像素网格（高度 4 m/px，彩图 1 m/px，恰好 4:1）。
+现行生成链：
+  · 子场景原生高度 = `tools/build_scene_heightmap_native.py`
+  · 三个大地图模式 + 唯一彩图 = `tools/make_terrain_stages.py` / `tools/carve_rivers.py`
 """
 import json
 import os
@@ -35,6 +28,12 @@ X0w, Y0w, WORLD, YM1 = -7684.0, -8196.0, 12296.0, 4100.0
 
 
 def main():
+    raise SystemExit(
+        'make_terrain_final.py 已停用（2026-11-08）：'
+        'terrain/final/ 已改名 terrain/scene_native/，彩图归 terrain/color_1m.png。\n'
+        '  子场景高度 → tools/build_scene_heightmap_native.py\n'
+        '  三个大地图模式 + 彩图 → tools/make_terrain_stages.py / tools/carve_rivers.py'
+    )
     os.makedirs(OUT, exist_ok=True)
     meta = json.load(open(H_META, encoding='utf-8'))
     x0, y0, x1, y1 = meta['x0'], meta['y0'], meta['x1'], meta['y1']

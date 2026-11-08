@@ -93,7 +93,7 @@ void func_34(int iParam0, int iParam1, int iParam2, int iParam3)
 > `func_146` 的第二、三参数还会收窄：`bParam3` = 内容锁（PC 独占内容未解锁时只保留前段），
 > `func_115() != -1` = 线上模式 ⇒ 大部分区直接判 −1（**该 NPC 在线上不存在**）。
 > 这就是"同一个游戏，线上模式和单人模式码头人不一样"的机制位置。
-> 逐条名单见 **`docs/世界与地编/RDR2_NPC名单与环境人群表.md`** 与 `deliverable/handoff/perschar_roster.csv`。
+> 逐条名单见 **`docs/世界与地编/RDR2_NPC名单与环境人群表.md`** 与 `deliverable/manifests/perschar_roster.csv`。
 
 ### 2.3 旗标（`iParam3`）
 
@@ -128,7 +128,7 @@ MISC::GET_HASH_KEY("DISCOVERABLE_NAME_CURTIS_MALLOY" /* GXT: Sheriff Malloy */)
 - 托马斯警长（Harmon Thomas）目前只在 `bounty_poster.c` 里出现，还没找到对应的 perschar 槽位。
 
 ⇒ 完整真名表和「槽位 → 真名」挂接见 `docs/世界与地编/RDR2_NPC名单与环境人群表.md` §1.6
-与 `deliverable/handoff/character_names.csv`。
+与 `deliverable/manifests/character_names.csv`。
 
 ---
 

@@ -8,9 +8,9 @@ r"""把「跨据点」的合并 LOD 按据点 P 矩形切开（远景碎片 → 
 每个据点拿自己那块；剩下的（水域/野外）给野地场景。
 
     blender -b "...\continent_lod_split_v23.blend" -P tools\_unbuffer.py -P tools\split_span_blocks.py -- \
-        --csv "...\deliverable\handoff\lod_fragments.csv" \
+        --csv "...\deliverable\manifests\lod_fragments.csv" \
         --spec "...\_scratch\settlement_plan\scene_specs.json" \
-        --out-parts "...\deliverable\handoff\lod_split_parts.json"
+        --out-parts "...\deliverable\manifests\lod_split_parts.json"
 
 输入约定：
   · CSV 里 `assign_via == 'span'` 的行 = 待拆的整块；`spans` 列 = `sdn:36.5%;sis:10.4%;...`

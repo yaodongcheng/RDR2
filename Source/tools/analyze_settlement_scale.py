@@ -4,14 +4,14 @@
   export/levels/world/town_data/*.js   全世界 182 303 条唯一实体实例（含四元数/缩放/本地 AABB）
       window.RDR2_TOWNS["<code>"] = [[hash, x,y,z, qx,qy,qz,qw, sx,sy,sz, minx,miny,minz, maxx,maxy,maxz], ...]
       sdn.js 只放了少量核心件，其它落在 _misc.js —— 所以必须"全量并集去重"，不能只读 <code>.js
-  deliverable/handoff/model_manifest.csv
+  deliverable/manifests/model_manifest.csv
       hash,name,in_lib,mdl,tris,verts,size_x,size_y,size_z,tex_ids,tex_names,instances
-  deliverable/handoff/settlements_world_v2.csv
+  deliverable/manifests/settlements_world_v2.csv
       code,name_zh,...,world_x,world_y,size_w_m,size_d_m
 
 输出
-  deliverable/handoff/settlement_scale.csv    每据点一行（实测，供人看）
-  deliverable/handoff/settlement_scale.json   同上 + 地标候选 + 预算建议（供建模脚本吃）
+  deliverable/manifests/settlement_scale.csv    每据点一行（实测，供人看）
+  deliverable/manifests/settlement_scale.json   同上 + 地标候选 + 预算建议（供建模脚本吃）
 
 分类口径（写死，避免每次重新吵）
   building : 模型名以 new_/val_/cor_/sdn_/old_/roa_/agu_/ann_/... 开头，且不是 debris/veg/water
@@ -29,10 +29,10 @@ from collections import defaultdict, Counter
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 TOWN_DATA = os.path.join(ROOT, 'export/levels/world/town_data')
-LEDGER = os.path.join(ROOT, 'deliverable/handoff/model_ledger.csv')
-SETTLE = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
-OUT_CSV = os.path.join(ROOT, 'deliverable/handoff/settlement_scale.csv')
-OUT_JSON = os.path.join(ROOT, 'deliverable/handoff/settlement_scale.json')
+LEDGER = os.path.join(ROOT, 'deliverable/manifests/model_ledger.csv')
+SETTLE = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
+OUT_CSV = os.path.join(ROOT, 'deliverable/manifests/settlement_scale.csv')
+OUT_JSON = os.path.join(ROOT, 'deliverable/manifests/settlement_scale.json')
 
 PREFIX = re.compile(r'=\s*(\[.*\]);?\s*$', re.S)
 

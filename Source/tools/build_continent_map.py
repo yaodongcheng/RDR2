@@ -12,9 +12,9 @@
   高度 = deliverable/terrain/stages/01_plateau_plain/height_16bit_4m.png
          （**原生 H4 + 自然界过渡**：西北高原 720 m + fBm + 150 m 高斯过渡、东南平原 42 m；
           2026-11-07 用户裁定用这一级，不用 continent_height_4m.png 那版「挖水系」的）
-  地表 = deliverable/terrain/final/color_1m.png（1 m/px，平面 UV）
+  地表 = deliverable/terrain/color_1m.png（1 m/px，平面 UV；唯一地形材质图）
   水面 = **两块**（西 −22 / 东 40.5，分割线默认 x=-1000），各自由 `water_mask.png`
-         （= `terrain/weights/w_water.png`，同一张图）裁切 —— 水只出现在该有的地方
+         （= `terrain/water_mask.png`，唯一水网图）裁切 —— 水只出现在该有的地方
   碎片 = continent_lod_split_v24.blend 里的 S_*/W_*（不含 G_* 瓜玛、不含地形远景块）
 
 用法：
@@ -38,8 +38,8 @@ ROOT = r"D:/BrainMaker/大镖客2解包分析"
 DELIV = os.path.join(ROOT, "deliverable")
 HEIGHT = os.path.join(DELIV, "terrain", "stages", "01_plateau_plain", "height_16bit_4m.png")
 HEIGHT_META = os.path.join(DELIV, "terrain", "stages", "01_plateau_plain", "meta.json")
-COLOR = os.path.join(DELIV, "terrain", "final", "color_1m.png")
-MASK = os.path.join(DELIV, "heightmap", "water_mask.png")
+COLOR = os.path.join(DELIV, "terrain", "color_1m.png")
+MASK = os.path.join(DELIV, "terrain", "water_mask.png")
 LOD = os.path.join(DELIV, "blender", "continent", "continent_lod_split_v24.blend")
 SCENES = os.path.join(DELIV, "blender", "scenes")
 

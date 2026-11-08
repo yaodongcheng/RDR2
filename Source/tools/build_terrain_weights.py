@@ -6,10 +6,11 @@
 
 v2 改了什么（2026-10-22 晚）：
   1. 高程不再读 work/terrain/H4_full.npy（原始解包高程，没有西北高原/南边平原/水深加深），
-     改为直接读交付物 deliverable/heightmap/continent_height_4m.png + meta 的 zmin/zmax。
+     改为直接读交付物 `deliverable/terrain/stages/02_river_carve/height_16bit_4m.png` + meta 的 zmin/zmax
+     （2026-11-08：从弃用的 `heightmap/` 改到刻河模式）。
      → 雪线、坡度、沙地判据从此和"引擎里真正吃到的地形"完全一致。
   2. 水面不再读 export/world/water_level_map.npy（游戏水面），改为读交付物
-     deliverable/heightmap/water_mask.png —— 也就是地形真正被挖成水面的那些格子。
+     `deliverable/terrain/stages/02_river_carve/water_mask.png` —— 也就是地形真正被挖成水面的那些格子。
      → 权重图的水面与地形水体 **逐像素一致**（IoU = 1.000），不会再出现
        "地形是水、权重说是草"。
   3. 算坡度时先把水域用最近邻陆地高程填平（water → 最近陆地），避免"水深加深"造出的
@@ -37,10 +38,10 @@ from scipy import ndimage
 Image.MAX_IMAGE_PIXELS = None
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 AREA = os.path.join(ROOT, 'export/world/map_area.json')
-HM_PNG = os.path.join(ROOT, 'deliverable/heightmap/continent_height_4m.png')
-HM_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
-WMASK = os.path.join(ROOT, 'deliverable/heightmap/water_mask.png')
-WDEPTH = os.path.join(ROOT, 'deliverable/heightmap/water_depth.png')
+HM_PNG = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/height_16bit_4m.png')
+HM_META = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/meta.json')
+WMASK = os.path.join(ROOT, 'deliverable/terrain/water_mask.png')
+WDEPTH = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/water_depth.png')
 COLOR = os.path.join(ROOT, 'export/world/world_ground_final_out.png')
 OUTDIR = os.path.join(ROOT, 'deliverable/terrain/weights')
 
@@ -87,13 +88,13 @@ def load():
     """返回 (area, Z, RGB, wet)，全部 **行 0 = 南**，与 4 m 世界栅格对齐。"""
     area = json.load(open(AREA, encoding='utf-8'))
     W, H = area['size_px']
-    hm = json.load(open(HM_META, encoding='utf-8'))['heightmap']
+    hm = json.load(open(HM_META, encoding='utf-8'))['height']
     zmin, zmax = hm['zmin'], hm['zmax']
 
-    # ---- 高程：最终高度图（PNG 行 0 = 北）----
+    # ---- 高程：02_river_carve 模式（PNG 行 0 = 北）----
     q = np.asarray(Image.open(HM_PNG)).astype(np.float32)
     if q.shape != (H, W):
-        raise SystemExit('高度图尺寸 %s 与 area %s 不一致，先重跑 build_final_map_heightmap.py'
+        raise SystemExit('高度图尺寸 %s 与 area %s 不一致，先重跑 make_terrain_stages.py / carve_rivers.py'
                          % (q.shape, (H, W)))
     Z = zmin + q / 65535.0 * (zmax - zmin)
     Z = np.flipud(Z)                                  # → 行 0 = 南
@@ -293,7 +294,7 @@ def main():
                 pixel_to_world='x = %g + col*%g ; y = %g - row*%g' % (area['x0'], RES, area['y1'], RES),
                 heightmap=dict(file=os.path.relpath(HM_PNG, ROOT),
                                zmin=float(Z.min()), zmax=float(Z.max()),
-                               z_formula=json.load(open(HM_META, encoding='utf-8'))['heightmap'].get('z_formula')),
+                               z_formula='z = zmin + v/65535*(zmax-zmin)'),
                 water=dict(file=os.path.relpath(WMASK, ROOT), area_km2=checks['water_area_km2'],
                            note='水面层 = 最终高度图的水面掩码，逐像素一致'),
                 thresholds=dict(SNOW_Z0=SNOW_Z0, SNOW_SPAN=SNOW_SPAN,

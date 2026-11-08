@@ -19,7 +19,7 @@ perschar 记录：**步长 176 字节**，`[+0]` = 身份名哈希，`[+4]` = �
     python tools/perschar_mem_pairs.py --dry            # 只统计不写文件
     python tools/perschar_mem_pairs.py --window 256     # 采样窗口字节数
 
-输出：`deliverable/handoff/perschar_model_pairs.csv`
+输出：`deliverable/manifests/perschar_model_pairs.csv`
     列 = perschar / perschar_zh / model / source / model_kind / model_hash / name_match / confidence
     `confidence=high` = 内存表里的模型名与身份名吻合；`medium` = 只有内存表证据。
 
@@ -42,7 +42,7 @@ import time
 import numpy as np
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-H = os.path.join(ROOT, 'deliverable/handoff')
+H = os.path.join(ROOT, 'deliverable/manifests')
 NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
 OUT = os.path.join(H, 'perschar_model_pairs.csv')
 

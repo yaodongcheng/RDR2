@@ -4,7 +4,7 @@
 旧脚本 `build_final_map_heightmap.py` 的四个问题（本脚本逐条改掉）：
   1. **水陆边界**用的是官方地图 JPEG 的颜色启发式（`water_map`），而算出来的游戏掩码
      `water_game` **根本没被使用**（最后一行 `water = water_map`）。→ 本脚本直接用交付的
-     `deliverable/heightmap/water_mask.png`（8.10 km²，逐像素）。
+     `deliverable/terrain/water_mask.png`（8.10 km²，逐像素；唯一水网图）。
   2. **水位只有一套**：读 `water_level_map.npy`（西南河与海被并成同一连通域 → 42.1 m），
      再高斯平滑；没有东西两块水面的概念。→ 本脚本按分割线分两块：西 −22 / 东 40.5，
      **各自在自己范围内加深**。
@@ -34,9 +34,9 @@ DELIV = os.path.join(ROOT, 'deliverable')
 SRC_DIR = os.path.join(DELIV, 'terrain', 'stages', '01_plateau_plain')
 SRC_PNG = os.path.join(SRC_DIR, 'height_16bit_4m.png')
 SRC_META = os.path.join(SRC_DIR, 'meta.json')
-MASK = os.path.join(DELIV, 'heightmap', 'water_mask.png')
+MASK = os.path.join(DELIV, 'terrain', 'water_mask.png')
 OUT_DIR = os.path.join(DELIV, 'terrain', 'stages', '02_river_carve')
-SETTLE = os.path.join(DELIV, 'handoff', 'settlements_world_v2.csv')
+SETTLE = os.path.join(DELIV, 'manifests', 'settlements_world_v2.csv')
 
 X0, Y1 = -6844.0, 3224.0
 RES = 4.0
@@ -149,7 +149,7 @@ def main():
     q2 = np.clip((z_new - zmin2) / max(1e-6, zmax2 - zmin2) * 65535.0, 0, 65535).astype('<u2')
     Image.fromarray(q2).save(os.path.join(a.out_dir, 'height_16bit_4m.png'))
     open(os.path.join(a.out_dir, 'height_r16.raw'), 'wb').write(q2.tobytes(order='C'))
-    Image.fromarray((mask * 255).astype(np.uint8)).save(os.path.join(a.out_dir, 'water_mask.png'))
+    # 水网图不复制：唯一水网 = deliverable/terrain/water_mask.png（本脚本的输入）
     dd = np.where(mask, np.maximum(0.0, z - z_new), 0)
     Image.fromarray(np.clip(dd / 300.0 * 255, 0, 255).astype(np.uint8)).save(
         os.path.join(a.out_dir, 'water_depth.png'))
@@ -160,11 +160,13 @@ def main():
         'row0': 'north', 'col0': 'west',
         'height': {'file': 'height_16bit_4m.png', 'px': [W, H], 'm_per_px': RES,
                    'zmin': zmin2, 'zmax': zmax2},
+        'color': {'file': '../color_1m.png', 'px': [10768, 8024], 'm_per_px': 1.0,
+                  'note': '唯一地形材质图（三个模式共用）'},
         'source': os.path.basename(a.height),
         'params': {'split_x': a.split_x, 'z_east': Z_EAST, 'z_west': Z_WEST,
                    'protect_m': a.protect, 'feather_sigma': FEATHER_SIGMA,
                    'depths': 'sea 35 / lake 16 / pond 7 / river 4 (only lower, never raise)'},
-        'water': {'mask': 'water_mask.png', 'area_km2': round(float(mask.sum() * RES * RES / 1e6), 2),
+        'water': {'mask': '../water_mask.png', 'area_km2': round(float(mask.sum() * RES * RES / 1e6), 2),
                   'west_level': Z_WEST, 'east_level': Z_EAST},
         'note': '大地图专用；陆地一律不动；子场景仍用原生 H4',
     }

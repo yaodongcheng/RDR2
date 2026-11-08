@@ -15,7 +15,7 @@
   roc 威拉德歇脚处 / hso 马蹄铁眺望 / abe 阿伯丁猪场
 
 产物：
-  deliverable/handoff/settlement_audit.csv
+  deliverable/manifests/settlement_audit.csv
   work/bannerlord_settlement_table.md   （文档用的 markdown 表）
 """
 import os
@@ -29,9 +29,9 @@ NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 ARCH = os.path.join(ROOT, 'export/levels/town/archetypes.json')
 LIB = os.path.join(ROOT, 'assets/lib_native/index.json')
-CSV_IN = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
-CSV_OUT = os.path.join(ROOT, 'deliverable/handoff/settlement_audit.csv')
-MD_OUT = os.path.join(ROOT, 'deliverable/handoff/settlement_audit.md')
+CSV_IN = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
+CSV_OUT = os.path.join(ROOT, 'deliverable/manifests/settlement_audit.csv')
+MD_OUT = os.path.join(ROOT, 'deliverable/manifests/settlement_audit.md')
 
 FIX = {}   # v2 清单里坐标已修正
 ADD = [

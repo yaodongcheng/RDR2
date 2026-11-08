@@ -37,7 +37,7 @@ GROUND = os.path.join(ROOT, 'export/world/world_ground_final.png')
 GROUND_RAW = os.path.join(ROOT, 'export/world/world_ground_final_raw.png')
 COLOR = os.path.join(ROOT, 'export/world/world_color_4096.png')
 META = os.path.join(ROOT, 'export/world/world_meta.json')
-SETTLE = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
+SETTLE = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
 REPORT = os.path.join(ROOT, 'export/world/ground_town_patch_report.json')
 
 X0, Y0, W = -7684.0, -8196.0, 12296.0

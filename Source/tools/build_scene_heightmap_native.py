@@ -3,7 +3,7 @@
 
 ## 为什么需要这张
 
-`deliverable/terrain/final/height_4m_16bit.png` 来自
+`deliverable/terrain/stages/02_river_carve/height_16bit_4m.png` 来自
 `build_final_map_heightmap.py` → `deliverable/heightmap/continent_height_4m.png`，
 那个脚本是给**骑砍2 大地图**用的，会**主动改地形**：
 抬西北高原、压南边平原、**把内陆水系挖平到固定深度**（河 12~35 / 塘 8~18 / 湖 25~60 / 海 90~300）。
@@ -19,7 +19,8 @@
 沿用交付图的**世界框与编码**（同一 pixel 网格、同一 zmin/zmax），
 逐像素从 H4 最近邻取值 —— 场景侧代码不用改坐标口径，只换数据源。
 
-产物：`deliverable/terrain/final/height_4m_16bit_native.png`
+产物：`deliverable/terrain/scene_native/height_4m_16bit_native.png`
+（2026-11-08：原 `terrain/final/` 改名 `scene_native/`——它是**子场景原生源**，不是最终地形）
 
     python tools/build_scene_heightmap_native.py
 """
@@ -30,7 +31,7 @@ import numpy as np
 from PIL import Image
 
 RDR2 = r'D:/BrainMaker/大镖客2解包分析'
-TERRAIN = os.path.join(RDR2, 'deliverable', 'terrain', 'final')
+TERRAIN = os.path.join(RDR2, 'deliverable', 'terrain', 'scene_native')
 H4_PATH = os.path.join(RDR2, 'work', 'terrain', 'H4.npy')
 OUT = os.path.join(TERRAIN, 'height_4m_16bit_native.png')
 

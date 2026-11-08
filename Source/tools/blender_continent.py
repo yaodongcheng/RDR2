@@ -20,7 +20,7 @@ from mathutils import Quaternion, Vector
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 # 2026-11-04：场景的远景碎片改从「打散分组」的远景库按需 append（合并块已按据点 P 切开）。
-LOD_GROUPS_JSON = os.path.join(ROOT, 'deliverable/handoff/lod_groups.json')
+LOD_GROUPS_JSON = os.path.join(ROOT, 'deliverable/manifests/lod_groups.json')
 # 2026-11-05 v24：补进 158 个街区 LOD + 整体翻过 UV（V 约定）。旧 v23 库别再用。
 LOD_SPLIT_BLEND = os.path.join(ROOT, 'deliverable/blender/continent/continent_lod_split_v24.blend')
 # Blender 用 -P 跑脚本时不一定把 tools/ 放进 sys.path；材质模块（mat_rdr2）要能 import。

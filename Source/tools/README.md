@@ -98,10 +98,9 @@
   本工具只在"外延包也没覆盖"的残余小洞上兜底，默认 `--method coarse`
   （照抄 `build_terrain_heightmap` 的 48 m 粗层中位色 + 8 邻域扩散 + 双线性上采样）。
   `nearest` / `terrain` / `map` 是 2026-11-02 试过的三种自造补法，效果不自然，**不要再用**。
-- `make_terrain_final.py`  **地形最终交付**（2026-11-02 新）：把「高度 + 材质彩图」收进
-  `deliverable/terrain/final/`：`height_4m_16bit.png`（2692×2006，4 m/px，= 喂骑砍2 的那张）
-  · `height_meta.json` · `color_1m.png`（10768×8024，1 m/px，源 = `world_ground_final_out.png` 含外延补全）
-  · `meta.json`（两张图同一世界框、行 0 = 北、像素 4:1 对齐）。**要交付地形就用这个目录。**
+- `make_terrain_final.py`  **已停用（2026-11-08）**：`terrain/final/` 已改名 `terrain/scene_native/`
+  （只放子场景原生高度），彩图归 `terrain/color_1m.png`（唯一一份）。
+  地形交付 = `terrain/stages/`（00_raw 底图 / 01 平整 / 02 刻河）+ `scene_native/`（子场景原生）。
 - `make_map_aligned_terrain.py`  **地形对齐到官方地图**（2026-11-02 新）：按
   `地图下载/配准结果.json` 把高度/彩图裁进官方地图内容框（4658×3463 @2.311 m/px），
   产物 `deliverable/terrain/on_map/`；`--guarma-pts` 接受人工控制点（瓜玛暂无配准，见 TODO）。
@@ -202,7 +201,7 @@
 - `perschar_lists.py`             **NPC 三套清单**（2026-11-01 新增，11-02 补中文列）：
   输入 `init_all_sp.c`（950 条 `func_34` 注册）+ `ambientpedmodelsets.meta`（971 个模型集）
   + 5 个 `metapeds*.rpf` 的 TOC（缺了自动用 `rdr2rpf list` 现生成）；
-  输出 `deliverable/handoff/` 的 7 个 CSV：`perschar_roster` / `perschar_by_zone` / `character_names` /
+  输出 `deliverable/manifests/` 的 7 个 CSV：`perschar_roster` / `perschar_by_zone` / `character_names` /
   `ped_model_catalog` / `ambient_modelsets`(长表) / `ambient_modelsets_summary` / `ambient_by_group`。
   **中文列**：`name_zh`（区域·角色·序号，词素表 `TOKEN_ZH`/`PHRASE_ZH`，残英 22/950 = 人名+5个未定站点前缀+LH）、
   `zone_name_zh`（49 区里 **32 个已定名**：靠据点脚本写死的 `Global_1888801[<id>].f_4` 反查，
@@ -214,7 +213,7 @@
   说明见 `docs/世界与地编/RDR2_NPC名单与环境人群表.md`，机制见 `.../RDR2_NPC生成与行为机制.md`
 - `perschar_mem_pairs.py`        **从运行中的 RDR2 内存里读「身份→模型」绑定表**（2026-11-02 新增）
   输入：游戏进程（**必须单人模式且在跑**）+ `perschar_roster.csv` + `ped_model_catalog.csv` + `names.txt`
-  输出：`deliverable/handoff/perschar_model_pairs.csv`（本机实测 **92 条** = 71 high + 21 medium）
+  输出：`deliverable/manifests/perschar_model_pairs.csv`（本机实测 **92 条** = 71 high + 21 medium）
   **实测结构**：perschar 记录**步长 176 字节**，`[+0]`=身份哈希、**`[+4]`=模型哈希**；
   `PERSCHAR::_GET_PERSCHAR_MODEL_NAME` 读的就是 `[+4]`。
   **只读**（`PROCESS_VM_READ`），不写进程内存。
@@ -224,18 +223,18 @@
 - `build_lod_groups.py`          **远景碎片 → 据点/野地/瓜玛 分组**（2026-11-03 新增，骑砍2 大地图城镇 prefab 用）：
   输入 = `tiles/*.json` 实例变换 + `lib_native/index.json` 局部包围盒 + v23/22 个区域 manifest 的对象名
   + `_scratch/settlement_plan/scene_specs.json` 的 P 多边形；输出
-  `deliverable/handoff/lod_fragments.csv`（一行一个碎片：世界/局部变换、模型、贴图、三角面）
+  `deliverable/manifests/lod_fragments.csv`（一行一个碎片：世界/局部变换、模型、贴图、三角面）
   + `lod_groups.json`（每组汇总）+ `_scratch/lod_groups/` 的核对图与自检 JSON。
   分配 = 据点 P 内 → 建筑类包围盒与 P 外扩 64 m 相交 → **跨据点整块标 `span`** → 野地 P →
   野地远景范围 → 瓜玛；排除 `terrain_lod`（只认不带 `area_` 的 `<前缀>_<行>_<列>_slod<N>`；
   🔴 `*_area_slod*` 是**建筑/道具的整区合并 LOD**，保留在远景碎片里）。
-  `--parts deliverable/handoff/lod_split_parts.json` 会自动用 `split_span_blocks.py` 切出的部件替换整块；
+  `--parts deliverable/manifests/lod_split_parts.json` 会自动用 `split_span_blocks.py` 切出的部件替换整块；
   `--strict` 关近邻做对照、`--no-map` 不出图。包围盒用**共轭四元数**重算，对 22 个区域 manifest
   反验最大误差 **0.005 m**。说明见 `docs/世界与地编/RDR2_据点分级与场景边界方案.md` §8.1
 - `split_span_blocks.py`          **按据点边界切开跨据点的合并 LOD**（2026-11-04 新增，Blender 脚本）：
   读 `lod_fragments.csv` 里 `assign_via=span` 的行 → 按每个据点 P 矩形 bmesh 切网格 →
   每个据点一块（`__split_<code>`）+ 余量（`__split_rest`，给野地）；写
-  `deliverable/handoff/lod_split_parts.json`（实测 tris/verts/bb）。
+  `deliverable/manifests/lod_split_parts.json`（实测 tris/verts/bb）。
   🔴 bisect 方向实测：`clear_inner=True` 保留法线正侧（法线指向矩形内）；切空了会保留原块不删。
 
 ### 微缩模型 / 沙盒大地图（2026-10-26 新增，经验见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）

@@ -23,7 +23,7 @@ MI = os.path.join(ROOT, 'deliverable/miniatures')
 MODELS = os.path.join(MI, 'models')
 TEX = os.path.join(MI, 'tex')
 AUDIT = os.path.join(MI, 'audit.csv')
-SCALE = os.path.join(ROOT, 'deliverable/handoff/settlement_scale.json')
+SCALE = os.path.join(ROOT, 'deliverable/manifests/settlement_scale.json')
 
 TIER_CAP = {'town': 260000, 'castle': 130000, 'village': 90000,
             'camp': 70000, 'poi': 70000, 'hideout': 70000}

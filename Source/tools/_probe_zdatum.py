@@ -3,17 +3,17 @@ import json, os, glob
 import numpy as np
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-meta = json.load(open(os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json'), encoding='utf-8'))
-hm = meta['heightmap']
+meta = json.load(open(os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/meta.json'), encoding='utf-8'))
+hm = meta['height']
 zmin, zmax = hm['zmin'], hm['zmax']
-raw = np.fromfile(os.path.join(ROOT, 'deliverable/heightmap/continent_height_r16.raw'), dtype='<u2')
+raw = np.fromfile(os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/height_r16.raw'), dtype='<u2')
 z = zmin + raw.astype(np.float32) / 65535.0 * (zmax - zmin)
-z = z.reshape(hm['h'], hm['w'])
-x0, y1 = meta['x0'], meta['y1']
+z = z.reshape(hm['px'][1], hm['px'][0])
+x0, y1 = meta['world']['x0'], meta['world']['y1']
 
 def at(x, y):
     c = int(round((x - x0) / 4)); r = int(round((y1 - y) / 4))
-    c = max(0, min(hm['w'] - 1, c)); r = max(0, min(hm['h'] - 1, r))
+    c = max(0, min(hm['px'][0] - 1, c)); r = max(0, min(hm['px'][1] - 1, r))
     return float(z[r, c])
 
 idx = json.load(open(os.path.join(ROOT, 'export/previews/index.json'), encoding='utf-8'))['items']

@@ -2,15 +2,15 @@
 """全局网格库清单 + 三类贴图清单（交接 TODO-3）。
 
 输入：
-  deliverable/handoff/mesh_usage.csv       export_scene_placements.py 产出（用到哪些模型 hash）
+  deliverable/manifests/mesh_usage.csv       export_scene_placements.py 产出（用到哪些模型 hash）
   assets/lib_native/index.json             模型 → 子网格/贴图 id 的索引
 
 产物：
-  deliverable/handoff/mesh_texture_audit.csv
+  deliverable/manifests/mesh_texture_audit.csv
       hash / mdl / 子网格数 / albedo / normal / ma 名称 / 三类是否齐 / 被几张场景用到
-  deliverable/handoff/texture_list.csv
+  deliverable/manifests/texture_list.csv
       tex_id / 名称 / 文件 / 类型（alb|nm|ma）/ 被多少模型用 / 文件是否存在
-  deliverable/handoff/mesh_texture_audit.json
+  deliverable/manifests/mesh_texture_audit.json
       汇总：缺 alb / 缺 nm / 缺 ma 的数量与清单（缺 nm/ma **不阻塞**，只列出）
 
 用法：
@@ -22,7 +22,7 @@ import json
 import os
 
 RDR2 = r'D:/BrainMaker/大镖客2解包分析'
-HANDOFF = os.path.join(RDR2, 'deliverable/handoff')
+HANDOFF = os.path.join(RDR2, 'deliverable/manifests')
 USAGE = os.path.join(HANDOFF, 'mesh_usage.csv')
 INDEX = os.path.join(RDR2, 'assets/lib_native/index.json')
 OUT_CSV = os.path.join(HANDOFF, 'mesh_texture_audit.csv')

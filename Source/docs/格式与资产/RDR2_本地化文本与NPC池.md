@@ -34,7 +34,7 @@ american_rel.rpf                 同一套 key，英文
 | `raw/lang/{en,zh}/global.yldb` | 原始文本库 | 100% 文件 |
 | `tools/official_name_map.py` | 用 **hash → (英文, 中文)** 配对 | **21 733 条** key |
 | `export/story/dialogue_chinesesimp.txt` | 全部台词（含说话人 bank） | **341 683 条** |
-| `deliverable/handoff/official_names_settlements.csv` | 46 个据点官方中文 | 100% |
+| `deliverable/manifests/official_names_settlements.csv` | 46 个据点官方中文 | 100% |
 
 ### 1.3 `global.yldb` 到底挖干净没有
 
@@ -113,7 +113,7 @@ american_rel.rpf                 同一套 key，英文
 | Hector Fellowes | 赫克特·费洛斯 | 支线 |
 | …（共 102 条） | | |
 
-完整清单：**`deliverable/handoff/npc_names_extra.csv`**
+完整清单：**`deliverable/manifests/npc_names_extra.csv`**
 （列：`name_en / name_zh / guess_id / matched_glb`；102 条里 6 条能按 ID 规则自动对上已导出的 glb，其余需要手工指定模型或走通用部件）
 
 > 怎么用：这批名字是**官方译名**，可以直接写进骑砍2 的 NPC 名字表；

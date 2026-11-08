@@ -1,6 +1,6 @@
 """生成"高度图 ↔ 官方地图"的直观重叠对比（不用 PS 自己叠图层）。
 
-产物（deliverable/map_check/）
+产物（docs/世界与地编/img/map_check/；2026-11-08 起不再写进交付目录）
     map_crop.png              官方地图，裁到地图框，统一尺寸
     height_gray.png           我方高度图（灰度），同尺寸
     overlay_50.png            两张 50/50 直接混合
@@ -15,9 +15,9 @@ from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-OUT = os.path.join(ROOT, 'deliverable/map_check')
-HM = os.path.join(ROOT, 'deliverable/heightmap/continent_height_4m.png')
-META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
+OUT = os.path.join(ROOT, 'docs/世界与地编/img/map_check')
+HM = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/height_16bit_4m.png')
+META = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/meta.json')
 MAP = os.path.join(ROOT, '地图下载/大陆地图_缩略.jpg')
 BOX = (146, 388, 4804, 3851)          # 5000 宽缩略图上的地图内容框
 W = 2400                               # 输出宽
@@ -26,7 +26,11 @@ W = 2400                               # 输出宽
 def main():
     os.makedirs(OUT, exist_ok=True)
     meta = json.load(open(META, encoding='utf-8'))
-    zmin, zmax = meta['heightmap']['zmin'], meta['heightmap']['zmax']
+    # 兼容新 stages/02_river_carve/meta.json 与旧 continent_height_meta.json
+    if 'height' in meta:
+        zmin, zmax = meta['height']['zmin'], meta['height']['zmax']
+    else:
+        zmin, zmax = meta['heightmap']['zmin'], meta['heightmap']['zmax']
 
     # 官方地图裁到内容框
     mp = Image.open(MAP).convert('RGB')
@@ -46,7 +50,7 @@ def main():
 
     # 上色版（水=蓝、低地=土黄），给人看更直观
     try:
-        col = Image.open(os.path.join(ROOT, 'deliverable/heightmap/continent_height_preview.png')).convert('RGB')
+        col = Image.open(os.path.join(ROOT, 'deliverable/terrain/color_1m.png')).convert('RGB')
         hm_color = col.resize((W, H), Image.LANCZOS)
         hm_color.save(os.path.join(OUT, 'height_color.png'))
     except Exception as e:

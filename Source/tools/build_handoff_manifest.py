@@ -1,9 +1,9 @@
 """给下游（骑砍2 Agent / 任何引擎）生成机读交接清单。
 
-产物 deliverable/handoff/
+产物 deliverable/manifests/
     model_manifest.csv        每个可加载模型的：hash / 名字 / .mdl 路径 / 三角面 / 尺寸 / 贴图 / 场景实例数
     settlements_world.csv     43 个据点的世界坐标（由 u,v 反算，含尺寸与所属势力）
-    handoff_meta.json         坐标约定、版本、统计（给机器读）
+    world_meta.json         坐标约定、版本、统计（给机器读）
 
 用法：uv run python tools/build_handoff_manifest.py
 """
@@ -20,9 +20,9 @@ IDX = os.path.join(LIB, 'index.json')
 SCENE_MODELS = os.path.join(ROOT, 'export/world/continent/models.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 SETTLE = os.path.join(ROOT, 'export/levels/world/settlements_bannerlord.csv')
-HM_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
+HM_META = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/meta.json')
 W_META = os.path.join(ROOT, 'deliverable/terrain/weights/weights_meta.json')
-OUT = os.path.join(ROOT, 'deliverable/handoff')
+OUT = os.path.join(ROOT, 'deliverable/manifests')
 
 # settlements_bannerlord.csv 的 u/v 是 5000 宽缩略图坐标，配准变换：
 #   world_x = -7684 + u*14.5 , world_y = 4100 - v*14.5
@@ -91,13 +91,20 @@ def main():
 
     hm = json.load(open(HM_META, encoding='utf-8'))
     wm = json.load(open(W_META, encoding='utf-8'))
+    w, h = hm['world'], hm['height']
     meta = dict(
         generated_from='tools/build_handoff_manifest.py',
-        area=hm['x0'], area_end=[hm['x1'], hm['y1']], size_m=hm['size_m'], res_m=hm['res_m'],
-        heightmap=dict(png='deliverable/heightmap/continent_height_4m.png',
-                       raw='deliverable/heightmap/continent_height_r16.raw',
-                       zmin=hm['heightmap']['zmin'], zmax=hm['heightmap']['zmax'],
-                       formula=hm['heightmap']['z_formula'], row0='north'),
+        area=w['x0'], area_end=[w['x1'], w['y1']], size_m=w['size_m'], res_m=h['m_per_px'],
+        heightmaps=dict(
+            base='deliverable/terrain/stages/00_raw/height_16bit_4m.png',
+            flatten='deliverable/terrain/stages/01_plateau_plain/height_16bit_4m.png',
+            river='deliverable/terrain/stages/02_river_carve/height_16bit_4m.png',
+            scene_native='deliverable/terrain/scene_native/height_4m_16bit_native.png',
+            zmin=h['zmin'], zmax=h['zmax'],
+            formula='z = zmin + v/65535*(zmax-zmin)', row0='north'),
+        color='deliverable/terrain/color_1m.png',
+        water=dict(mask='deliverable/terrain/water_mask.png',
+                   depth='deliverable/terrain/stages/02_river_carve/water_depth.png'),
         weights=dict(dir='deliverable/terrain/weights', layers=[l['key'] for l in wm['layers']],
                      res_m=wm['res_m'], row0='north'),
         world_to_pixel='col = (x - x0)/4 ; row = (y1 - y)/4',
@@ -111,9 +118,9 @@ def main():
                     lib_models=len(M), lib_textures=len(T),
                     loadable_missing=missing),
         units='meter', up_axis='RDR2 世界 Z 向上；转换到目标引擎需按引擎 up 轴重映射（务必先做标定场景）')
-    json.dump(meta, open(os.path.join(OUT, 'handoff_meta.json'), 'w', encoding='utf-8'),
+    json.dump(meta, open(os.path.join(OUT, 'world_meta.json'), 'w', encoding='utf-8'),
               ensure_ascii=False, indent=1)
-    print('handoff_meta.json')
+    print('world_meta.json')
 
 
 if __name__ == '__main__':

@@ -139,7 +139,7 @@ def cluster_stats(pts):
 
 
 def load_settlements():
-    p = os.path.join(ROOT, "deliverable", "handoff", "settlements_world_v2.csv")
+    p = os.path.join(ROOT, "deliverable", "manifests", "settlements_world_v2.csv")
     rows = []
     with open(p, encoding="utf-8-sig") as fh:
         for r in csv.DictReader(fh):

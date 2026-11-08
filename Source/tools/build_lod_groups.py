@@ -37,7 +37,7 @@
 * `deliverable/blender/regions_support/*/manifest_*.jsonl` —— 22 个区域的补充记录（v23 之后新入库的模型）
 * `_scratch/settlement_plan/scene_specs.json` —— 据点/野地的 `P` 多边形与尺寸
 * `docs/世界与地编/scene_list.csv` —— 场景 id 与 `scene_name`
-* `deliverable/handoff/settlements_world_v2.csv` —— 瓜玛两个据点的世界坐标
+* `deliverable/manifests/settlements_world_v2.csv` —— 瓜玛两个据点的世界坐标
 
 世界包围盒 = 模型局部包围盒 8 个角 × 缩放 → 按**四元数共轭**旋转 → 加实例位置。
 （共轭是因为场景装配时 `rotation_quaternion = (w, -x, -y, -z)`，见 README §4；
@@ -45,8 +45,8 @@
 
 ## 输出
 
-* `deliverable/handoff/lod_fragments.csv` —— 一行一个碎片（主表，供拼 prefab）
-* `deliverable/handoff/lod_groups.json`  —— 每组汇总（数量/面数/包围盒/子组/成员 id）
+* `deliverable/manifests/lod_fragments.csv` —— 一行一个碎片（主表，供拼 prefab）
+* `deliverable/manifests/lod_groups.json`  —— 每组汇总（数量/面数/包围盒/子组/成员 id）
 * `_scratch/lod_groups/lod_groups_check.json` —— 自检数字（对账 + 覆盖）
 * `_scratch/lod_groups/lod_groups_map.png`    —— 分组核对图（可选，`--no-map` 关）
 
@@ -76,13 +76,15 @@ CONT_MAN = os.path.join(ROOT, 'deliverable/blender/continent/manifest_continent_
 REG_DIR = os.path.join(ROOT, 'deliverable/blender/regions_support')
 SPEC = os.path.join(ROOT, '_scratch/settlement_plan/scene_specs.json')
 SCENE_CSV = os.path.join(ROOT, 'docs/世界与地编/scene_list.csv')
-SETTLE_CSV = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
-HEIGHT_RAW = os.path.join(ROOT, 'deliverable/heightmap/continent_height_r16.raw')
-HEIGHT_META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
+SETTLE_CSV = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
+# 2026-11-08：高度源改为大地图模式（三选一）。必须与所选 map 模式一致。
+STAGE = '02_river_carve'
+HEIGHT_RAW = os.path.join(ROOT, 'deliverable/terrain/stages', STAGE, 'height_r16.raw')
+HEIGHT_META = os.path.join(ROOT, 'deliverable/terrain/stages', STAGE, 'meta.json')
 
-OUT_CSV = os.path.join(ROOT, 'deliverable/handoff/lod_fragments.csv')
-OUT_JSON = os.path.join(ROOT, 'deliverable/handoff/lod_groups.json')
-OUT_PARTS = os.path.join(ROOT, 'deliverable/handoff/lod_split_parts.json')
+OUT_CSV = os.path.join(ROOT, 'deliverable/manifests/lod_fragments.csv')
+OUT_JSON = os.path.join(ROOT, 'deliverable/manifests/lod_groups.json')
+OUT_PARTS = os.path.join(ROOT, 'deliverable/manifests/lod_split_parts.json')
 OUT_DIR = os.path.join(ROOT, '_scratch/lod_groups')
 OUT_CHECK = os.path.join(OUT_DIR, 'lod_groups_check.json')
 OUT_MAP = os.path.join(OUT_DIR, 'lod_groups_map.png')
@@ -375,12 +377,11 @@ class Ground(object):
             self.arr = None
             return
         raw = json.load(open(HEIGHT_META, encoding='utf-8'))
-        meta = raw['heightmap']
-        self.x0 = float(raw['x0'])
-        self.y1 = float(raw['y1'])
-        self.res = meta['res_m']
-        self.w = meta['w']
-        self.h = meta['h']
+        meta, world = raw['height'], raw['world']
+        self.x0 = float(world['x0'])
+        self.y1 = float(world['y1'])
+        self.res = meta['m_per_px']
+        self.w, self.h = meta['px']
         self.zmin = meta['zmin']
         self.zmax = meta['zmax']
         self.arr = np.fromfile(HEIGHT_RAW, dtype='<u2')
@@ -887,7 +888,7 @@ def write_json(data, path, check):
                 'models': 'assets/lib_native/index.json',
                 'names': 'deliverable/blender/continent/manifest_continent_v23.jsonl + regions_support/*',
                 'scenes': '_scratch/settlement_plan/scene_specs.json + docs/世界与地编/scene_list.csv',
-                'heightmap': 'deliverable/heightmap/continent_height_r16.raw',
+                'heightmap': 'deliverable/terrain/stages/%s/height_r16.raw' % STAGE,
             },
         },
         'groups': groups,

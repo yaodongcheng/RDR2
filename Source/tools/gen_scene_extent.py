@@ -30,7 +30,8 @@ X0W, Y0W, RES = -7684.0, -8196.0, 4.0       # valid4 网格原点
 def map_area_bbox():
     meta = json.load(open(os.path.join(RDR2, 'deliverable/terrain/on_map/meta.json'),
                           encoding='utf-8'))['mainland']
-    mask = np.array(Image.open(os.path.join(RDR2, 'deliverable/heightmap/water_mask.png')))
+    mask = np.array(Image.open(os.path.join(
+        RDR2, 'deliverable/terrain/water_mask.png')))
     H, W = mask.shape
     thumb = np.asarray(Image.open(os.path.join(
         RDR2, meta['src_map'].replace('/', os.sep))).convert('RGB')).astype(np.float32)

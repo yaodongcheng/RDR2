@@ -394,7 +394,7 @@ ENTITIES <n> / 13 类 <k>/13 / 植被 <n> / 缺模型 <n> / 贴图 <n> → PASS|
 
 | 文件 | 作用 |
 |---|---|
-| `tools/scene_terrain.py` | 场景地形：`deliverable/terrain/final` 高度 + 彩图，结构 = 活动区一块 + 远景四条带 |
+| `tools/scene_terrain.py` | 场景地形：`deliverable/terrain/scene_native` 高度 + `terrain/color_1m.png` 彩图，结构 = 活动区一块 + 远景四条带 |
 | `tools/scene_interiors.py` | 场景**室内**：按 MLO 实例变换把 `*_int` 包摆进已经 trim 过的场景（`--no-interiors` 可关）；必须在 trim 之后跑 |
 | `tools/scene_trim.py` | 两层裁剪 + 默认隐藏复原 + 平移（场景中心→原点） |
 | `tools/build_scenes.py` | 批量驱动（断点续跑、每张验收"0 超界"、一次只跑一个 Blender） |
@@ -972,10 +972,9 @@ return all(DECAL_TEX.search(n) for n in names)
 | 链 | 数据源 |
 |---|---|
 | 区域 / 大陆（`blender_continent`） | **原生** `work/terrain/H4.npy` ✅ |
-| **场景（`scene_terrain`）** | `deliverable/terrain/final/height_4m_16bit.png` ❌ |
+| **场景（`scene_terrain`）** | `deliverable/terrain/stages/02_river_carve/height_16bit_4m.png` ❌（旧路径 `final/height_4m_16bit.png`，已弃用） |
 
-> 🔴 **2026-11-08 更新**：该文件已挪到 `archive/deprecated_height_4m_16bit.png`（连同 `height_meta.json`）；
-> `final/` 现在只剩 **彩图 `color_1m.png` + 原生高度 `height_4m_16bit_native.png`**，`meta.json` 的高度指向已改为 native。
+> 🔴 **2026-11-08 更新**：旧 `final/` 已改名 **`terrain/scene_native/`**（只放子场景原生高度 `height_4m_16bit_native.png` + meta）；彩图归 **`terrain/color_1m.png`**（唯一一份）。大地图三种模式在 `terrain/stages/`（00_raw / 01_plateau_plain / 02_river_carve）。
 
 而那只 PNG 来自 `build_final_map_heightmap.py` —— **它是给骑乘2 大地图用的，会主动改地形**：
 抬西北高原（+150 m）、压南边平原、**把内陆水系挖平到固定深度**（河 12~35 / 塘 8~18 / 湖 25~60 / 海 90~300）。

@@ -8,7 +8,7 @@
 
 ## 0. 七份清单在哪
 
-全部在 **`deliverable/handoff/`**（机读，UTF-8-BOM，Excel 直接开）。
+全部在 **`deliverable/manifests/`**（机读，UTF-8-BOM，Excel 直接开）。
 
 | 文件 | 行数 | 一行 = 什么 | 主要列 |
 |---|---:|---|---|
@@ -44,7 +44,7 @@
 `rhodes.c:829` 是 `[105]`、`blackwater.c:755` 是 `[38]`……
 一次 grep 全部 `Global_1888801[<id>]` 就能把「id → 脚本 → 地名」对上（**32 个区**由此定名），
 另外 6 个区靠「perschar 前缀 = 本项目据点编码」对上，2 个靠间接线索。中文取 `.yldb` 官方译名
-（`deliverable/handoff/official_names_settlements.csv`）。
+（`deliverable/manifests/official_names_settlements.csv`）。
 
 | 区 id | 槽位区间 | 人数 | 店主 | 执法 | **区名（中文）** | 命名证据 |
 |---:|---|---:|---:|---:|---|---|
@@ -481,7 +481,7 @@ a_m_m_sddockworkers_02
 > | **`[+4]`** | **模型名哈希**（部分记录为 0） |
 > | 命中链 | 750 条连续记录，其中 81 条 `[+4]` 命中模型表 |
 >
-> 已导出 **92 条配对** → `deliverable/handoff/perschar_model_pairs.csv`
+> 已导出 **92 条配对** → `deliverable/manifests/perschar_model_pairs.csv`
 > （**71 条**"内存表 + 名字吻合" = high，**21 条**"仅内存表" = medium）。
 > 工具：**`tools/perschar_mem_pairs.py`**（只读，需游戏在跑）。
 >
@@ -579,9 +579,9 @@ foreach ($p in 'metapeds','metapeds_sd','metapeds_val','metapeds_rhd','metapeds_
 python "$ROOT\tools\perschar_lists.py"
 
 # 4) 抽查（码头切片 + 真名）
-Import-Csv "$ROOT\deliverable\handoff\perschar_roster.csv" |
+Import-Csv "$ROOT\deliverable\manifests\perschar_roster.csv" |
   Where-Object { $_.name -like 'SDN_DOCK*' } | Format-Table index,name,name_zh,zone_id,flag_bits,source_line
-Import-Csv "$ROOT\deliverable\handoff\perschar_roster.csv" |
+Import-Csv "$ROOT\deliverable\manifests\perschar_roster.csv" |
   Where-Object { $_.real_name_zh } | Format-Table name,name_zh,real_name_zh,real_name_evidence
 
 # 5) 真名证据（两条命令就能复核「瓦伦丁警长 = 马洛伊」）
@@ -601,5 +601,5 @@ Select-String -Path "$ROOT\raw\script_full\1491.50\main.c" -Pattern 'DOCUMENT_LE
 |---|---|
 | `docs/世界与地编/RDR2_NPC名单与环境人群表.md` | 本文（新增） |
 | `docs/世界与地编/RDR2_NPC生成与行为机制.md` | 机制文档（本轮补「槽位名≠角色名」，见其 §2.4） |
-| `deliverable/handoff/perschar_roster.csv` 等 **7 个** CSV | 机读清单（二进制区，不进 git）；本轮新增 `character_names.csv`（98 个人物名键） |
+| `deliverable/manifests/perschar_roster.csv` 等 **7 个** CSV | 机读清单（二进制区，不进 git）；本轮新增 `character_names.csv`（98 个人物名键） |
 | `tools/perschar_lists.py` | 清单生成器（已登记） |

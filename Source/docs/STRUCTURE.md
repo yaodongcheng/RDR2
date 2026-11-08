@@ -1,6 +1,6 @@
 # 目录结构与路径对照
 
-> 2026-10-21 整理，2026-10-22 补 `deliverable/handoff/` 与交接文档。
+> 2026-10-21 整理，2026-10-22 补 `deliverable/manifests/` 与交接文档。
 > **旧路径全部仍然可用**（通过 NTFS 目录联接），现有脚本不需要改。
 >
 > 🔴 **2026-10-29 更新**：本文描述的是**数据面**（export/deliverable/assets/raw）的布局，仍然有效；
@@ -21,11 +21,12 @@
 │   ├── 任务与剧情/                  8 篇
 │   ├── 格式与资产/                  8 篇
 │   └── 角色与物品/                  3 篇
-├── deliverable/handoff/            机读交接清单（model_manifest.csv / settlements_world.csv / meta）
-├── deliverable/heightmap/          权威高度图（16bit + r16 + 水掩码/水深 + meta）
+├── deliverable/manifests/            机读交接清单（model_manifest.csv / settlements_world.csv / meta）
 ├── deliverable/terrain/            🔴 地形唯一入口（明细见 `deliverable/terrain/README.md`）
-│   ├── final/                      彩图 1 m + 原生高度 4 m 16bit + meta（旧挖水系高度已挪到 archive/）
-│   ├── stages/                     四级管线（原始→高原/平原→水域加深→统一水位），见内部 README
+│   ├── stages/                     三种模式：00_raw 底图 / 01 平整 / 02 刻河（02 另含水深）
+│   ├── scene_native/               子场景原生高度 4 m 16bit + meta（原 final/）
+│   ├── color_1m.png                唯一地形材质图（1 m/px，三个模式共用）
+│   ├── water_mask.png              唯一水网图（02 刻河与权重共用）
 │   ├── weights/                    7 层材质权重 + 打包 RGB + 自检图（**进游戏用的 mask**）
 │   ├── tiles/                      480 块原生地形彩图瓦片（0.25 m/px）
 │   └── on_map/                     对齐官方地图内容框的裁剪版 + 叠图证明

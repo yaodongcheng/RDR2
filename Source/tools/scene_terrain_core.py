@@ -18,13 +18,15 @@ import numpy as np
 from PIL import Image
 
 RDR2 = r"D:/BrainMaker/大镖客2解包分析"
-TERRAIN = os.path.join(RDR2, "deliverable", "terrain", "final")
+# 2026-11-08：原 terrain/final 改名 scene_native —— 它只放**子场景原生 H4**，
+# 不是"最终地形"；大地图三种模式在 terrain/stages/（00_raw / 01_plateau_plain / 02_river_carve）。
+TERRAIN = os.path.join(RDR2, "deliverable", "terrain", "scene_native")
 H4 = os.path.join(RDR2, "work", "terrain", "H4.npy")
 
 STEP = 4.0
 ROW_SHIFT = 1.0     # 见上：dy = -1 格
 # 由 `build_scene_heightmap_native.py` 从原生 H4 生成（同一世界框、同一编码）。
-# 存在它就优先用：交付的那张是给骑砍2 大地图改过的（挖平水系 / 抬高原 / 压平南边），
+# 存在它就优先用：大地图模式（stages/01、02）是给骑砍2 大地图改过的（塑形 / 刻河），
 # 拿来当场景地形会让河道变平板、被水淹（见该脚本文档）。
 NATIVE_HFILE = 'height_4m_16bit_native.png'
 
@@ -57,16 +59,15 @@ def load_meta(path=None, scene_id=None):
         "hfile": os.path.join(TERRAIN, h["file"]),
         "hw": h["px"][0], "hh": h["px"][1], "hres": h["m_per_px"],
         "zmin": h["zmin"], "zmax": h["zmax"],
-        "cfile": os.path.join(TERRAIN, m["color"]["file"]),
+        "cfile": os.path.normpath(os.path.join(TERRAIN, m["color"]["file"])),
         "cw": m["color"]["px"][0], "ch": m["color"]["px"][1],
         "cres": m["color"]["m_per_px"],
         "row_shift": ROW_SHIFT,
         "source": "delivered",
     }
-    # 🔴 2026-11-05：优先用**原生 H4** 版本（`build_scene_heightmap_native.py` 生成）。
-    # 交付那张 `height_4m_16bit.png` 是**给骑砍2 大地图**用的，里面把内陆水系挖平到固定深度
+    # 🔴 子场景只用**原生 H4**。大地图模式（stages/01、02）会塑形/刻河
     # （安尼斯堡 x≥2960 恒为 z=7.1，水位 40.5 ⇒ 整段河被淹），与区域 blend 读的原生 H4 不一致。
-    # 新图与交付图**同一世界框、同一编码**，只是数据来自 H4 ⇒ 坐标口径不变，行偏移不需要补偿。
+    # scene_native/meta.json 已直接指向原生图；这里保留优先覆盖，防旧 meta 被误用。
     native = os.path.join(TERRAIN, NATIVE_HFILE)
     if os.path.exists(native):
         meta["hfile"] = native

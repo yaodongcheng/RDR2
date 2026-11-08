@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
 LIB_IDX = os.path.join(ROOT, 'assets/lib_native/index.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
-SETTLE = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
+SETTLE = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
 
 
 def joaat(s):

@@ -10,7 +10,7 @@ r"""把 v23 抽出时漏掉的远景碎片（区域补充入库的那批）从�
 `group_lod_blend.py` 统一归位）。
 
     blender -b "...\continent_lod_split_v23.blend" -P tools\_unbuffer.py -P tools\backfill_lod_blend.py -- \
-        --csv "...\deliverable\handoff\lod_fragments.csv"
+        --csv "...\deliverable\manifests\lod_fragments.csv"
 
 贴图路径：区域 blend 与 lod_split 都在 `deliverable/blender/` 下**同一层深**
 （`//..\..\..\assets\...`），追加后相对路径仍然有效，不需要重算（实测区域侧 8,139 张全在）。

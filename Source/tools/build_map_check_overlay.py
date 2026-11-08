@@ -1,6 +1,6 @@
 """把我们的高度图/水面和官方地图贴到一起，检查陆地/水域是否对得上。
 
-产物（deliverable/map_check/）
+产物（docs/世界与地编/img/map_check/；2026-11-08 起不再写进交付目录）
     check_1_side_by_side.png  左=高度图 右=官方地图（同一范围、同一比例）
     check_2_overlay.png       官方地图 + 我方水面(蓝) + 冲突区(红=该有水没水 / 绿=不该有水却有)
     check_3_conflict.png      纯冲突图 + 图例
@@ -18,10 +18,10 @@ from scipy import ndimage
 
 Image.MAX_IMAGE_PIXELS = None
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-OUT = os.path.join(ROOT, 'deliverable/map_check')
-HM = os.path.join(ROOT, 'deliverable/heightmap/continent_height_4m.png')
-META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
-WMASK = os.path.join(ROOT, 'deliverable/heightmap/water_mask.png')
+OUT = os.path.join(ROOT, 'docs/世界与地编/img/map_check')
+HM = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/height_16bit_4m.png')
+META = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/meta.json')
+WMASK = os.path.join(ROOT, 'deliverable/terrain/water_mask.png')
 REF_WATER = os.path.join(ROOT, 'docs/世界与地编/img/ref_water_mask_1400.png')
 REF_MAP = os.path.join(ROOT, '地图下载/大陆地图_缩略.jpg')
 # 地图内容框：以 5000 宽的缩略图为基准
@@ -35,8 +35,14 @@ CELL_M = 4.0      # 每像素米数
 def main():
     os.makedirs(OUT, exist_ok=True)
     meta = json.load(open(META, encoding='utf-8'))
-    H = meta['size_px'][1]
-    zmin, zmax = meta['heightmap']['zmin'], meta['heightmap']['zmax']
+    # 兼容两种 meta：新 stages/02_river_carve/meta.json（height.px/zmin/zmax）
+    #                 与旧 continent_height_meta.json（size_px / heightmap.zmin/zmax）
+    if 'height' in meta:
+        H = meta['height']['px'][1]
+        zmin, zmax = meta['height']['zmin'], meta['height']['zmax']
+    else:
+        H = meta['size_px'][1]
+        zmin, zmax = meta['heightmap']['zmin'], meta['heightmap']['zmax']
 
     # ---- 统一到 1400 坐标系 → 输出尺寸 ----
     x0, y0, x1, y1 = BOX5000

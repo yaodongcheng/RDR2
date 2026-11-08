@@ -2,8 +2,8 @@
 r"""把「只放远景碎片」的 blend 按片区拆成子集合（一个据点 / 一块野地 / 一个瓜玛场景一个集合）。
 
     blender -b "...\continent_lod_split_v23.blend" -P tools\_unbuffer.py -P tools\group_lod_blend.py -- \
-        --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv" \
-        --groups "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_groups.json"
+        --csv "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_fragments.csv" \
+        --groups "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_groups.json"
 
 输入：
   · 当前 blend 里的父集合（默认 `ONLY_lod_远景碎片`）—— 里面的对象会被移到子集合

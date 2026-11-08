@@ -705,7 +705,7 @@ python tools/build_service_npcs.py
 ## 10. v3 补充（2026-11-02）：引擎枚举 / 兵源模型 / 驻军基数 / 治安长官真名
 
 > 本节只写**能从解包数据里点名的**东西；§3 的 8 势力是"叙事分层"，本节是"引擎事实"，两者叠着用。
-> 数据来源：`deliverable/handoff/` 的 `perschar_roster.csv`、`perschar_by_zone.csv`、
+> 数据来源：`deliverable/manifests/` 的 `perschar_roster.csv`、`perschar_by_zone.csv`、
 > `ped_model_catalog.csv`、`ambient_modelsets.csv`、`character_names.csv`
 > + `raw/script_full/1491.50/ambush_*.c`（帮派枚举）。
 
@@ -823,6 +823,6 @@ ambient 记忆组则决定**街上有多少可刷的兵**：
 |---|---|
 | #1 `metapeds.ymt` 无法得到 ped 配方 | ✅ **已解**：5 个 `metapeds*.rpf` 的 TOC 拿到 **1,272 个模型名**（`ped_model_catalog.csv`） |
 | #2 `script_rel.rpf` 无法得到常驻点 | 🟡 **部分解**：1,639 个反编译脚本 + 950 条 `func_34` 给出**驻军营区与槽位**（§10.3） |
-| —— | 🔴 **新缺口**：**perschar 名字 → ped 模型** —— 2026-11-02 **已部分打通**：从运行中进程内存里恢复出绑定表（步长 176 字节，`[+4]`=模型哈希），导出 **92 条**到 `deliverable/handoff/perschar_model_pairs.csv`（工具 `tools/perschar_mem_pairs.py`）；仍未覆盖的 858 条是因为该字段只有部分记录有值 |
+| —— | 🔴 **新缺口**：**perschar 名字 → ped 模型** —— 2026-11-02 **已部分打通**：从运行中进程内存里恢复出绑定表（步长 176 字节，`[+4]`=模型哈希），导出 **92 条**到 `deliverable/manifests/perschar_model_pairs.csv`（工具 `tools/perschar_mem_pairs.py`）；仍未覆盖的 858 条是因为该字段只有部分记录有值 |
 | —— | 🟡 **部分可解**：模型名自带「城镇代码 + 职务」（`u_m_m_valbarber_01` = val+barber），用**双条件**能把 **69 / 950** 个槽位对上模型（如 `VAL_SHERIFF` → `u_m_m_valsheriff_01`、`SDN_DOCK_WORKER_1..4` → `a_m_m_sddockworkers_02`）；**单条件 153 个但噪声大，728 个对不上**。这是**推断级**，不是官方绑定表 |
 | #3~#7 | 不变 |

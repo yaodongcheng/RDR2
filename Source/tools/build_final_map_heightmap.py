@@ -1,4 +1,11 @@
-"""最终版大陆高度图：西北高原、南边平原（都是自然起伏，不是平板），水域加深。
+"""⚠️ 2026-11-08 已停用（保留函数/常量，供 `make_terrain_stages.py` import 复用）。
+
+旧产物 `deliverable/heightmap/` 已弃用；现行地形链：
+  · 三个大地图模式 + 唯一彩图 = `make_terrain_stages.py` / `carve_rivers.py`
+  · 子场景原生高度 = `build_scene_heightmap_native.py`
+
+历史说明（下面这段是旧口径，仅作参考）：
+最终版大陆高度图：西北高原、南边平原（都是自然起伏，不是平板），水域加深。
 
 依据用户给的两块空白区（换算成世界坐标）：
     西北  x[-6844,-3450]  y[-870,3224]   → 高原
@@ -11,9 +18,10 @@
   · 内陆水系照旧加深（河 12~35 / 塘 8~18 / 湖 25~60 / 海 90~300），只挖原本低于水位的格子
   · 据点周围 220 m 保护，不被淹
 
-产物：deliverable/heightmap/ 下的高度图 + 水深图 + 水掩码 + 预览
+产物（旧）：~~deliverable/heightmap/~~ —— 已弃用，2026-11-08 停用。
 
-用法：uv run python tools/build_final_map_heightmap.py
+用法（旧）：~~uv run python tools/build_final_map_heightmap.py~~
+运行会直接报错退出；现行入口 = `make_terrain_stages.py` / `carve_rivers.py`。
 """
 import os
 import csv
@@ -82,6 +90,11 @@ def rect_weight(X, Y, x0, x1, y0, y1, noise, fade):
 
 
 def main():
+    raise SystemExit(
+        'build_final_map_heightmap.py 已停用（2026-11-08）：产物 deliverable/heightmap/ 已弃用。\n'
+        '  三个大地图模式 + 彩图 → tools/make_terrain_stages.py / tools/carve_rivers.py\n'
+        '  子场景原生高度 → tools/build_scene_heightmap_native.py'
+    )
     os.makedirs(PREVDIR, exist_ok=True)
     area = json.load(open(AREA, encoding='utf-8'))
     meta = json.load(open(META_SRC, encoding='utf-8'))

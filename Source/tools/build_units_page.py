@@ -11,7 +11,7 @@
 - `s_m_m_pinlaw_01` 的**骨骼偏移/表情/变体数据**是有的（18 KB ymt，55 根骨 + variations），
   缺的只是"穿哪几件衣服"。
 
-输入：raw/npc/list_metapeds.txt（rdr2rpf list 结果）、deliverable/handoff/ped_archetypes.csv、
+输入：raw/npc/list_metapeds.txt（rdr2rpf list 结果）、deliverable/manifests/ped_archetypes.csv、
       export/npc/cs/*（已导出的过场 GLB）
 输出：export/levels/world/ped_coverage.csv、export/units/data.json
 """
@@ -22,7 +22,7 @@ import json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIST = os.path.join(ROOT, "raw/npc/list_metapeds.txt")
-ARCH = os.path.join(ROOT, "deliverable/handoff/ped_archetypes.csv")
+ARCH = os.path.join(ROOT, "deliverable/manifests/ped_archetypes.csv")
 CSDIR = os.path.join(ROOT, "export/npc/cs")
 OUT = os.path.join(ROOT, "export/units")
 

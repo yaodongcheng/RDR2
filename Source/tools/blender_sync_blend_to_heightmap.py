@@ -1,11 +1,13 @@
 """把 continent.blend 的地形/水面同步成"最终高度图"那一版。
 
 做法：
-  1. 把 deliverable/heightmap/continent_height_4m.png（地图框，行 0=北）写回世界 4 m 栅格
+  1. 把 deliverable/terrain/stages/<STAGE>/height_16bit_4m.png（地图框，行 0=北）写回世界 4 m 栅格
      （行 0=南，3075²），生成 work/terrain/H4_final.npy
   2. 用这份高程 + 地图框掩码重建 Terrain
-  3. 按 deliverable/heightmap/water_mask.png + 水位图重建 Water（只保留地图框内、只保留水面）
+  3. 按 deliverable/terrain/water_mask.png + 水位图重建 Water（只保留地图框内、只保留水面）
   4. 保存；并检查瓜玛区域（地形面/水面/实体）都是 0
+
+  默认 STAGE = 01_plateau_plain（重建 v25 未刻河版）；刻河版把 STAGE 改成 02_river_carve。
 
   blender -b deliverable/blender/continent/continent.blend -P tools/blender_sync_blend_to_heightmap.py
 """
@@ -20,9 +22,11 @@ from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
-HM = os.path.join(ROOT, 'deliverable/heightmap/continent_height_4m.png')
-META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
-WMASK = os.path.join(ROOT, 'deliverable/heightmap/water_mask.png')
+# 2026-11-08：高度源改为大地图模式（三选一）。重建 v25（未刻河）用 01；刻河版用 02。
+STAGE = '01_plateau_plain'
+HM = os.path.join(ROOT, 'deliverable/terrain/stages', STAGE, 'height_16bit_4m.png')
+META = os.path.join(ROOT, 'deliverable/terrain/stages', STAGE, 'meta.json')
+WMASK = os.path.join(ROOT, 'deliverable/terrain/water_mask.png')
 WL = os.path.join(ROOT, 'export/world/water_level_map.npy')
 H4_OUT = os.path.join(ROOT, 'work/terrain/H4_final.npy')
 MASK = os.path.join(ROOT, 'export/world/world_ground_mask_maparea.png')
@@ -33,9 +37,10 @@ X0w, Y0w, WORLD, RES = -7684.0, -8196.0, 12296.0, 4.0
 
 def build_h4():
     meta = json.load(open(META, encoding='utf-8'))
-    zmin, zmax = meta['heightmap']['zmin'], meta['heightmap']['zmax']
-    xa, ya, yb = meta['x0'], meta['y0'], meta['y1']
-    Wm, Hm = meta['size_px']
+    mh, mw = meta['height'], meta['world']
+    zmin, zmax = mh['zmin'], mh['zmax']
+    xa, ya, yb = mw['x0'], mw['y0'], mw['y1']
+    Wm, Hm = mh['px']
     q = np.asarray(Image.open(HM)).astype(np.float32)          # 行 0 = 北
     hm = zmin + q / 65535.0 * (zmax - zmin)
 

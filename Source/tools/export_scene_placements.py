@@ -5,7 +5,7 @@
   deliverable/blender/scenes/placement_<id>.jsonl
       一行一个对象：name / hash / model_hash / cls / ring / loc / quat / scale / bbox /
       hide_tag / part_key / split_of / int_pkg / tile
-  deliverable/handoff/mesh_usage.csv
+  deliverable/manifests/mesh_usage.csv
       一行一个模型 hash：被多少张场景用到、实例总数、出现的对象名样例
 
 用法（一次进程跑完 56 张，别一张开一个 Blender）：
@@ -24,7 +24,7 @@ from mathutils import Vector
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 ap = argparse.ArgumentParser()
 ap.add_argument('--dir', default=r'D:/BrainMaker/大镖客2解包分析/deliverable/blender/scenes')
-ap.add_argument('--out-csv', default=r'D:/BrainMaker/大镖客2解包分析/deliverable/handoff/mesh_usage.csv')
+ap.add_argument('--out-csv', default=r'D:/BrainMaker/大镖客2解包分析/deliverable/manifests/mesh_usage.csv')
 ap.add_argument('--only', default='', help='只跑这些 id，逗号分隔')
 a = ap.parse_args(ARGS)
 

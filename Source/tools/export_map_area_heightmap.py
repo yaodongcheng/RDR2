@@ -1,4 +1,9 @@
-"""定义"大陆 = 官方地图范围"，并把这块范围导出成高度图（16 bit）。
+"""⚠️ 2026-11-08 已停用：产物 `deliverable/heightmap/` 已弃用。
+
+现行地形链：`make_terrain_stages.py`（三个大地图模式 + 唯一彩图）/
+`carve_rivers.py`（刻河）/ `build_scene_heightmap_native.py`（子场景原生）。
+
+历史说明：定义"大陆 = 官方地图范围"，并把这块范围导出成高度图（16 bit）。
 
 为什么是这个范围
 ----------------
@@ -79,6 +84,11 @@ def load_height(area):
 
 
 def main():
+    raise SystemExit(
+        'export_map_area_heightmap.py 已停用（2026-11-08）：deliverable/heightmap/ 已弃用。\n'
+        '  三个大地图模式 + 彩图 → tools/make_terrain_stages.py / tools/carve_rivers.py\n'
+        '  子场景原生高度 → tools/build_scene_heightmap_native.py'
+    )
     os.makedirs(OUTDIR, exist_ok=True)
     area = map_area()
     area['size_px'] = [int(round((area['x1'] - area['x0']) / RES)),

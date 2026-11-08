@@ -38,7 +38,7 @@ LIB_IDX = os.path.join(ROOT, 'assets/lib_native/index.json')
 TILES = os.path.join(ROOT, 'export/world/continent/tiles')
 RPF_IDX = os.path.join(ROOT, 'work/rpf_index/all.tsv')
 ARCH = os.path.join(ROOT, 'export/levels/town/archetype_assetnames.json')
-SETTLE = os.path.join(ROOT, 'deliverable/handoff/settlements_world_v2.csv')
+SETTLE = os.path.join(ROOT, 'deliverable/manifests/settlements_world_v2.csv')
 OUT = os.path.join(ROOT, 'export/world/missing_classified.json')
 
 # 名字里带这些的，本来就没有可渲染几何（VFX/灯光/占位/物理代理/远景 LOD）

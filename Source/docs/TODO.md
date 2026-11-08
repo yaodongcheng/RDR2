@@ -459,7 +459,7 @@ python -X utf8 tools\build_scenes.py --only rho
 | `ann` 分类 | decal **33**（旧 88）、unknown **46**（旧 53）；`ann_boilerhse`=`bldg`、`ann_05_conv06b`=`part` |
 
 对账表（56 行：对象 / 远景 / 室内包 / 代理 / 室内贴花 / full decal / full unknown / 地形）：
-`D:\BrainMaker\大镖客2解包分析\deliverable\handoff\scene_rebuild_reconcile_20261105.csv`
+`D:\BrainMaker\大镖客2解包分析\deliverable\manifests\scene_rebuild_reconcile_20261105.csv`
 
 **剩下的一件事（用户）**：抽查 `ann` + 2~3 张据点场景，命令见 ③。
 
@@ -590,19 +590,19 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_split_v24.l
 **⑥ 补区域 57 条**（就地改 `_v24_raw`）
 
 ```powershell
-cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_backfill_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\backfill_lod_blend.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_backfill_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\backfill_lod_blend.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_fragments.csv"'
 ```
 
 **⑦ 切跨据点块**（就地改 `_v24_raw`）
 
 ```powershell
-cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_splitblocks_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\split_span_blocks.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv" --spec "D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\scene_specs.json" --out-parts "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_split_parts.json"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_splitblocks_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\split_span_blocks.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_fragments.csv" --spec "D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\scene_specs.json" --out-parts "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_split_parts.json"'
 ```
 
 **⑨ 按据点分组**（就地改 `_v24_raw`）
 
 ```powershell
-cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_regroup_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\group_lod_blend.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_fragments.csv" --groups "D:\BrainMaker\大镖客2解包分析\deliverable\handoff\lod_groups.json"'
+cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\lod_regroup_v24.log "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "D:\BrainMaker\大镖客2解包分析\deliverable\blender\continent\continent_lod_split_v24_raw.blend" -P tools\_unbuffer.py -P tools\group_lod_blend.py -- --csv "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_fragments.csv" --groups "D:\BrainMaker\大镖客2解包分析\deliverable\manifests\lod_groups.json"'
 ```
 
 **⑩ 补翻 UV → 最终 v24**
@@ -899,7 +899,7 @@ UV 在 2026-11-01 建库时就烘死了，**重跑场景修不到**。（室内�
 
 | 项 | 结果 |
 |---|---|
-| 全量清单 | `deliverable/handoff/asset_inventory_*`：**39,990 个模型**（大地图 ∪ 56 场景）· **23,328 张贴图**（5.75 GB，缺失 0）· 大地图 2,238 碎片（2,324 实例）+ 46 微缩 |
+| 全量清单 | `deliverable/manifests/asset_inventory_*`：**39,990 个模型**（大地图 ∪ 56 场景）· **23,328 张贴图**（5.75 GB，缺失 0）· 大地图 2,238 碎片（2,324 实例）+ 46 微缩 |
 | **导入子集** | `asset_import_models.csv` / `asset_import_textures.csv`：**24,424 个模型**（9,265 个 ≥2,000 面要做 LOD）· **22,504 张贴图** · 160,193 个对象 · 277M 实例三角面 |
 | 导入范围 | 导 16 类（bldg/part/prop/junk/veg/rock/stone/struct/ruin/veh/rail/rail_decal/road/decal/unknown/lod_out）；不导 6 类（terrain_cell/terrain_lod/underground/watertile/placeholder/lod） |
 | LOD | **7 槽位**（0~6，LOD5/6 复用 LOD4 的 12%）；`Scripts/export_rdr2_trf_from_scenes.py` **直接从场景 blend 出 TRF**，sdn 样本验证通过（木栈桥/站台/木屋结构保持；薄钢水塔 12% 有屋顶折面，用户已接受） |
@@ -972,9 +972,9 @@ UV 在 2026-11-01 建库时就烘死了，**重跑场景修不到**。（室内�
 
 | # | 产物 | 数字 |
 |---|---|---|
-| **TODO-3** | `deliverable/handoff/mesh_texture_audit.csv` + `texture_list.csv` + `mesh_texture_audit.json`（`tools/audit_mesh_textures.py`） | 用到模型 **39,946**（索引里 0 个找不到）；贴图 **20,888** 张（文件缺失 **0**）；缺 albedo **1,688** / normal **6,529** / ma **7,267**（单独列出）。🔴 **缺 albedo 是已知接受缺口**（README §6「小道具贴图缺失」：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替）——**不是新缺陷，不要再重新解包** |
+| **TODO-3** | `deliverable/manifests/mesh_texture_audit.csv` + `texture_list.csv` + `mesh_texture_audit.json`（`tools/audit_mesh_textures.py`） | 用到模型 **39,946**（索引里 0 个找不到）；贴图 **20,888** 张（文件缺失 **0**）；缺 albedo **1,688** / normal **6,529** / ma **7,267**（单独列出）。🔴 **缺 albedo 是已知接受缺口**（README §6「小道具贴图缺失」：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替）——**不是新缺陷，不要再重新解包** |
 | **TODO-4** | `deliverable/blender/scenes/placement_<id>.jsonl` × 56（`tools/export_scene_placements.py`） | 69 MB；字段 = hash / model_hash / cls / ring / loc / quat / scale / bbox / part_key / split_of / int_pkg / tile；**对账 = manifest + 室内件，56 张全一致** |
-| **TODO-5** | `deliverable/handoff/prefabs/<group_id>.json` + `prefabs_index.json`（`tools/build_lod_prefabs.py`） | **55 组 / 2,324 碎片**，每组计数与 `lod_groups.json` 一致；局部坐标 `gx,gy,gz` 相对组锚点。🔴 空组 `abe/dow/twi` 的"高清减面兜底"**已有现成管线** `tools/build_miniatures.py`（46 据点微缩代理，目标面数见 `RDR2_沙盒大地图_微缩模型规格.md`）——**不要另造减面工具** |
+| **TODO-5** | `deliverable/manifests/prefabs/<group_id>.json` + `prefabs_index.json`（`tools/build_lod_prefabs.py`） | **55 组 / 2,324 碎片**，每组计数与 `lod_groups.json` 一致；局部坐标 `gx,gy,gz` 相对组锚点。🔴 **2026-11-08 用户裁定**：城市缩略直接用 LOD 大陆按据点分组切；空组 `twi` / `abe` 从 `continent_v25.blend` 按同一口径补采进 LOD 分组，**`build_miniatures.py` 作废停用** |
 
 ### C. 只剩 TODO-6：用户逐张预览
 
@@ -1231,7 +1231,7 @@ P 口径实测：**32 个据点有室内**（野地一律 `0/0`），合计 **12
 ## ★ 2026-11-03 · 远景碎片 → 据点分组（骑砍2 大地图城镇 prefab）—— ✅ 数据已出
 
 **一句话**：2,324 个可用远景碎片，**1,212 个分到 41 个据点**、1,068 个分到 12 块野地、44 个瓜玛、0 落空。
-数据 = `deliverable/handoff/lod_fragments.csv` + `lod_groups.json`；规则与口径见
+数据 = `deliverable/manifests/lod_fragments.csv` + `lod_groups.json`；规则与口径见
 `docs/世界与地编/RDR2_据点分级与场景边界方案.md` §8.1；唯一实现 = `tools/build_lod_groups.py`
 （对 22 个区域 manifest 反验包围盒，最大误差 0.005 m）。
 
@@ -1240,7 +1240,7 @@ P 口径实测：**32 个据点有室内**（野地一律 `0/0`），合计 **12
 卡利加 591 / 罗兹 741 / 布雷斯特 513 / 圣丹尼斯 13；`rstu_96_99_area_slod4` → 风滚草 644 / 犰狳镇 280；
 `nopq_07_10_area_slod4` → 黑水镇（余量空）；`bra01pr_combo10_slod` → 罗兹 198 / 布雷斯特 390。
 🟢 `*_area_slod*` 是**建筑/道具的整区合并 LOD**，不是地形；整区块只要压到据点就拆（哪怕只压 1 个）。
-拆分器 `tools/split_span_blocks.py`，部件表 `deliverable/handoff/lod_split_parts.json`，
+拆分器 `tools/split_span_blocks.py`，部件表 `deliverable/manifests/lod_split_parts.json`，
 CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块。
 
 **马掌望台范围已扩**（2026-11-04 用户用 `regions_viewer.html` 编辑导出）：`hso` 能走范围改成
@@ -1261,7 +1261,7 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 1. ✅ **3 个小点位没有远景碎片**（`dow` / `twi` / `abe`）—— **已解决**：现成
    `tools/build_miniatures.py`（46 据点微缩代理，合计 84,502 面；abe 330 / dow 252 / twi 362），
    已重跑，产物在 `deliverable/miniatures/`。**不要再另造减面工具。**
-2. ✅ **网格导出**：`tools/build_lod_prefabs.py` 已按组出 `deliverable/handoff/prefabs/<group_id>.json`
+2. ✅ **网格导出**：`tools/build_lod_prefabs.py` 已按组出 `deliverable/manifests/prefabs/<group_id>.json`
    （55 组 / 2,324 碎片，`gx,gy,gz` 相对组锚点）；**OBJ/GLB 不另导**——骑砍2 侧按 prefab JSON 实例化。
 3. 237 个 `lod` 实例在解包里没有网格（摆不出来），和「817 个 archetype 缺模型」同一类（已接受）。
 

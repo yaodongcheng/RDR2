@@ -1,7 +1,7 @@
 """把 assets/lib_native/index.json（52 539 个网格）+ names.txt 合成一张"全量模型台账"。
 
 为什么需要它
-  deliverable/handoff/model_manifest.csv 只有 10 893 条，而据点里 55% 的实例引用的 hash
+  deliverable/manifests/model_manifest.csv 只有 10 893 条，而据点里 55% 的实例引用的 hash
   不在里面（那份清单是按"有名字有分类"筛过的）。做微缩模型必须知道**每一个**实例的
   占地和高度，所以改用 lib_native 的 bbox + 子网格索引数算：
       tris   = Σ(icount) / 3
@@ -9,7 +9,7 @@
       name   = names.txt 里 joaat 反查（拿不到就留空，只影响分类不影响几何）
 
 产物
-  deliverable/handoff/model_ledger.csv    hash,name,tris,verts,sx,sy,sz,tex_id
+  deliverable/manifests/model_ledger.csv    hash,name,tris,verts,sx,sy,sz,tex_id
 """
 import os
 import csv
@@ -18,7 +18,7 @@ import json
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 INDEX = os.path.join(ROOT, 'assets/lib_native/index.json')
 NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
-OUT = os.path.join(ROOT, 'deliverable/handoff/model_ledger.csv')
+OUT = os.path.join(ROOT, 'deliverable/manifests/model_ledger.csv')
 
 
 def joaat(s):

@@ -11,7 +11,7 @@ import json
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 AUDIT = os.path.join(ROOT, 'deliverable/miniatures/audit.json')
-SCALE = os.path.join(ROOT, 'deliverable/handoff/settlement_scale.json')
+SCALE = os.path.join(ROOT, 'deliverable/manifests/settlement_scale.json')
 MAPDATA = os.path.join(ROOT, 'deliverable/miniatures/map/data/settlements.js')
 OUT = os.path.join(ROOT, 'docs/世界与地编/RDR2_沙盒大地图_微缩模型规格.md')
 

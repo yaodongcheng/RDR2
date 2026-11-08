@@ -35,6 +35,8 @@ import build_final_map_heightmap as B          # 复用：fbm / rect_weight / �
 
 ROOT = r'D:/BrainMaker/大镖客2解包分析'
 OUT = os.path.join(ROOT, 'deliverable/terrain/stages')
+# 唯一地形材质图（三个模式共用；2026-11-08 起不再往各 stage 里各放一份）
+COLOR_OUT = os.path.join(ROOT, 'deliverable/terrain/color_1m.png')
 H4FULL = os.path.join(ROOT, 'work/terrain/H4_full.npy')
 COLOR = os.path.join(ROOT, 'export/world/world_ground_final_out.png')
 AREA = os.path.join(ROOT, 'export/world/map_area.json')
@@ -131,7 +133,9 @@ def save_stage(name, z_north, base_color, meta_extra, changed):
     #   而这片改动区（西北高原 / 东南平原）原本的色相与新高程并不冲突 —— 保留原色最自然。
     #   如将来要"让颜色随高程变"，只有两条正路：大块真实纹理拼贴（有接缝风险）或手工修图。
     col = base_color.copy()
-    Image.fromarray(col).save(os.path.join(d, 'color_1m.png'), 'PNG', compress_level=6)
+    # 2026-11-08：彩图只有一份，放在 `deliverable/terrain/color_1m.png`（三个模式完全相同）。
+    if not os.path.exists(COLOR_OUT):
+        Image.fromarray(col).save(COLOR_OUT, 'PNG', compress_level=6)
 
     meta = dict(stage=name, world=dict(x0=B_area['x0'], y0=B_area['y0'],
                                        x1=B_area['x1'], y1=B_area['y1'],
@@ -139,8 +143,8 @@ def save_stage(name, z_north, base_color, meta_extra, changed):
                 row0='north', col0='west',
                 height=dict(file='height_16bit_4m.png', px=list(B_area['size_px']),
                             m_per_px=RES, zmin=zmin, zmax=zmax),
-                color=dict(file='color_1m.png', px=[col.shape[1], col.shape[0]], m_per_px=1.0,
-                           note='原始地形材质（world_ground_final_out 原色，各级相同；不按高程重上色）'),
+                color=dict(file='../color_1m.png', px=[col.shape[1], col.shape[0]], m_per_px=1.0,
+                           note='唯一地形材质图，三个模式共用（world_ground_final_out 原色；不按高程重上色）'),
                 changed_px=dict(count=int(changed.sum()), area_km2=round(float(changed.sum()) * 16 / 1e6, 2)),
                 **meta_extra)
     json.dump(meta, open(os.path.join(d, 'meta.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

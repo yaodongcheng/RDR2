@@ -42,7 +42,7 @@ from mathutils.bvhtree import BVHTree
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAMES = os.path.join(ROOT, 'tools/rdr2rpf/bin/Release/net9.0/names.txt')
-META = os.path.join(ROOT, 'deliverable/heightmap/continent_height_meta.json')
+META = os.path.join(ROOT, 'deliverable/terrain/stages/02_river_carve/meta.json')
 
 BUILD = re.compile(r'_ext_|building|_house|house_|cabin|barn|church|store|saloon|bank|hotel|shed|shack|manor|stable|station|factory|warehouse|roof|porch|wall|dock|tower', re.I)
 
@@ -150,9 +150,9 @@ def main():
 
     names = load_names()
     meta_all = json.load(open(META, encoding='utf-8'))
-    hm = meta_all['heightmap']
-    W, H = hm['w'], hm['h']
-    X0, Y1, RES = meta_all['x0'], meta_all['y1'], hm['res_m']
+    hm, world = meta_all['height'], meta_all['world']
+    W, H = hm['px']
+    X0, Y1, RES = world['x0'], world['y1'], hm['m_per_px']
 
     pts, ter, bvh = anchors_from_scene(names)
     print('[fit] 锚点 %d 个（建筑类实例）' % len(pts))

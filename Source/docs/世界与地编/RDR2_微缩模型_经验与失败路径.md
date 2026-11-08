@@ -130,7 +130,7 @@ settlements.js      46 据点的世界坐标/类型/势力/成品尺寸
 
 ### 5.2 `town_data` 里大量 bbox 是占位单位立方体
 `export/levels/world/town_data/*.js` 的实例带 6 个 local bbox，很多是 `-0.5 ~ 0.5`。
-照它算占地 → 房子变薄片。正确做法：用模型自身尺寸（`deliverable/handoff/model_ledger.csv` 的 `sx/sy/sz`）× 实例 scale。
+照它算占地 → 房子变薄片。正确做法：用模型自身尺寸（`deliverable/manifests/model_ledger.csv` 的 `sx/sy/sz`）× 实例 scale。
 
 ### 5.3 `.blend` 里 65 个隐藏 collection → 对象选不中
 `select_set(True)` 无效、`join()` 只合到零星几个对象，出现 **"joined tris 2556"** 这种假结果。

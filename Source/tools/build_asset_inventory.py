@@ -2,12 +2,12 @@
 """RDR2 全量资产清单：**大地图 + 56 张子场景**实际要用到的模型与贴图。
 
 输入（都是现成产物）：
-  deliverable/handoff/mesh_usage.csv           56 张场景用到的模型（hash / 实例 / 场景）
-  deliverable/handoff/lod_fragments.csv        大地图远景碎片（hash / 组 / 实例）
+  deliverable/manifests/mesh_usage.csv           56 张场景用到的模型（hash / 实例 / 场景）
+  deliverable/manifests/lod_fragments.csv        大地图远景碎片（hash / 组 / 实例）
   deliverable/blender/scenes/placement_*.jsonl 每场景对象（分类 / ring）
   assets/lib_native/index.json                 模型 → 子网格/贴图 id；贴图表
 
-产物（deliverable/handoff/）：
+产物（deliverable/manifests/）：
   asset_inventory_models.csv     一行一个模型：hash / 名称 / 面数 / 贴图 / 场景用量 / 大地图用量 / 分类 / 是否需要 LOD
   asset_inventory_textures.csv   一行一张贴图：id / 名称 / 文件 / 类型 / 被多少模型和实例用 / 文件大小
   asset_inventory_scenes.csv     一行一个场景：对象数 / 唯一模型 / 三角面 / 远景数
@@ -20,9 +20,10 @@ import csv
 import collections
 import json
 import os
+import re
 
 RDR2 = r'D:/BrainMaker/大镖客2解包分析'
-HANDOFF = os.path.join(RDR2, 'deliverable/handoff')
+HANDOFF = os.path.join(RDR2, 'deliverable/manifests')
 SCENES = os.path.join(RDR2, 'deliverable/blender/scenes')
 LIB = os.path.join(RDR2, 'assets/lib_native')
 INDEX = os.path.join(LIB, 'index.json')
@@ -57,6 +58,25 @@ def main():
     models = idx['models']
     tex = idx['tex']
     print('索引：模型 {:,} / 贴图 {:,}'.format(len(models), len(tex)))
+
+    # ---------- hash → 真名（ledger + 大地图碎片）----------
+    # 🔴 2026-11-08：bigmap-only 模型没有场景名，旧逻辑落到 `0x...`；
+    #   名字其实在 model_ledger.csv / lod_fragments.csv 里，这里补上。
+    name_by_hash = {}
+    ledger = os.path.join(HANDOFF, 'model_ledger.csv')
+    if os.path.exists(ledger):
+        for r in csv.DictReader(open(ledger, encoding='utf-8-sig')):
+            try:
+                name_by_hash[int(r['hash'], 16)] = (r.get('name') or '').strip()
+            except Exception:
+                pass
+    if os.path.exists(FRAG):
+        for r in csv.DictReader(open(FRAG, encoding='utf-8-sig')):
+            k = r.get('model_hash') or r.get('hash') or ''
+            try:
+                name_by_hash.setdefault(int(k, 16), (r.get('name') or '').strip())
+            except Exception:
+                pass
 
     # ---------- 场景用量 ----------
     scene_use = {}
@@ -198,7 +218,14 @@ def main():
                     if ln:
                         add_tex(int(tid), h, inst + bmi, 'lyr%d' % j, imp)
         cls = ','.join('%s:%d' % (k, v) for k, v in cnt.most_common(4)) if cnt else ''
-        name = (su.get('names') or '').split('|')[0] or os.path.splitext(os.path.basename(m.get('f') or ''))[0]
+        name = (su.get('names') or '').split('|')[0].strip()
+        if not name or re.match(r'^0x[0-9a-fA-F]+$', name):
+            try:
+                name = name_by_hash.get(int(h, 16), '')
+            except Exception:
+                name = ''
+            if not name:
+                name = os.path.splitext(os.path.basename(m.get('f') or ''))[0]
         model_rows.append([
             h, name, m.get('f') or '', fs, vs,
             '|'.join(sorted(set(alb))), '|'.join(sorted(set(nm))), '|'.join(sorted(set(ma))),

@@ -337,8 +337,8 @@
 
 | 文件 | 内容 |
 |---|---|
-| `deliverable/handoff/lod_fragments.csv` | **主表**：一行一个碎片（frag_id / 组 / 类型 / 模型哈希 / mdl / 世界与局部变换 / 包围盒 / 三角面 / 三张贴图 / 分配方式） |
-| `deliverable/handoff/lod_groups.json` | 每组汇总：数量 / 面数 / 唯一模型 / 包围盒 / 子组 / 成员 frag_id |
+| `deliverable/manifests/lod_fragments.csv` | **主表**：一行一个碎片（frag_id / 组 / 类型 / 模型哈希 / mdl / 世界与局部变换 / 包围盒 / 三角面 / 三张贴图 / 分配方式） |
+| `deliverable/manifests/lod_groups.json` | 每组汇总：数量 / 面数 / 唯一模型 / 包围盒 / 子组 / 成员 frag_id |
 
 **分配规则**（唯一实现 = `tools/build_lod_groups.py`；改规则改那里，不要手改数据）
 
@@ -542,7 +542,7 @@ python -X utf8 build_settlement_map.py
 | 数据 | 值 | 来源 |
 |---|---|---|
 | 世界范围 | x ∈ [-6841.5, 3921.9]，y ∈ [-4796.6, 3221.8]（10,763 × 8,018 m） | `deliverable/terrain/on_map/meta.json` |
-| 水面掩码 | 2,692 × 2,006 像素，4 m/格 | `deliverable/heightmap/water_mask.png` |
+| 水面掩码 | 2,692 × 2,006 像素，4 m/格 | `deliverable/terrain/water_mask.png` |
 | 水面掩码的陆地 | 78.30 km² | `water_mask.png` 逐像素统计（含地图外空白，偏大） |
 | 地图外（不算地图） | 38.19 km² | 官方地图缩略图的空白羊皮纸 |
 | 地图区 | 48.12 km² | 地图画面（陆地 40.03 + 水面 8.10，水面也算可走） |

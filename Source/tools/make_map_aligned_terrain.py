@@ -16,7 +16,7 @@
    点怎么取：先跑 `--guarma-grid`，它会生成一张带像素坐标网格的瓜玛地图，
    你在地图上读出「阿瓜多切斯」和「瓜玛营」的像素坐标（世界坐标已知：
    阿瓜多切斯 (1364.0, -6992.5) / 瓜玛营 (1426.3, -7328.9)，见
-   `deliverable/handoff/settlements_world.csv`）。
+   `deliverable/manifests/settlements_world.csv`）。
 
 产物（`deliverable/terrain/on_map/`）：
 

@@ -5,7 +5,7 @@
 >
 > 判定方式不是猜：每个据点都用**解包出来的实体坐标**反查模型名前缀（`ann_*` / `val_*` / `roc_01_*`），
 > 再用 `assets/lib_native` 里有没有网格来判断"能不能真的看见"。
-> 机读数据：`deliverable/handoff/settlement_audit.csv`、本页表格。
+> 机读数据：`deliverable/manifests/settlement_audit.csv`、本页表格。
 
 > 🔴 **v3 补充（2026-11-02）**：据点表里的 `owner` 已能填上 **4 位真名**——瓦伦丁=柯蒂斯·马洛伊、
 > 草莓镇=弗农·法利、黑水镇=奥斯瓦尔德·邓巴、风滚草镇=萨缪尔·弗里曼；
@@ -161,7 +161,7 @@ data_0.rpf → data/lang/{american,chinesesimp}_rel.rpf → global.yldb
 
 > 「实体」= 据点半径内、可加载的实例数；「≥8m 建筑」= 其中包围盒最大边 ≥8 m 的；
 > 「有网格」= 这些建筑里模型确实在 `assets/lib_native` 里的数量（能真的摆出来）。
-> 完整 CSV：`deliverable/handoff/settlement_audit.csv`
+> 完整 CSV：`deliverable/manifests/settlement_audit.csv`
 
 | 类型 | 据点 | 编码 | 世界坐标 (x, y) | 实体 | ≥8m 建筑 | 有网格 | 模型前缀（前3） | 备注 |
 |---|---|---|---|---|---|---|---|---|
@@ -277,18 +277,18 @@ cd "D:/BrainMaker/大镖客2解包分析"
 
 # 1) 据点审计（实体 / ≥8m 建筑 / 有网格建筑）
 uv run python tools/audit_settlements_v2.py
-#   -> deliverable/handoff/settlement_audit.csv
+#   -> deliverable/manifests/settlement_audit.csv
 
 # 2) 威拉德之息实拍（只装这 7 个模型，十几秒）
 "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b \
   -P tools/render_willard.py -- . docs/世界与地编/img/willard
 
 # 3) 旧 43 个清单的原始数据（不改）
-deliverable/handoff/settlements_world.csv
+deliverable/manifests/settlements_world.csv
 ```
 
 | 产物 | 内容 |
 |---|---|
 | `docs/世界与地编/RDR2_骑砍2落地_据点修正_v2.md` | 本文 |
-| `deliverable/handoff/settlement_audit.csv` | 46 个据点：坐标 / 实体 / 建筑 / 有网格数 |
+| `deliverable/manifests/settlement_audit.csv` | 46 个据点：坐标 / 实体 / 建筑 / 有网格数 |
 | `docs/世界与地编/img/willard/*.png` | 威拉德之息 4 个机位实拍 |

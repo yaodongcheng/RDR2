@@ -15,8 +15,8 @@
 
 用法：
   uv run python tools/official_name_map.py --lookup "Horseshoe Overlook" "Fort Mercer"
-  uv run python tools/official_name_map.py --csv deliverable/handoff/settlements_world_v2.csv \
-      --col name_en --out deliverable/handoff/official_names_settlements.csv
+  uv run python tools/official_name_map.py --csv deliverable/manifests/settlements_world_v2.csv \
+      --col name_en --out deliverable/manifests/official_names_settlements.csv
 """
 import os
 import csv

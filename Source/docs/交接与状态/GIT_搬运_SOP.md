@@ -143,7 +143,7 @@ cmd /c 'git add tools > _tmp\c2.log 2>&1'
 cmd /c 'git commit -m "tools: single build pipeline, rdr2 decoders, extractors, git size gate" >> _tmp\c2.log 2>&1'
 
 # ③ 数据层（页面文本 + 账本 + 契约；git 自己会按 .gitignore 跳过 models/tex/二进制）
-cmd /c 'git add export deliverable/handoff assets/lib_native raw > _tmp\c3.log 2>&1'
+cmd /c 'git add export deliverable/manifests assets/lib_native raw > _tmp\c3.log 2>&1'
 cmd /c 'git commit -m "data: viewer text layer, build ledgers, downstream contract" >> _tmp\c3.log 2>&1'
 
 Get-Content _tmp\c1.log, _tmp\c2.log, _tmp\c3.log -Tail 5
@@ -152,7 +152,7 @@ cmd /c 'git log --oneline > _tmp\log.txt 2>&1' ; Get-Content _tmp\log.txt
 
 - 预期：3 行 commit。
 - 若 ① 报 `pathspec '*.md' did not match`：说明 `.gitignore` 顺序被改过 → 按 §5-C 停手。
-- 若 ③ 报某些路径不存在：逐个确认 `export` / `deliverable/handoff` / `assets/lib_native` / `raw` 是否都在（都在就重跑；缺哪个就只 add 存在的）。
+- 若 ③ 报某些路径不存在：逐个确认 `export` / `deliverable/manifests` / `assets/lib_native` / `raw` 是否都在（都在就重跑；缺哪个就只 add 存在的）。
 
 ### 第 6 步 · 打 tag
 

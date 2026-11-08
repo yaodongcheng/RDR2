@@ -2,9 +2,9 @@
 """场景地形 —— 按两层口径，从 `deliverable/terrain` 交付物切一块场景地面。
 
 数据源（**只读交付物，不碰 blend**）：
-    <PROJ>/deliverable/terrain/final/meta.json          世界框 / 分辨率 / z 区间
-    <PROJ>/deliverable/terrain/final/height_4m_16bit.png 16bit 高度（4 m，行 0 = 北）
-    <PROJ>/deliverable/terrain/final/color_1m.png        1 m 彩图（裁一块当贴图）
+    <PROJ>/deliverable/terrain/scene_native/meta.json          世界框 / 分辨率 / z 区间
+    <PROJ>/deliverable/terrain/scene_native/height_4m_16bit_native.png 16bit 原生高度（4 m，行 0 = 北）
+    <PROJ>/deliverable/terrain/color_1m.png                    1 m 唯一地形材质图（裁一块当贴图）
 
 做法：
     · **整块地形（活动区 + 远景）统一 4 m 网格**（2026-11-03 用户裁定：不分粗细，
@@ -45,7 +45,7 @@ def scene_extent():
         except Exception:
             _EXTENT = ()
     return _EXTENT or None
-TERRAIN = os.path.join(RDR2, "deliverable", "terrain", "final")
+TERRAIN = os.path.join(RDR2, "deliverable", "terrain", "scene_native")
 DEFAULT_CSV = os.path.join(SRC, "docs", "世界与地编", "scene_list.csv")
 DEFAULT_TEXDIR = os.path.join(RDR2, "deliverable", "blender", "scenes", "tex")
 

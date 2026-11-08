@@ -2,16 +2,16 @@
 """按据点/野地/瓜玛生成**大地图 prefab 数据**（交接 TODO-5）。
 
 输入（都是现成的）：
-  deliverable/handoff/lod_fragments.csv   一行一个远景碎片（含 gx,gy,gz 相对组锚点）
-  deliverable/handoff/lod_groups.json     每组汇总（锚点 / 名称 / 包围盒 / 成员）
+  deliverable/manifests/lod_fragments.csv   一行一个远景碎片（含 gx,gy,gz 相对组锚点）
+  deliverable/manifests/lod_groups.json     每组汇总（锚点 / 名称 / 包围盒 / 成员）
 
 产物：
-  deliverable/handoff/prefabs/<group_id>.json   一个组一个 prefab
+  deliverable/manifests/prefabs/<group_id>.json   一个组一个 prefab
       { group_type, group_id, name_zh, anchor_world, count, tris, verts,
         fragments:[{frag_id,part_key,name,hash,mdl,tris,verts,sub_group,
                     rot:[qx,qy,qz,qw], scale:[sxy,sz], pos_local:[gx,gy,gz],
                     pos_world:[wx,wy,wz], bbox:[...]}] }
-  deliverable/handoff/prefabs_index.json        索引 + 自检（组数 / 碎片总数 / 空组）
+  deliverable/manifests/prefabs_index.json        索引 + 自检（组数 / 碎片总数 / 空组）
 
 用法：
     python tools/build_lod_prefabs.py
@@ -23,7 +23,7 @@ import json
 import os
 
 RDR2 = r'D:/BrainMaker/大镖客2解包分析'
-HANDOFF = os.path.join(RDR2, 'deliverable/handoff')
+HANDOFF = os.path.join(RDR2, 'deliverable/manifests')
 CSV_FRAG = os.path.join(HANDOFF, 'lod_fragments.csv')
 JSON_GROUPS = os.path.join(HANDOFF, 'lod_groups.json')
 OUT_DIR = os.path.join(HANDOFF, 'prefabs')

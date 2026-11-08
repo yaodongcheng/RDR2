@@ -10,7 +10,7 @@ glTF 里这三张图是**按材质**记录的，同一材质被多个图元共�
 
 用法:
   uv run python tools/build_flat_table.py                      # 默认圣丹尼斯
-  uv run python tools/build_flat_table.py --town sdn --out deliverable/handoff/sdn_flat_table.csv
+  uv run python tools/build_flat_table.py --town sdn --out deliverable/manifests/sdn_flat_table.csv
   uv run python tools/build_flat_table.py --town val --with-bbox 1
 
 字段说明（坐标系 = RDR2 原生：X 东 / Y 北 / Z 上，单位米）:
@@ -76,7 +76,7 @@ def main():
     a = ap.parse_args()
 
     tile_dir = a.tiles or os.path.join(ROOT, 'export/previews', a.town, 'tiles')
-    out = a.out or os.path.join(ROOT, 'deliverable/handoff', a.town + '_flat_table.csv')
+    out = a.out or os.path.join(ROOT, 'deliverable/manifests', a.town + '_flat_table.csv')
     files = sorted(glob.glob(os.path.join(tile_dir, '*.gltf')))
     if not files:
         sys.exit('找不到 glTF：%s' % tile_dir)

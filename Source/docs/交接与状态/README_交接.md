@@ -790,7 +790,7 @@ python tools\list_unparsed_models.py         # 未入库逐条清单
 
 ### 18.3 远景碎片分组（骑砍2 大地图城镇 prefab）
 
-- 主表：`deliverable/handoff/lod_fragments.csv`（一行一个碎片：组/类型/模型/世界与局部变换/bbox/三角面/三张贴图/`part_key`）
+- 主表：`deliverable/manifests/lod_fragments.csv`（一行一个碎片：组/类型/模型/世界与局部变换/bbox/三角面/三张贴图/`part_key`）
   + `lod_groups.json`（每组汇总）。生成器 `tools/build_lod_groups.py`。
 - 分配规则（顺序）：
   1. 中心在据点能走范围 `P` 内 → 据点；

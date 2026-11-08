@@ -62,7 +62,7 @@
 | A 页面数据 | `export/<页面>/data.json`、`site.json`、`index.json`、`export/avg/data/*.json`、`export/story/*.json`、`export/cutscene/*.json` | 同名目录的 `.html`（相对路径） | ~60 | **跟页面一起进**，不许分开 |
 | B 构建账本 | `export/world/continent/{index,models}.json` + `tiles/*.json`（43 块） | `blender_continent.py`（ymap→blend 的唯一事实层） | 45 | **必须进**，见 §3 |
 | C 抽取账本 | `assets/lib_native/index*.json`、`raw/model_file_map.json`、`raw/rpf_*_state.json`、`raw/ingest_report.json` | `dump_model_lib` / `rebind_textures` / `ingest_extracted_models` | 8 | **必须进**，见 §3 |
-| D 下游契约 | `export/world/bannerlord/{camp_scenes.json,Rdr2CampBehavior.cs}`、`deliverable/handoff/*`（17 个） | 骑砍2 侧 / 第三方 | 19 | **进**（契约天然该版本化） |
+| D 下游契约 | `export/world/bannerlord/{camp_scenes.json,Rdr2CampBehavior.cs}`、`deliverable/manifests/*`（17 个） | 骑砍2 侧 / 第三方 | 19 | **进**（契约天然该版本化） |
 
 > 想"一处看全"用这张表，不要动文件。
 > 若将来真要抽独立目录，唯一安全做法是**让脚本改读新路径 + 全链回归**，那是另一件事（不在本轮范围）。
@@ -142,7 +142,7 @@ git add .gitignore .gitattributes *.md *.bat docs
 git commit -m "baseline: 最高原则/AGENTS/TODO/交接文档 + 启动器"
 git add tools
 git commit -m "tools: 唯一构建管线 + 格式解码器 + 抽取链 + 观测基建"
-git add export deliverable/handoff assets/lib_native/*.json raw/*.json
+git add export deliverable/manifests assets/lib_native/*.json raw/*.json
 git commit -m "data: 页面文本层 + 构建账本 + 下游契约"
 git tag continent-v8
 ```
