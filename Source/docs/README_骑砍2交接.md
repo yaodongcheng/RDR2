@@ -4,11 +4,12 @@
 > 首次生成 2026-10-22；**本次更新 2026-11-08**（交付包核对 + 目录全图 + 贴图/模型第一版）。
 > 机读版索引：`deliverable\manifests\`（`asset_import_*` / `lod_fragments.csv` / `settlements_world_v2.csv` / `world_meta.json`）
 > **交付包清单（git 版）**：[交付包清单_20261108.md](交接与状态/交付包清单_20261108.md)
+> **交接 TODO（未完成清单）**：[交接_TODO_20261108.md](交接与状态/交接_TODO_20261108.md)
 >
 > 🔴 **2026-11-07 状态（先看这条）**：
 > - **57/57 子场景已全部建成并重建到最新口径**（11-07/11-08；每张 0 超界、地形自检 PASS）；
 > - **旧 sdn 实验作废**（`rdr2_sanit_denis` / 5,211 个 FBX / 旧 tpac），圣丹尼斯城要按新素材重做；
-> - **模型/贴图第一版已出（2026-11-08）**：`models\` 24,424 个**单档 TRF（LOD0）** + `textures\alb|nm|ma` 22,504 张 **PNG**；正式 7 档 LOD / DDS 后补；
+> - **模型/贴图第一版已出（2026-11-08）**：`models\` 24,716 个**单档 TRF（LOD0）** + `textures\alb|nm|ma` 28,430 张 **PNG**；正式 7 档 LOD / DDS 后补；
 > - **骑砍2 侧的落地计划 = `Modules/LivingWorldNpcs/plans/大镖客2还原/00-总纲.md`**（本文只做数据契约）；
 > - 🔴 **交付包的目录结构与现状见下一节「★ 交付物总览」——那是包的入口说明，先读它。**
 
@@ -17,19 +18,19 @@
 ## ★ 交付物总览：`deliverable` 目录全图（2026-11-08 实测）
 
 > **这一节回答三件事**：包里有什么、怎么组织的、哪份能用哪份别用。
-> 全包 = **约 75 GB / 118,362 个文件**（2026-11-08：新增 `textures\` / `textures_extra\` / `models\` / `models_extra\`），**7 个顶层目录**。
+> 全包 = **约 79 GB / 128,069 个文件**（2026-11-08：新增 `textures\` / `textures_extra\` / `models\` / `models_extra\` / `characters\` / `weapons\` / `items\`），**10 个顶层目录**。
 >
 > 🔴 **自包含规则（2026-11-08）**：57 张场景 blend 的贴图路径已重指到包内 `textures\` / `textures_extra\`，不再引用 `assets\lib_native\tex`；场景用到的模型在 `models\` + `models_extra\` 各有一份导出。
 >
 > 🔴 **三件事先记住，不然一定拿错**：
 > ① **模型第一版 = 单档 TRF（只有 LOD0）**，在 `models\`；**LOD0-6 链还没做**（后续用场景 blend 直出 7 档补上）。
-> ② **角色与武器模型不在包内** —— 在 `D:\BrainMaker\大镖客2解包分析\export\` 下（`export\npc` / `export\viewer`）。
+> ② **角色/武器/道具已第一版入包**（`characters\` / `weapons\` / `items\`）；骑砍2侧还需绑骨架、建物品定义。
 > ③ **子场景的最新摆位表还没导出** —— 现有 `placement_<id>.jsonl` 是 11-04 旧版，与 11-07 场景不一致；最新清单 `manifest_<id>.jsonl` 只有名称/类/包围盒，**没有位置和旋转**。摆位要重跑 `tools\export_scene_placements.py`。
 
 ### ★1 目录树（数量 / 体积 / 是否交付）
 
 ```
-deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
+deliverable\  ≈79 GB / 128,069 files（2026-11-08 实测）
 ├─ blender\                                        39 GB
 │  ├─ scenes\          57 张子场景（主体）          12 GB / 456 files         ★
 │  ├─ continent\       大地图（v23 + v25 + 贴图池）  28 GB / 46,970 files      ★
@@ -44,15 +45,18 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 │  ├─ tiles\           0.25 m/px 原生彩图瓦片        2.55 GB / 482 files      🟡
 │  ├─ on_map\          对齐官方地图的裁剪版          67.2 MB / 5 files        🟡
 │  └─ weights\         7 层材质权重                  42.4 MB / 13 files       ⚙️ 必留·不交
-├─ textures\                                        5.8 GB / 22,505 files
-│  ├─ alb\             漫反射（10,319 张）           3.6 GB                      ★
-│  ├─ nm\              法线（6,495 张）              1.5 GB                      ★
-│  └─ ma\              高光/ORM（5,690 张）          785 MB                      ★
-├─ textures_extra\     额外贴图（场景用到、非导入）   1.8 GB / 7,711 files      ★
-├─ models\            单档 TRF（LOD0，暂无 LOD0-6） 14 GB / 24,425 files       ★
-├─ models_extra\      额外模型（场景用到、非导入）   12 GB / 15,567 files       ★
-├─ manifests\          机读清单                      60 MB / 102 files         ★
-│  └─ prefabs\         55 个据点碎片 prefab          1.5 MB / 55 files        ⚠️
+├─ textures\                                        5.9 GB / 22,736 files
+│  ├─ alb\             漫反射（10,400 张）           3.6 GB                      ★
+│  ├─ nm\              法线（6,586 张）              1.5 GB                      ★
+│  └─ ma\              高光/ORM（5,749 张）          785 MB                      ★
+├─ textures_extra\     额外贴图（场景用到、非导入）   1.8 GB / 7,712 files      ★
+├─ models\            单档 TRF（LOD0，暂无 LOD0-6） 15 GB / 24,717 files       ★
+├─ models_extra\      额外模型（场景用到、非导入）   13 GB / 20,013 files       ★
+├─ characters\        角色/动物 GLB（第一版）         1.4 GB / 826 files        ★
+├─ weapons\           45 把武器 glTF + 主体/部件/贴图 104 MB / 1,067 files      ★
+├─ items\             916 件道具 glTF                 90 MB / 2,839 files       ★
+├─ manifests\          机读清单                      67 MB / 106 files         ★
+│  └─ prefabs\         56 组 / 2,481 碎片 prefab     1.6 MB / 56 files        ★
 ```
 
 **图例**：★ 交付件 · 🟡 可选/参考 · ⚙️ 不交但**盘上必须保留**（生成器输入） · ⛔ 不交（旧版/中间物）。
@@ -62,17 +66,20 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 
 > ⚠️ 子目录里的 `blender\README.md` 是 2026-10-27 的旧布局说明（写的是 `continent.blend` / `sdn.blend` / `willard`），**以本文 ★1~★8 为准**；`terrain\README.md` 内容仍有效。
 
-### ★2 七个顶层目录各管什么
+### ★2 十个顶层目录各管什么
 
 | 目录 | 是什么 | 怎么用 |
 |---|---|---|
 | `blender\` | 所有 `.blend` 场景 + 贴图池 | 打开看地编；`scenes\` 是子场景主体，`continent\tex` 是贴图池 |
 | `terrain\` | 大地图地形的源与派生物 | 引擎只读 `stages\`（三种模式）+ `scene_native\`（子场景原生）+ `color_1m.png`（唯一材质图）；其余是中间物 |
 | `textures\` | **3 类贴图第一版**（PNG）：`alb\` / `nm\` / `ma\` | 按 `manifests\asset_import_textures.csv` 的 name 对应；DDS 转换待做 |
-| `textures_extra\` | **额外贴图**（824 张 + blend 兜底）：场景用到、但不在导入子集 | 只服务 `models_extra` / blend 额外材质；不进游戏；索引 `textures_export_extra.csv` |
-| `models_extra\` | **额外模型**：场景用到、但不在导入子集（15,566 个单档 TRF） | 地形块/地下/水面/占位/地形 LOD；不进游戏，只为包自包含 |
+| `textures_extra\` | **额外贴图**（索引 1,936 张 + blend 兜底）：场景用到、但不在导入子集 | 只服务 `models_extra` / blend 额外材质；不进游戏；索引 `textures_export_extra.csv` |
+| `models_extra\` | **额外模型**：场景用到、但不在导入子集（20,012 个单档 TRF） | 地形块/地下/水面/占位/地形 LOD；不进游戏，只为包自包含 |
 | `models\` | **模型第一版**：单档 TRF（LOD0，无 LOD0-6） | 直接给 ModKit 导入；7 档 LOD 后续补 |
-| `manifests\` | 机读清单（模型/贴图/碎片/据点/角色） | 所有导入脚本的输入 |
+| `characters\` | **角色/动物 GLB 第一版**（408 个入表，414 个文件） | 贴图内嵌；需绑 28 骨人形骨架 |
+| `weapons\` | **45 把武器 glTF** + 主体/部件/贴图 + `weapon_assembly.csv` | 长枪是主体+部件；第一版不建骑砍2物品定义 |
+| `items\` | **916 件道具 glTF** + 贴图 | 店铺/兵种/任务用品；第一版不建物品定义 |
+| `manifests\` | 机读清单（模型/贴图/碎片/据点/角色/武器/道具） | 所有导入脚本的输入 |
 
 ### ★2.1 `manifests\` 里每个文件是干什么的（行数含表头）
 
@@ -80,23 +87,26 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 
 | 文件 | 行数 | 内容 | 用不用 |
 |---|---:|---|---|
-| `asset_import_models.csv` | 24,425 | 导入子集 24,424 个模型：hash/名/mdl/面数/三贴图/场景用量/类/是否要 LOD | ✅ 主清单 |
-| `asset_import_textures.csv` | 22,505 | 导入子集 22,504 张贴图：tex_id/名/文件/类型(alb/nm/ma)/引用数 | ✅ 主清单 |
-| `textures_export.csv` | 22,505 | **贴图导出索引**：tex_id/name/role/source/dest/bytes（对应 `textures\alb|nm|ma\`） | ✅ 第一版 |
-| `textures_export_extra.csv` | 825 | **额外贴图索引**（824 张，对应 `textures_extra\alb|nm|ma\`） | ✅ 额外 |
+| `asset_import_models.csv` | 24,717 | 导入子集 24,716 个模型：hash/名/mdl/面数/三贴图/场景用量/类/是否要 LOD | ✅ 主清单 |
+| `asset_import_textures.csv` | 28,431 | 导入子集 28,430 张贴图：tex_id/名/文件/类型(alb/nm/ma)/引用数 | ✅ 主清单 |
+| `textures_export.csv` | 28,431 | **贴图导出索引**：tex_id/name/role/source/dest/bytes（对应 `textures\alb|nm|ma\`） | ✅ 第一版 |
+| `textures_export_extra.csv` | 1,937 | **额外贴图索引**（1,936 张，对应 `textures_extra\`） | ✅ 额外 |
 | `textures_export_fallback.csv` | 10,153 | 重指 blend 路径时从包内池补入的额外贴图（按 blend 记录，去重后约 6,886 张） | 记录 |
 | `delivery_reconciliation.json` | — | **自包含核对**：场景并集 vs 交付模型/贴图、blend 外部引用 | ✅ 验收 |
-| `models_export.csv` | 24,425 | **模型主表**：name/hash/mdl/trf/faces/bytes + slots/material_count/materials/material_status/no_tex_slots | ✅ 第一版 |
-| `models_export_extra.csv` | 15,567 | **额外模型索引**（15,566 个，对应 `models_extra\`） | ✅ 额外 |
-| `material_textures.csv` | 9,029 | **材质三件套**：material/albedo/normal/ma/models/slots/status | ✅ 材质接线 |
-| `model_materials.csv` | 62,982 | **模型 → 材质逐槽表**：model/trf/trf_mesh/slot/material/albedo/normal/ma/faces/verts/status | ✅ 精确对应 |
+| `models_export.csv` | 24,717 | **模型主表**：name/hash/mdl/trf/faces/bytes + slots/material_count/materials/material_status/no_tex_slots | ✅ 第一版 |
+| `models_export_extra.csv` | 20,013 | **额外模型索引**（20,012 个，对应 `models_extra\`） | ✅ 额外 |
+| `characters_export.csv` | 409 | **角色/动物 GLB 清单**：rank/tier/cn_name/name/category/glb/dest/bytes/parts/verts/tris/textures | ✅ 第一版 |
+| `weapons_export.csv` | 46 | **武器清单**：id/name/category/gltf/dest/variants/assembly_parts | ✅ 第一版 |
+| `items_export.csv` | 917 | **道具清单**：id/name/category/package/gltf/dest/bytes | ✅ 第一版 |
+| `material_textures.csv` | 11,206 | **材质三件套**：material/albedo/normal/ma/models/slots/status | ✅ 材质接线 |
+| `model_materials.csv` | 71,841 | **模型 → 材质逐槽表**：model/trf/trf_mesh/slot/material/albedo/normal/ma/faces/verts/status | ✅ 精确对应 |
 | `model_name_fix.csv` | 45 | 44 个 bigmap-only 模型的 hash→真名修正记录 | 记录 |
-| `asset_inventory_models.csv` | 39,991 | 全量 39,990 个模型（含不导的类） | 对账用 |
-| `asset_inventory_textures.csv` | 23,329 | 全量 23,328 张贴图 | 对账用 |
+| `asset_inventory_models.csv` | 44,729 | 全量 44,728 个模型（含不导的类） | 对账用 |
+| `asset_inventory_textures.csv` | 30,357 | 全量 30,356 张贴图 | 对账用 |
 | `asset_inventory_scenes.csv` | 57 | 每场景对象/唯一模型/面数/导入面数 | ✅ 预算用 |
 | `asset_inventory_summary.json` | — | 上面几张的汇总 | 对账用 |
-| `mesh_texture_audit.csv` | 39,947 | 每模型的三张贴图审计（缺哪张） | 查缺图 |
-| `mesh_usage.csv` | 39,947 | 每模型被哪些场景用、实例数 | 排导入优先级 |
+| `mesh_texture_audit.csv` | 39,947 | 每模型的三张贴图审计（缺哪张）；⚠️ 11-05 口径，未重跑 | 查缺图 |
+| `mesh_usage.csv` | 44,725 | 每模型被哪些场景用、实例数（2026-11-08 重跑） | 排导入优先级 |
 | `model_manifest.csv` | 10,894 | 大地图 10,893 个模型：hash/名/mdl/面数/尺寸/实例数 | 大地图查模型 |
 | `texture_list.csv` | 20,889 | 11-04 版贴图清单（已被 `asset_inventory_textures.csv` 取代） | 🟡 旧 |
 | `model_ledger.csv` | 52,540 | 模型库总账（52,539，旧口径） | 🟡 旧 |
@@ -108,8 +118,8 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 | `lod_fragments.csv` | 2,482 | 2,481 个碎片：hash/模型/面数/三贴图/**世界位姿 + 组内局部坐标** |
 | `lod_groups.json` | — | 60 条分组记录（**56 组有碎片**）：锚点/数量/面数/包围盒/成员 |
 | `lod_split_parts.json` | — | 11 个跨据点合并 LOD 的拆分件 |
-| `prefabs\<group_id>.json` | 55 个文件 | 按据点/野地拼好的 prefab（**11-04 版，落后一版**） |
-| `prefabs_index.json` | — | prefab 索引（同上，旧） |
+| `prefabs\<group_id>.json` | 56 个文件 | 按据点/野地拼好的 prefab（2026-11-08 重跑，2,481 碎片；`dow` 已补） |
+| `prefabs_index.json` | — | prefab 索引（56 组 / 2,481 碎片 / 4 空组） |
 
 **据点 / 角色 / NPC**
 
@@ -215,15 +225,15 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 
 | # | 问题 | 实测 |
 |---|---|---|
-| 1 | **6 张野地的高度图与彩图矩形不一致** | `wild_01` 高差 104 m；`wild_02` 24 m；`wild_03` 宽 84 / 高 24；`wild_05` 宽 84；`wild_08` 宽 84；`wild_10` 宽 60 / 高 64 |
-| 2 | **prefab 落后一版** | `prefabs\` 55 个，当前是 56 组有碎片；**31 组数量对不上**；`dow` 缺 prefab |
-| 3 | **资产清单是 11-05 的** | `asset_inventory_*` / `asset_import_*` 按 11-05 场景统计（206,790 对象），11-07 重建后是 226,487，**差 19,697** |
-| 4 | **blend 贴图路径指向包外** | 全部指向 `D:\BrainMaker\大镖客2解包分析\assets\lib_native\tex`；包单独拷走会全部丢失 |
+| 1 | ~~6 张野地的高度图与彩图矩形不一致~~ | ✅ **2026-11-08 已修**：高度图裁到彩图/地图框同一矩形；6 张全部 `mismatch 0` |
+| 2 | ~~prefab 落后一版~~ | ✅ **2026-11-08 已重跑**：56 组 / 2,481 碎片；`dow` 已补 |
+| 3 | ~~资产清单是 11-05 的~~ | ✅ **2026-11-08 已重跑**：摆位按当前 57 张场景重出，`asset_inventory_*` / `asset_import_*` 随之更新 |
+| 4 | ~~blend 贴图路径指向包外~~ | ✅ **2026-11-08 已重指**：57 张全部指向包内 `textures` / `textures_extra`；`lib_native` 引用 = 0 |
 | 5 | ~~完整版大地图的 LOD 是旧的~~ | ✅ 已解决：`continent_v25.blend`（11-08 重建，LOD append 2,436 件 / 高度 = 01 未刻版） |
 
 ### ★8 接手顺序（读什么 → 做什么）
 
-1. 读 `manifests\asset_import_models.csv` / `asset_import_textures.csv` → 知道要导哪些模型和贴图；**第一版已按清单导出**：`models\*.trf` 24,424 个（单档）+ `textures\alb|nm|ma` 22,504 张 PNG，可直接导 ModKit。
+1. 读 `manifests\asset_import_models.csv` / `asset_import_textures.csv` → 知道要导哪些模型和贴图；**第一版已按清单导出**：`models\*.trf` 24,716 个（单档）+ `textures\alb|nm|ma` 28,430 张 PNG，可直接导 ModKit。
 2. 读 `manifests\lod_fragments.csv` + `lod_groups.json` → 拼大地图 prefab（唯一带完整变换的表）。
 3. 读 `blender\scenes\<id>.blend` + `terrain\` + `tex\` → 建场景（先 `sdn` → `val` → 批量）。
 4. 读 `scene_report_<id>.json` → 拿活动区/远景矩形；摆位用重跑后的 `placement_<id>.jsonl`。
@@ -250,9 +260,9 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 | 类别 | 现有产物 | 骑砍2 用途 | 状态 |
 |---|---|---|---|
 | ① **世界与地编** | `docs/世界与地编/scene_list.csv`（58 行）+ `scene_specs.json`（P 多边形）+ 高度图/彩图 + `deliverable/blender/scenes/`（**57 张 blend**） | 建 57 张场景、接入口、扎营落点 | ✅ **57/57 已建成**（11-07/11-08，0 超界、地形图全 PASS）；**等用户验收（TODO-6）** |
-| ② **建筑/道具模型** | 全量清单 `deliverable/manifests/asset_import_models.csv`（**24,424 个模型**）+ `asset_import_textures.csv`（**22,504 张贴图**） | 场景里的房子/道具/铁路/植被… | ✅ **2026-11-08 第一版已出**：`models\` 单档 TRF（LOD0）+ `textures\alb|nm|ma` PNG；正式 7 档 LOD / DDS 后补 |
-| ③ **角色外观/服饰/人头** | `docs/角色与物品/RDR2_服饰全清单与换装修复.md`、`RDR2_角色眼睛与服饰贴图修复.md`、`docs/格式与资产/RDR2骨架_yft格式.md` | 让 NPC / 主角长得像大镖客 | 🟡 已研究 + 修复方案，**未成包** |
-| ④ **武器/道具/载具** | `docs/角色与物品/RDR2_武器道具模型与剧本对白.md`、`RDR2_武器金属材质修正.md`、`RDR2_载具与UI与兵种覆盖审计.md`、`RDR2_模型图标与综合查看器.md` | 武器、道具、载具、图标 | 🟡 已研究 + 提取管线，**未成包** |
+| ② **建筑/道具模型** | 全量清单 `deliverable/manifests/asset_import_models.csv`（**24,716 个模型**）+ `asset_import_textures.csv`（**28,430 张贴图**） | 场景里的房子/道具/铁路/植被… | ✅ **2026-11-08 第一版已出**：`models\` 单档 TRF（LOD0）+ `textures\alb|nm|ma` PNG；正式 7 档 LOD / DDS 后补 |
+| ③ **角色外观/服饰/人头** | `docs/角色与物品/RDR2_服饰全清单与换装修复.md`、`RDR2_角色眼睛与服饰贴图修复.md`、`docs/格式与资产/RDR2骨架_yft格式.md` | 让 NPC / 主角长得像大镖客 | ✅ **2026-11-08 第一版入包**：`characters\` 408 GLB（贴图内嵌）；未绑骨架 |
+| ④ **武器/道具/载具** | `docs/角色与物品/RDR2_武器道具模型与剧本对白.md`、`RDR2_武器金属材质修正.md`、`RDR2_载具与UI与兵种覆盖审计.md`、`RDR2_模型图标与综合查看器.md` | 武器、道具、载具、图标 | ✅ **2026-11-08 第一版入包**：`weapons\` 45 + `items\` 916（glTF + 贴图）；未建物品定义 |
 | ⑤ **NPC 名单与组织** | `docs/世界与地编/RDR2_NPC名单与环境人群表.md`、`RDR2_NPC生成与行为机制.md`、`docs/格式与资产/RDR2_本地化文本与NPC池.md`、`docs/角色与物品/RDR2_骑砍2落地_势力与NPC.md` | 每个城镇有哪些 NPC / 身份职业 / 势力归属 / 生成规则 | 🟡 **研究完成**，未做成数据表 |
 | ⑥ **剧情/任务/动画/音频** | `docs/任务与剧情/`（12 篇：主线 AVG 化、任务逐步骤拆解、随机任务搬运方案、音频与过场可行性）；`docs/格式与资产/RDR2_ycd动画解码.md`、`HANDOFF_动画与蒙皮.md` | 任务链、过场、对话、动画、BGM | 🟡 研究/方案阶段 |
 
@@ -313,9 +323,9 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 
 | 文件 | 内容 |
 |---|---|
-| `deliverable/manifests/asset_inventory_models.csv` | 全量 **39,990 个模型**：hash / 名称 / 面数 / 贴图 / 场景用量 / 大地图用量 / 分类 / 是否需 LOD |
-| `deliverable/manifests/asset_import_models.csv` | **导入子集 24,424 个模型**（按 21 类筛，见下；其中 9,265 个 ≥2,000 面要做 LOD） |
-| `deliverable/manifests/asset_inventory_textures.csv` / `asset_import_textures.csv` | 全量 **23,328 张** / 导入 **22,504 张贴图**（类型、文件、大小、模型/实例用量） |
+| `deliverable/manifests/asset_inventory_models.csv` | 全量 **44,728 个模型**：hash / 名称 / 面数 / 贴图 / 场景用量 / 大地图用量 / 分类 / 是否需 LOD |
+| `deliverable/manifests/asset_import_models.csv` | **导入子集 24,716 个模型**（按 21 类筛，见下；其中 10,370 个 ≥2,000 面要做 LOD） |
+| `deliverable/manifests/asset_inventory_textures.csv` / `asset_import_textures.csv` | 全量 **30,356 张** / 导入 **28,430 张贴图**（类型、文件、大小、模型/实例用量） |
 | `deliverable/manifests/asset_inventory_scenes.csv` | 每场景：对象 / 唯一模型 / 三角面 / **导入面数** |
 | `deliverable/manifests/asset_inventory_summary.json` | 汇总（含大地图碎片 / 微缩模型） |
 
@@ -328,10 +338,10 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 **导入口径**
 
 🔴 **2026-11-08 第一版已出（先跑通导入；LOD 链 / DDS 后补）**：
-- **模型**：`deliverable/models/<name>.trf` = **单档 TRF（只有 LOD0）**，共 24,424 个；
+- **模型**：`deliverable/models/<name>.trf` = **单档 TRF（只有 LOD0）**，共 24,716 个；
   来源 = `.mdl` 库直出（`Scripts/export_rdr2_trf_mdl.py`），UV 已按场景口径翻 V；
   **LOD0-6 链还没做**（正式版再走场景 blend 直出 7 档）。
-- **贴图**：`deliverable/textures/alb|nm|ma/<name>.png` = 22,504 张 **PNG**（源池原样）；
+- **贴图**：`deliverable/textures/alb|nm|ma/<name>.png` = 28,430 张 **PNG**（源池原样）；
   **DDS 转换待有 texconv 再做**。
 - **清单**：`manifests/models_export.csv`（模型主表：文件 + 材质汇总）/ `model_materials.csv`（逐槽明细）/ `material_textures.csv`（材质三件套）/ `textures_export.csv`（贴图索引）。
 
@@ -405,10 +415,10 @@ deliverable\  ≈75 GB / 118,362 files（2026-11-08 实测）
 |---|---|---|---|
 | **TODO-0** | **远景碎片两类落地**：分类器新增 `lod_out`（远景碎片·区外，默认显示）；场景裁剪把"完全在活动区外"的碎片改标为 `lod_out`，活动区内保持 `lod`（默认隐藏）；跨边界留在 `lod`；**不删对象** | `tools/class_rules.py` + `tools/scene_trim.py` | 打开 `bla.blend`：分类面板有 `远景碎片` / `远景碎片·区外` 两行；活动区内看不到 lod；活动区外可见；地形回归点 PASS |
 | **TODO-1** | 用修好的口径**重建 58 张子场景 blend** | ✅ `tools/build_scenes.py` | ✅ **57/57 done**（含瓜玛）：全部 0 超界、地形自检 PASS、`rooms` 已入表；远景碎片来自打散分组远景库 |
-| **TODO-2** | 每张场景出**高度图 + 彩色地形图** | ✅ `tools/export_scene_terrain_maps.py`（已接进 `build_scenes.py`，每建完一张自动导） | ✅ 57 张全 PASS：高度图与 blend 用**同一套采样**（`scene_terrain_core`），自检最大误差 0.000 m；彩图 `<id>_color.png`（1 m/px、与高度图同矩形；**6 张野地例外，见 ★7**）；元数据 `<id>_terrain.json` |
-| **TODO-3** | 出**全局网格库清单 + 三类贴图清单** | ✅ `tools/audit_mesh_textures.py` | ✅ 用到模型 **39,946** / 贴图 **20,888** 张（文件缺失 **0**）；缺 albedo **1,688**、缺 normal **6,529**、缺 ma **7,267** —— 清单在 `deliverable/manifests/mesh_texture_audit.csv` / `texture_list.csv`。🔴 **缺 albedo 是已知接受缺口**（本项目 README §6「小道具贴图缺失」：扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替），**不要再重新解包** |
-| **TODO-4** | 每场景出**对象摆放清单**（供骑砍2 生成 xscene） | ⚠️ `tools/export_scene_placements.py`（脚本可用，但 11-07 重建后**未重跑**） | ⚠️ 56 个 `placement_<id>.jsonl`（69 MB）是 **11-04 版**：`hash / model_hash / cls / ring / loc / quat / scale / bbox / part_key / split_of / int_pkg / tile`。**交付前必须重跑**（现有文件与 11-07 场景不一致） |
-| **TODO-5** | 大地图**按据点分组的 prefab** | ⚠️ `tools/build_lod_prefabs.py`（11-07 未重跑） | ⚠️ 现有 **55 组 / 2,324 碎片**，是 11-04 版；当前分组是 **56 组 / 2,481 碎片**，**31 组数量对不上、`dow` 缺** ⇒ **交付前必须重跑**。输出 `deliverable/manifests/prefabs/<group_id>.json` + `prefabs_index.json`。**空组（`twi` / `abe`）从 `continent_v25.blend` 按同一口径补采进 LOD 分组，不再用 `build_miniatures.py` 兜底（2026-11-08 作废）** |
+| **TODO-2** | 每张场景出**高度图 + 彩色地形图** | ✅ `tools/export_scene_terrain_maps.py`（已接进 `build_scenes.py`） | ✅ 57 张全 PASS：高度图与 blend 同一套采样；**2026-11-08 高度图裁到彩图同矩形，6 张野地 mismatch 已归零** |
+| **TODO-3** | 出**全局网格库清单 + 三类贴图清单** | ✅ `tools/audit_mesh_textures.py` | ✅ 清单在 `mesh_texture_audit.csv` / `texture_list.csv`；⚠️ 这两张仍是 11-05 口径，未随 11-08 重跑。🔴 **缺 albedo 是已知接受缺口**（扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无，用近似色代替），**不要再重新解包** |
+| **TODO-4** | 每场景出**对象摆放清单**（供骑砍2 生成 xscene） | ✅ `tools/export_scene_placements.py`（2026-11-08 已在当前 57 张场景重跑） | ✅ 57 个 `placement_<id>.jsonl` + `mesh_usage.csv` 已更新（字段含 loc/quat/scale/bbox/part_key/split_of/int_pkg/tile） |
+| **TODO-5** | 大地图**按据点分组的 prefab** | ✅ `tools/build_lod_prefabs.py`（2026-11-08 重跑） | ✅ **56 组 / 2,481 碎片**，`dow` 已补；4 个空组（`abe` / `twi` / `none` / `span`） |
 | **TODO-6** | 用户逐张预览确认 | — | 用户点开任意 3 张（大/中/小各一）说"可以" |
 
 > 顺序硬约束：**TODO-0 不过，不要开 TODO-1 的批量**；TODO-1 不全过，不进入 TODO-2~5。

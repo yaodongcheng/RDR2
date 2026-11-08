@@ -123,6 +123,10 @@ def export_scene(sid, meta=None, H=None, csv_path=CSV_DEF, outdir=OUTDIR, verbos
 
     fx0, fy0 = sc["x"] - sc["fw"] / 2, sc["y"] - sc["fh"] / 2
     fx1, fy1 = sc["x"] + sc["fw"] / 2, sc["y"] + sc["fh"] / 2
+    # 2026-11-08：高度图必须和彩图同矩形。彩图只覆盖 meta 框（color_1m），
+    # 场景远景框超出时必须裁到 meta，否则 6 张野地会出现 24~104 m 的矩形差。
+    fx0, fy0 = max(fx0, meta["x0"]), max(fy0, meta["y0"])
+    fx1, fy1 = min(fx1, meta["x1"]), min(fy1, meta["y1"])
     xs = _grid_axis(fx0, fx1)
     ys = _grid_axis(fy0, fy1)
     if len(xs) < 2 or len(ys) < 2:

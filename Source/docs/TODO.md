@@ -1,6 +1,7 @@
 # TODO —— 交接版（2026-11-08）
 
 > 🔴 **先读下面「2026-11-08 会话总结」**，再按需翻历史记录。
+> **交付侧交接 TODO（未完成清单）**：`docs/交接与状态/交接_TODO_20261108.md`
 > 细则：分类看 `docs/格式与资产/分类体系与判定规则.md`；室内管线速查看 `docs/AGENTS.md` **§6.24**；
 > 场景代号↔中文名看 `docs/世界与地编/场景对照表.md`。
 > **红线**：分类规则只改 `tools/class_rules.py`；改完必须跑 `python tools/_check_rules.py`。构建前先关 RDR2 与 Blender。
@@ -51,12 +52,15 @@
 |---|---|---|
 | 1 | ~~完整大陆没摆室内~~ | ✅ **2026-11-08 用户裁定：完整大陆不摆室内**（`continent_v25.blend` 就保持现状） |
 | 2 | **彩图仍有 10 块补色方块** | `combine_ground.py` 用 128 m 中位色回填（非城区）；未修 |
-| 3 | 交付包仍缺三大件 | 模型网格本体（TRF 未批量）、角色/武器模型 + 名单、贴图 DDS 批量 |
-| 4 | 清单过期 | `asset_import_*` 是 11-05 的（比 11-07 场景少 19,697 对象）；`prefabs` 55 vs 56 组；`placement_*.jsonl` 是 11-04 旧版 —— 都要重跑 |
-| 5 | 贴图路径没改包内 | 所有 blend 指向 `assets/lib_native/tex`，包单独拷走会丢贴图 |
-| 6 | 游戏侧地形没切源 | `Scripts/gen_rdr2_terrain.py` 仍读旧 `continent_height_4m.png` |
+| 3 | 交付包仍缺的 | ✅ 模型/贴图/角色/武器/道具第一版已出（`models`+`models_extra` / `textures`+`textures_extra` / `characters` / `weapons` / `items`）；**仍缺**：7 档 LOD 链、贴图 DDS、角色绑 28 骨骨架、武器物品定义/主体部件拼装 |
+| 4 | ~~清单过期~~ | ✅ **2026-11-08 已重跑**：摆位按当前 57 张场景重出，`asset_inventory_*` / `asset_import_*` / `prefabs` 全部更新 |
+| 5 | ~~贴图路径没改包内~~ | ✅ **2026-11-08 已重指**：57 张 blend → 包内 `textures` / `textures_extra`；`lib_native` = 0 |
+| 6 | ~~游戏侧地形没切源~~ | ✅ **2026-11-08 已切**：`gen_rdr2_terrain.py` → `stages/<STAGE>`（默认 02）；`gen_rdr2_sdn_terrain.py` → `scene_native` |
 | 7 | 完整大陆只有未刻版 | 是否也要一版刻河床的完整大陆，待定 |
 | 8 | 瓜玛远景碎片全在活动区 | `ring=0`（45 件都落在活动区内、归 `lod` 隐藏）——是否符合野地规则待确认 |
+| 9 | 额外资源索引未去重 | `textures_export_fallback.csv` 是按 blend 的日志（10,152 行）；`models_extra` 也没有材质汇总；`mesh_texture_audit.csv` / `texture_list.csv` 仍是 11-05 口径 |
+| 10 | 旧资产清理（可选） | `blender\continent\` 里 v23/v24 旧版仍在；不影响交付 |
+| 11 | 权重图重跑（可选） | `build_terrain_weights.py` 已改读 02，但 `terrain/weights/` 还是旧数据；权重不进交付包 |
 
 ### 四、关键文件（本会话新增/改动）
 

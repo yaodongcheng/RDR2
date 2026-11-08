@@ -123,7 +123,7 @@ def main():
     if bad:
         print('[prefab] ⚠ 与 lod_groups.json 计数不一致：%s' % bad)
     else:
-        print('[prefab] ✅ 每组计数与 lod_groups.json 一致')
+        print('[prefab] OK 每组计数与 lod_groups.json 一致')
     for e in empty:
         print('[prefab]   空组（无远景碎片）：%s %s' % (e['group_id'], e.get('name_zh') or ''))
     print('[prefab] 索引 -> %s' % a.index)
