@@ -54,6 +54,23 @@
 > `manifest_from_jsonl.py`（汇总加 `with_normal_objects` 等四项）、`export_sdn_props2.py`
 > （`.yft` 的 geom 也带 `ntex`/`mtex`）。
 
+## 交付包 FBX 导出（2026-11-08 新增，2 个 · 用户裁定「角色和模型只认 FBX」）
+
+> 背景见 `docs/README_骑砍2交接.md` §0.5.3。旧的第一版模型是自写 ASCII `.trf`（单档 LOD0）、
+> 角色是 GLB、武器道具是 glTF；这一版全部改出 **FBX**（体积约 1/3~1/4，走编辑器标准导入路径）。
+
+- `export_rdr2_fbx.py`          **模型**（`.mdl` RMDL1 → FBX）。`--set import|extra` 选清单与目录，
+  `--limit` 抽样、`--overwrite` 重出；**可续跑**（默认跳过已存在的 `.fbx`）；
+  跑完把 `fbx`/`fbx_bytes` 两列写回 `manifests/models_export*.csv`（只加列，不动旧列）。
+  Z-up、米；材质名 = albedo 贴图名；**不嵌贴图**（贴图在 `deliverable/textures/`，按材质名接）。
+- `export_rdr2_fbx_assets.py`    **角色 / 武器 / 道具**（GLB / glTF → FBX）。`--mode characters|weapons|items`；
+  贴图**内嵌**（自包含）。⚠️ glTF 的内嵌贴图没有磁盘路径，FBX 导出器会静默跳过 ⇒ 脚本先
+  `materialize_images()` 落成真实 PNG 再导；判据 = 导出后 FBX 里 `PNG` 签名数 > 0。
+  角色**不绑骨架、不重定向**（源 GLB 本来就没有骨架，只有顶点蒙皮权重）。
+
+- `_check_rdr2_fbx.py`          **只读校验**：把 FBX 导回 Blender，对 `.mdl` 头逐位比
+  面数 / 包围盒 / 材质名。用法 `blender -b --factory-startup -P tools/_check_rdr2_fbx.py -- --set import --sample 40`
+
 ## 整块大陆 / Blender 装配（23 个）
 
 - `blender_add_props.py`

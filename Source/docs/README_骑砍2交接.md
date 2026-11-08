@@ -6,10 +6,14 @@
 > **交付包清单（git 版）**：[交付包清单_20261108.md](交接与状态/交付包清单_20261108.md)
 > **交接 TODO（未完成清单）**：[交接_TODO_20261108.md](交接与状态/交接_TODO_20261108.md)
 >
-> 🔴 **2026-11-07 状态（先看这条）**：
+> 🔴 **2026-11-08 状态（先看这条）**：
 > - **57/57 子场景已全部建成并重建到最新口径**（11-07/11-08；每张 0 超界、地形自检 PASS）；
 > - **旧 sdn 实验作废**（`rdr2_sanit_denis` / 5,211 个 FBX / 旧 tpac），圣丹尼斯城要按新素材重做；
-> - **模型/贴图第一版已出（2026-11-08）**：`models\` 24,716 个**单档 TRF（LOD0）** + `textures\alb|nm|ma` 28,430 张 **PNG**；正式 7 档 LOD / DDS 后补；
+> - 🔴 **模型交付主线 = TRF（带 LOD0-6 七档）**：用户 2026-11-08 裁定「按多档 LOD 跑 mesh」，
+>   而 **FBX 带不了多档 LOD**（见 §0.5.3 的实测表）⇒ 模型以 **TRF 多档**为准。
+> - **FBX 保留作参照**（用户同日裁定："fbx 保留，作为参照，等导入真的完全成功了再删除"）。
+> - **角色 = 纯 FBX**（414 个，**无骨架、不重定向**，用户裁定）；武器/道具同样 FBX。
+> - **贴图**：`textures\alb|nm|ma` 28,430 张 PNG；**DDS 后补**。
 > - **骑砍2 侧的落地计划 = `Modules/LivingWorldNpcs/plans/大镖客2还原/00-总纲.md`**（本文只做数据契约）；
 > - 🔴 **交付包的目录结构与现状见下一节「★ 交付物总览」——那是包的入口说明，先读它。**
 
@@ -18,13 +22,15 @@
 ## ★ 交付物总览：`deliverable` 目录全图（2026-11-08 实测）
 
 > **这一节回答三件事**：包里有什么、怎么组织的、哪份能用哪份别用。
-> 全包 = **约 79 GB / 128,069 个文件**（2026-11-08：新增 `textures\` / `textures_extra\` / `models\` / `models_extra\` / `characters\` / `weapons\` / `items\`），**10 个顶层目录**。
+> 全包 = **约 89 GB / 180,194 个文件**（2026-11-08 实测，**新旧格式并存中**：FBX 与旧的 TRF/GLB/glTF 都在）。
+> **删掉旧格式后 ≈ 60 GB / 132,000 个文件**（旧格式共约 29 GB：TRF 27.7 GB + GLB 1.3 GB + glTF/bin 0.1 GB）。
+> **10 个顶层目录**。
 >
 > 🔴 **自包含规则（2026-11-08）**：57 张场景 blend 的贴图路径已重指到包内 `textures\` / `textures_extra\`，不再引用 `assets\lib_native\tex`；场景用到的模型在 `models\` + `models_extra\` 各有一份导出。
 >
 > 🔴 **三件事先记住，不然一定拿错**：
-> ① **模型第一版 = 单档 TRF（只有 LOD0）**，在 `models\`；**LOD0-6 链还没做**（后续用场景 blend 直出 7 档补上）。
-> ② **角色/武器/道具已第一版入包**（`characters\` / `weapons\` / `items\`）；骑砍2侧还需绑骨架、建物品定义。
+> ① **模型的交付主线 = TRF（LOD0-6 七档）**，在 `models\`；FBX 保留作参照（导入验证通过前不删）。
+> ② **角色/武器/道具 = FBX**（`characters\` / `weapons\` / `items\`）；**角色不带骨架**（源 GLB 本来就没有）。
 > ③ **子场景的最新摆位表还没导出** —— 现有 `placement_<id>.jsonl` 是 11-04 旧版，与 11-07 场景不一致；最新清单 `manifest_<id>.jsonl` 只有名称/类/包围盒，**没有位置和旋转**。摆位要重跑 `tools\export_scene_placements.py`。
 
 ### ★1 目录树（数量 / 体积 / 是否交付）
@@ -50,11 +56,11 @@ deliverable\  ≈79 GB / 128,069 files（2026-11-08 实测）
 │  ├─ nm\              法线（6,586 张）              1.5 GB                      ★
 │  └─ ma\              高光/ORM（5,749 张）          785 MB                      ★
 ├─ textures_extra\     额外贴图（场景用到、非导入）   1.8 GB / 7,712 files      ★
-├─ models\            单档 TRF（LOD0，暂无 LOD0-6） 15 GB / 24,717 files       ★
-├─ models_extra\      额外模型（场景用到、非导入）   13 GB / 20,013 files       ★
-├─ characters\        角色/动物 GLB（第一版）         1.4 GB / 826 files        ★
-├─ weapons\           45 把武器 glTF + 主体/部件/贴图 104 MB / 1,067 files      ★
-├─ items\             916 件道具 glTF                 90 MB / 2,839 files       ★
+├─ models\            TRF 多档 LOD（交付主线）+ FBX（参照） 31.5 GB + 3.97 GB / 49,433 files ★
+├─ models_extra\      额外模型（场景用到、非导入）    单档 TRF 13 GB + FBX 5.4 GB / 40,025 files ★
+├─ characters\        角色/动物 FBX（纯网格，无骨架） 0.44 GB + 0.59 GB 贴图     ★
+├─ weapons\           286 个武器 FBX + `.fbm` 贴图    33 MB + 72 MB              ★
+├─ items\             1,196 件道具 FBX + `.fbm` 贴图  55 MB + 110 MB             ★
 ├─ manifests\          机读清单                      67 MB / 106 files         ★
 │  └─ prefabs\         56 组 / 2,481 碎片 prefab     1.6 MB / 56 files        ★
 ```
@@ -74,11 +80,11 @@ deliverable\  ≈79 GB / 128,069 files（2026-11-08 实测）
 | `terrain\` | 大地图地形的源与派生物 | 引擎只读 `stages\`（三种模式）+ `scene_native\`（子场景原生）+ `color_1m.png`（唯一材质图）；其余是中间物 |
 | `textures\` | **3 类贴图第一版**（PNG）：`alb\` / `nm\` / `ma\` | 按 `manifests\asset_import_textures.csv` 的 name 对应；DDS 转换待做 |
 | `textures_extra\` | **额外贴图**（索引 1,936 张 + blend 兜底）：场景用到、但不在导入子集 | 只服务 `models_extra` / blend 额外材质；不进游戏；索引 `textures_export_extra.csv` |
-| `models_extra\` | **额外模型**：场景用到、但不在导入子集（20,012 个单档 TRF） | 地形块/地下/水面/占位/地形 LOD；不进游戏，只为包自包含 |
-| `models\` | **模型第一版**：单档 TRF（LOD0，无 LOD0-6） | 直接给 ModKit 导入；7 档 LOD 后续补 |
-| `characters\` | **角色/动物 GLB 第一版**（408 个入表，414 个文件） | 贴图内嵌；需绑 28 骨人形骨架 |
-| `weapons\` | **45 把武器 glTF** + 主体/部件/贴图 + `weapon_assembly.csv` | 长枪是主体+部件；第一版不建骑砍2物品定义 |
-| `items\` | **916 件道具 glTF** + 贴图 | 店铺/兵种/任务用品；第一版不建物品定义 |
+| `models_extra\` | **额外模型**：场景用到、但不在导入子集（20,012 个单档 **FBX**） | 地形块/地下/水面/占位/地形 LOD；不进游戏，只为包自包含 |
+| `models\` | **模型**：单档 **FBX**（LOD0，无 LOD0-6） | 直接给 ModKit 导入；7 档 LOD 后续补 |
+| `characters\` | **角色/动物 FBX**（408 个入表，414 个文件） | 纯网格、**无骨架**；贴图在同级 `<名>.fbm\` |
+| `weapons\` | **286 个武器 FBX** + `.fbm` 贴图 + `weapon_assembly.csv` | 长枪是主体+部件；第一版不建骑砍2物品定义 |
+| `items\` | **1,196 件道具 FBX** + `.fbm` 贴图 | 店铺/兵种/任务用品；第一版不建物品定义 |
 | `manifests\` | 机读清单（模型/贴图/碎片/据点/角色/武器/道具） | 所有导入脚本的输入 |
 
 ### ★2.1 `manifests\` 里每个文件是干什么的（行数含表头）
@@ -260,9 +266,9 @@ deliverable\  ≈79 GB / 128,069 files（2026-11-08 实测）
 | 类别 | 现有产物 | 骑砍2 用途 | 状态 |
 |---|---|---|---|
 | ① **世界与地编** | `docs/世界与地编/scene_list.csv`（58 行）+ `scene_specs.json`（P 多边形）+ 高度图/彩图 + `deliverable/blender/scenes/`（**57 张 blend**） | 建 57 张场景、接入口、扎营落点 | ✅ **57/57 已建成**（11-07/11-08，0 超界、地形图全 PASS）；**等用户验收（TODO-6）** |
-| ② **建筑/道具模型** | 全量清单 `deliverable/manifests/asset_import_models.csv`（**24,716 个模型**）+ `asset_import_textures.csv`（**28,430 张贴图**） | 场景里的房子/道具/铁路/植被… | ✅ **2026-11-08 第一版已出**：`models\` 单档 TRF（LOD0）+ `textures\alb|nm|ma` PNG；正式 7 档 LOD / DDS 后补 |
-| ③ **角色外观/服饰/人头** | `docs/角色与物品/RDR2_服饰全清单与换装修复.md`、`RDR2_角色眼睛与服饰贴图修复.md`、`docs/格式与资产/RDR2骨架_yft格式.md` | 让 NPC / 主角长得像大镖客 | ✅ **2026-11-08 第一版入包**：`characters\` 408 GLB（贴图内嵌）；未绑骨架 |
-| ④ **武器/道具/载具** | `docs/角色与物品/RDR2_武器道具模型与剧本对白.md`、`RDR2_武器金属材质修正.md`、`RDR2_载具与UI与兵种覆盖审计.md`、`RDR2_模型图标与综合查看器.md` | 武器、道具、载具、图标 | ✅ **2026-11-08 第一版入包**：`weapons\` 45 + `items\` 916（glTF + 贴图）；未建物品定义 |
+| ② **建筑/道具模型** | 全量清单 `deliverable/manifests/asset_import_models.csv`（**24,716 个模型**）+ `asset_import_textures.csv`（**28,430 张贴图**） | 场景里的房子/道具/铁路/植被… | ✅ **2026-11-08 已改 FBX**：`models\` + `models_extra\` = 44,728 个 `.fbx`（单档 LOD0）+ `textures\alb|nm|ma` PNG；正式 7 档 LOD / DDS 后补 |
+| ③ **角色外观/服饰/人头** | `docs/角色与物品/RDR2_服饰全清单与换装修复.md`、`RDR2_角色眼睛与服饰贴图修复.md`、`docs/格式与资产/RDR2骨架_yft格式.md` | 让 NPC / 主角长得像大镖客 | ✅ **2026-11-08 已改 FBX**：`characters\` 414 个 `.fbx` + 同级 `.fbm\` 贴图；🔴 **不绑骨架、不重定向**（用户裁定） |
+| ④ **武器/道具/载具** | `docs/角色与物品/RDR2_武器道具模型与剧本对白.md`、`RDR2_武器金属材质修正.md`、`RDR2_载具与UI与兵种覆盖审计.md`、`RDR2_模型图标与综合查看器.md` | 武器、道具、载具、图标 | ✅ **2026-11-08 已改 FBX**：`weapons\` 286 + `items\` 1,196 个 `.fbx`（带 `.fbm\` 贴图）；未建物品定义 |
 | ⑤ **NPC 名单与组织** | `docs/世界与地编/RDR2_NPC名单与环境人群表.md`、`RDR2_NPC生成与行为机制.md`、`docs/格式与资产/RDR2_本地化文本与NPC池.md`、`docs/角色与物品/RDR2_骑砍2落地_势力与NPC.md` | 每个城镇有哪些 NPC / 身份职业 / 势力归属 / 生成规则 | 🟡 **研究完成**，未做成数据表 |
 | ⑥ **剧情/任务/动画/音频** | `docs/任务与剧情/`（12 篇：主线 AVG 化、任务逐步骤拆解、随机任务搬运方案、音频与过场可行性）；`docs/格式与资产/RDR2_ycd动画解码.md`、`HANDOFF_动画与蒙皮.md` | 任务链、过场、对话、动画、BGM | 🟡 研究/方案阶段 |
 
@@ -337,20 +343,69 @@ deliverable\  ≈79 GB / 128,069 files（2026-11-08 实测）
 
 **导入口径**
 
-🔴 **2026-11-08 第一版已出（先跑通导入；LOD 链 / DDS 后补）**：
-- **模型**：`deliverable/models/<name>.trf` = **单档 TRF（只有 LOD0）**，共 24,716 个；
-  来源 = `.mdl` 库直出（`Scripts/export_rdr2_trf_mdl.py`），UV 已按场景口径翻 V；
-  **LOD0-6 链还没做**（正式版再走场景 blend 直出 7 档）。
-- **贴图**：`deliverable/textures/alb|nm|ma/<name>.png` = 28,430 张 **PNG**（源池原样）；
-  **DDS 转换待有 texconv 再做**。
-- **清单**：`manifests/models_export.csv`（模型主表：文件 + 材质汇总）/ `model_materials.csv`（逐槽明细）/ `material_textures.csv`（材质三件套）/ `textures_export.csv`（贴图索引）。
+🔴 **2026-11-08 用户裁定（当天两次，后一次覆盖前一次）**：
+① 先要"只认 FBX"；② 看过「FBX 带不了多档 LOD」的实测后改为
+**"按多档 LOD 跑 mesh，但 FBX 保留作参照，等导入真的完全成功了再删除"**。
+⇒ **模型的交付主线 = TRF（LOD0-6）；FBX = 参照件；角色 / 武器 / 道具 = FBX。**
 
-正式口径（7 档 / DDS）：
-- 模型 = **TRF**：7 个 LOD 槽位（0~6，骑砍2 严格按距离映射）；LOD5/6 复用 LOD4 的 12% 网格；
-  命名 `<名>.<i>` / `<名>.lodN.<i>`；
-- **来源 = 场景 blend 直出**（`Scripts/export_rdr2_trf_from_scenes.py` 已在 sdn 样本验证，
-  不经 FBX、不读 lib_native；按 hash 去重、优先取活动区完整实例）；
-- 贴图 = **DDS**（落地 DXT5，与 PNG 一致；源文件更小，无负向作用）；
+模型（**TRF，多档**）：
+
+- `deliverable/models/<name>.trf`（24,716），由 `tools/export_rdr2_trf_lod.py` 从 `.mdl` 直出；
+- 命名（引擎约定，见 `plans/rules/wheels.d/assets.md` §28.4）：
+  `<名>.<子网格序>` = **LOD0**；`<名>.lod<N>.<子网格序>` = 第 N 档；
+- 比率 `RATIOS = [1.0, 0.50, 0.30, 0.19, 0.12, 0.12, 0.12]`（LOD5/6 复用 LOD4 的 12%）；
+- **只给 ≥2,000 面的模型出多档**（小件只出 LOD0，原版也是小件不做 LOD）；
+- 🔴 **只在室内用的模型（3,518 个）特殊处理**：LOD0-2 正常，**LOD3-6 压成包围盒**（每材质件 12 面）。
+  清单 = `manifests\interior_only_models.txt`；判据 = `placement_*.jsonl` 的 `int_pkg` 非空。
+  **内外都用的 1,642 个不做处理**（家具类，砍了室外就少东西）。
+  依据 = 原版实测（`archhitecture_empire.tpac` 534 个 Metamesh：**0 个用空网格**，
+  远档是 2~12 面的小片；室内在原版是**独立场景**）。我们场景室内外合并 ⇒ 用"27 米外缩成小盒子"近似，
+  **不用"虚空"**（大厅里会开天窗）；
+- 减面配方（2026-10-26 实测唯一能看的组合）：先 `remove_doubles(0.002)` + `normals_make_consistent`，
+  再 `DECIMATE/COLLAPSE`；**逐材质拆子网格再减**，不丢零件；
+- 材质名 = **albedo 贴图名原样**（TRF 是纯文本，**没有 63 字符上限**）；
+- 坐标 = `.mdl` 局部坐标（米，Z 上），UV 的 V 翻成 `1-v`。
+
+模型（**FBX，参照件**）：`models/<name>.fbx`，单档 LOD0，Z 上/米，材质名 = albedo 贴图名
+（>63 字符的走 `manifests/material_alias.csv` 别名）。**导入链路验证通过之前不删。**
+
+角色 / 武器 / 道具（**FBX**）：
+
+- `characters/**/<name>.fbx`（414）+ 同级 `<名>.fbm\` 贴图；**纯网格、无骨架、不重定向**；
+- `weapons\` 286 + `items\` 1,196 个 `.fbx`，同样带 `.fbm\`。
+
+贴图池：`deliverable/textures/alb|nm|ma/<name>.png` = 28,430 张 PNG（**DDS 转换待有 texconv 再做**）。
+
+清单：`models_export*.csv` 有 `trf` / `trf_faces` / `lod_faces` / `lod_levels` / `fbx` 等列。
+
+**校验（可复核）**：
+
+```powershell
+blender -b --factory-startup -P "H:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source\tools\_check_rdr2_fbx.py" -- --set import --sample 40
+```
+
+把 FBX 导回 Blender，与 `.mdl` 头比**材质名（含别名）/ 包围盒（严格）**、**面数（容差 0.2%）**。
+面数容差是给「退化三角被 Blender 丢掉」留的（实测 80 个里 2 个差 1~2 个面）。
+实测：模型 80/80 PASS、额外模型 40/40 PASS。
+
+**FBX vs TRF 的材质能力（2026-11-08 实测，直接回答"槽位材质名"）**：
+
+| | FBX | TRF（`rfver 4`） |
+|---|---|---|
+| 每个槽位能不能指定材质名 | ✅ 能：网格带材质槽数组，每个多边形有 `material_index`；实测 36 槽模型逐槽面数与 `.mdl` 完全一致 | ⚠️ 能写：mesh 头是 `名字 0 材质1 [材质2 …]`，**但面记录只有 `i j k`，没有材质索引** ⇒ 一个 mesh 内没法按面选材质，实际要**一个材质拆一个 mesh** |
+| 名字长度 | ❌ **63 字符上限**（超了截断+哈希）⇒ 需要 `material_alias.csv` | ✅ **纯文本，无长度上限** |
+| 多档 LOD | ❌ 带不了（见下） | ✅ 能（`<名>.lodN.<i>`） |
+| 体积 | 小（同模型约为 TRF 的 1/4） | 大（纯文本） |
+
+正式口径（**待做**）：
+- **7 档 LOD**：主网格仍是 FBX，LOD0-6 怎么组织（一个资产挂多级 vs 多个 FBX）**还没定**，
+  等 ModKit 里试导一个样板后定；
+- 🔴 **已知硬约束（2026-10-26 实测，见 `plans/rules/wheels.d/assets.md` §28.4）**：
+  **FBX 带不了多档 LOD** —— 把 `<名>_lod` 当独立文件导入时编辑器会按 `<名>` 注册、撞名直接跳过，
+  永远不会合并成多档；**只有 `.trf` 能按 `<名>.lodN.<i>` 命名还原多档**。
+  ⇒ "只交 FBX" 与 "7 档 LOD" 目前是**互斥**的，要么只交单档，要么 LOD 这条线破例用 TRF。
+  **待用户裁定**（11-08 未决）。
+- 贴图 = **DDS**（落地 DXT5，与 PNG 一致；源文件更小）；
 - 🔴 **旧 FBX 路径（`rdr2_bld_fbx` / `rdr2_sanit_denis` / 旧 tpac）作废**，不要再按它导。
 
 ---
