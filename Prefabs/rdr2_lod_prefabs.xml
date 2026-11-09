@@ -1,0 +1,2227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 圣丹尼斯 LOD 远景碎片 prefab（2026-11-09 自动生成） -->
+<prefabs>
+	<game_entity name="rdr2_sdn_lod" mobility="1">
+		<transform position="0.000, 0.000, 0.000" rotation_euler="0.000, 0.000, 0.000"/>
+		<children>
+			<game_entity name="map_scale" mobility="1">
+				<transform position="0.000, 0.000, 0.000" rotation_euler="0.000, 0.000, 0.000" scale="0.071, 0.072, 0.069"/>
+				<children>
+			<game_entity name="sdn_f0114" mobility="1">
+				<transform position="-393.700, -122.300, -3.152" rotation_euler="0.001, 0.003, 0.349" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_train_crrg4_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0113" mobility="1">
+				<transform position="-313.800, -327.100, -0.452" rotation_euler="0.000, 0.000, -0.100" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_train_crrg2_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0165" mobility="1">
+				<transform position="-314.900, -340.700, 0.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro18_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0166" mobility="1">
+				<transform position="-342.100, -190.300, -3.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro19_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0167" mobility="1">
+				<transform position="-365.700, -146.900, -5.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro21_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0032" mobility="1">
+				<transform position="-259.400, -361.100, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_40"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0019" mobility="1">
+				<transform position="-268.300, -323.100, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_77"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0020" mobility="1">
+				<transform position="-291.500, -324.300, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_78"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0018" mobility="1">
+				<transform position="-244.300, -322.900, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_76"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0031" mobility="1">
+				<transform position="-283.200, -359.400, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_39"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0117" mobility="1">
+				<transform position="171.000, -79.900, 4.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_res_doctor_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0042" mobility="1">
+				<transform position="215.400, -375.700, -4.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_area_07std1_slod4"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0069" mobility="1">
+				<transform position="-44.300, -12.200, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_confed_02_bf"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0060" mobility="1">
+				<transform position="99.500, -142.700, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_03_bankwalldest"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0102" mobility="1">
+				<transform position="253.000, -228.900, -0.252" rotation_euler="0.000, 0.000, -0.874" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie03_train_crrga_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0076" mobility="1">
+				<transform position="143.500, -49.500, 9.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_03_galleryclosed"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0108" mobility="1">
+				<transform position="-233.100, -379.300, -0.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_warebridge_des_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0104" mobility="1">
+				<transform position="-231.300, -391.900, -8.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_dmain_dest"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0084" mobility="1">
+				<transform position="302.400, -129.900, 2.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_mrk_04_buildsite_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0111" mobility="1">
+				<transform position="323.300, -222.200, -8.452" rotation_euler="0.000, -0.000, 0.687" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_slod_docks_es"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0083" mobility="1">
+				<transform position="302.400, -129.900, 2.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_mrk_04_buildsite_es_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0133" mobility="1">
+				<transform position="345.600, -243.200, -3.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0213_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0130" mobility="1">
+				<transform position="78.800, -419.100, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0209_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0132" mobility="1">
+				<transform position="265.000, -452.500, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0211_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0131" mobility="1">
+				<transform position="-168.300, -439.500, 0.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0210_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0103" mobility="1">
+				<transform position="153.800, -312.700, -0.652" rotation_euler="0.000, 0.000, -0.436" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie03_train_crrgb_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0112" mobility="1">
+				<transform position="250.800, -292.100, -1.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_slod_docksendcon"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0075" mobility="1">
+				<transform position="144.900, -37.700, 8.948" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_03_gall_shutopen"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0156" mobility="1">
+				<transform position="-22.000, -337.000, -0.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0162" mobility="1">
+				<transform position="-170.000, -213.000, -1.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitr_stden_fnc_02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0051" mobility="1">
+				<transform position="316.800, -254.100, -2.952" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_gk_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0052" mobility="1">
+				<transform position="319.600, -255.800, 5.748" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_int_upper"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0100" mobility="1">
+				<transform position="115.300, -336.700, -0.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie02_crrg_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0155" mobility="1">
+				<transform position="-21.700, -337.000, -0.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0137" mobility="1">
+				<transform position="360.800, -400.300, -0.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0312_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0134" mobility="1">
+				<transform position="76.200, -425.600, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0307_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0135" mobility="1">
+				<transform position="382.600, -156.000, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0309_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0136" mobility="1">
+				<transform position="-150.500, -428.300, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0310_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0044" mobility="1">
+				<transform position="143.500, -49.500, 9.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_art_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0070" mobility="1">
+				<transform position="-44.100, -11.300, 5.648" rotation_euler="0.000, -0.000, 0.785" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_confed_02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0082" mobility="1">
+				<transform position="206.100, -188.200, 10.548" rotation_euler="0.000, 0.000, -0.958" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_hotel_3rd_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0129" mobility="1">
+				<transform position="393.700, -79.200, -1.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0111_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0128" mobility="1">
+				<transform position="68.600, -524.300, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0110_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0127" mobility="1">
+				<transform position="294.600, -296.000, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0109_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0126" mobility="1">
+				<transform position="-177.300, -411.000, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0108_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0125" mobility="1">
+				<transform position="108.600, -387.900, 0.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0107_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0106" mobility="1">
+				<transform position="-231.300, -390.700, -2.352" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_ipl_slod_01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0055" mobility="1">
+				<transform position="126.600, -358.000, 4.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_river02x_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0054" mobility="1">
+				<transform position="138.200, -369.000, 0.248" rotation_euler="0.000, -0.000, 1.571" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_river02x_rail"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0056" mobility="1">
+				<transform position="97.800, -402.600, 0.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_shp_05_ropes"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0053" mobility="1">
+				<transform position="232.100, -343.200, -5.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_river01x_ramp"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0057" mobility="1">
+				<transform position="-118.300, -404.300, 0.448" rotation_euler="0.000, 0.000, -0.175" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_shp_10_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0050" mobility="1">
+				<transform position="-28.200, -423.200, -0.352" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_crane_02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0123" mobility="1">
+				<transform position="-144.300, -407.700, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb08_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0122" mobility="1">
+				<transform position="404.300, -171.000, -6.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb07_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0124" mobility="1">
+				<transform position="330.900, -414.700, -6.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb10_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0121" mobility="1">
+				<transform position="73.400, -391.800, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb06_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0116" mobility="1">
+				<transform position="-49.700, -158.300, 4.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_police_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0059" mobility="1">
+				<transform position="-23.900, -120.800, 6.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_02_opera3_light_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0061" mobility="1">
+				<transform position="196.800, -170.600, 4.448" rotation_euler="0.000, -0.000, 2.182" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_07_dragon1_l1"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0141" mobility="1">
+				<transform position="166.200, -166.000, 9.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo05_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0138" mobility="1">
+				<transform position="166.700, -273.800, 1.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0140" mobility="1">
+				<transform position="268.800, -153.700, 7.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo04_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0139" mobility="1">
+				<transform position="47.700, -128.100, 13.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0066" mobility="1">
+				<transform position="15.100, -78.600, 7.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_apts_02_a_sign"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0068" mobility="1">
+				<transform position="33.900, -14.000, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_balzac_01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0073" mobility="1">
+				<transform position="15.500, -15.900, 8.148" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_gosling_01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0074" mobility="1">
+				<transform position="-1.900, -15.800, 7.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_tailorsign"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0072" mobility="1">
+				<transform position="-30.700, -51.700, 13.248" rotation_euler="1.565, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_ctyhall_main_lod_r2"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0071" mobility="1">
+				<transform position="-30.700, -51.700, 13.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_ctyhall_main_lod_r"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0120" mobility="1">
+				<transform position="-4.100, -8.500, 6.148" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_tailor01_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0067" mobility="1">
+				<transform position="-3.100, -83.700, 8.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_apts_02_b_sign"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0045" mobility="1">
+				<transform position="100.600, -29.600, 6.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_barber_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0063" mobility="1">
+				<transform position="99.400, -5.400, 11.848" rotation_euler="0.000, -0.000, 1.571" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn02_636_det01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0144" mobility="1">
+				<transform position="143.200, -46.200, 10.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newfrrdpr_combo03_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0142" mobility="1">
+				<transform position="44.500, -40.500, 12.948" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newfrrdpr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0143" mobility="1">
+				<transform position="257.700, -57.100, 6.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newfrrdpr_combo02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0145" mobility="1">
+				<transform position="82.700, 36.500, 3.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newga01pr_props_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0080" mobility="1">
+				<transform position="34.100, 140.900, -5.152" rotation_euler="0.000, -0.000, 1.396" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_exotic"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0146" mobility="1">
+				<transform position="-71.800, -63.500, 2.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newga06pr_props_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0079" mobility="1">
+				<transform position="-222.600, -65.900, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_bron_waterfountain"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0148" mobility="1">
+				<transform position="-177.300, -179.700, 1.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props09_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0147" mobility="1">
+				<transform position="-65.700, -76.400, 7.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props08_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0151" mobility="1">
+				<transform position="-83.300, 2.300, 8.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props12_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0152" mobility="1">
+				<transform position="-148.200, -70.300, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props13_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0153" mobility="1">
+				<transform position="6.000, -113.900, 9.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props14_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0150" mobility="1">
+				<transform position="21.400, 27.800, 6.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props11_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0149" mobility="1">
+				<transform position="-164.200, 20.700, 5.948" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props10_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0154" mobility="1">
+				<transform position="-217.100, -374.800, 0.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi01pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0158" mobility="1">
+				<transform position="-6.300, -374.900, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props06_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0101" mobility="1">
+				<transform position="-8.600, -354.300, -0.152" rotation_euler="0.010, -0.000, 1.573" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie02_train_crrg6_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0159" mobility="1">
+				<transform position="160.100, -367.900, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props07_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0160" mobility="1">
+				<transform position="-124.700, -383.700, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props08_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0157" mobility="1">
+				<transform position="65.500, -382.800, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props05_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0161" mobility="1">
+				<transform position="239.200, -293.400, -1.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi03pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0163" mobility="1">
+				<transform position="-188.000, -236.700, -1.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitr_stden_fnc_02a_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0115" mobility="1">
+				<transform position="-164.800, -329.400, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_train_crrg_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0170" mobility="1">
+				<transform position="-171.500, -266.200, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0168" mobility="1">
+				<transform position="-133.300, -312.400, 1.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro22_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0169" mobility="1">
+				<transform position="-225.800, -180.000, -4.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro23_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0164" mobility="1">
+				<transform position="-226.500, -291.900, 0.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro17_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0171" mobility="1">
+				<transform position="174.300, 177.100, -3.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newru01pr_props01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0173" mobility="1">
+				<transform position="124.400, 257.800, -4.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newru02pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0172" mobility="1">
+				<transform position="8.600, 212.500, -5.252" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newru02pr_combo0102_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0174" mobility="1">
+				<transform position="302.900, 35.500, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newsl01pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0175" mobility="1">
+				<transform position="272.700, 93.800, -3.352" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newsl02pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0176" mobility="1">
+				<transform position="172.800, 82.000, 1.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newslcepr01_com01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0178" mobility="1">
+				<transform position="-13.200, -204.800, -0.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwr03pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0179" mobility="1">
+				<transform position="-12.800, -279.500, 6.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0180" mobility="1">
+				<transform position="13.500, -153.200, 11.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0182" mobility="1">
+				<transform position="183.900, -288.500, 7.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo04_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0181" mobility="1">
+				<transform position="-200.000, -324.700, 3.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo03_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0184" mobility="1">
+				<transform position="118.700, -380.900, -0.252" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo06_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0183" mobility="1">
+				<transform position="-168.400, -373.500, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo05_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0038" mobility="1">
+				<transform position="-118.500, -345.400, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_46"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0036" mobility="1">
+				<transform position="-163.600, -360.200, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_44"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0028" mobility="1">
+				<transform position="-203.900, -249.800, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_95"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0026" mobility="1">
+				<transform position="-165.700, -278.700, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_93"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0024" mobility="1">
+				<transform position="-127.100, -307.100, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_91"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0008" mobility="1">
+				<transform position="-135.200, -329.200, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_60"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0010" mobility="1">
+				<transform position="-182.800, -332.300, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_64"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0009" mobility="1">
+				<transform position="-158.300, -335.200, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_63"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0034" mobility="1">
+				<transform position="-211.500, -362.800, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_42"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0015" mobility="1">
+				<transform position="-172.400, -322.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_73"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0004" mobility="1">
+				<transform position="-123.200, -334.600, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_53"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0007" mobility="1">
+				<transform position="-182.900, -345.600, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_56"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0006" mobility="1">
+				<transform position="-163.100, -348.200, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_55"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0005" mobility="1">
+				<transform position="-144.500, -343.900, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_54"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0017" mobility="1">
+				<transform position="-220.300, -322.700, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_75"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0041" mobility="1">
+				<transform position="-215.100, -239.800, -2.952" rotation_euler="0.802, 1.566, 1.574" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rrcross_05"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0040" mobility="1">
+				<transform position="-206.800, -247.900, -2.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rrcross_04"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0001" mobility="1">
+				<transform position="-96.400, -336.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_hd_47"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0039" mobility="1">
+				<transform position="-93.100, -328.000, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rrcross_02"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0003" mobility="1">
+				<transform position="-68.600, -327.300, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_hd_rails_111"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0030" mobility="1">
+				<transform position="-54.100, -329.000, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_sle043"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0029" mobility="1">
+				<transform position="-221.300, -233.400, -2.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_96"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0027" mobility="1">
+				<transform position="-185.000, -264.500, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_94"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0025" mobility="1">
+				<transform position="-146.500, -293.000, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_92"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0016" mobility="1">
+				<transform position="-196.400, -322.500, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_74"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0014" mobility="1">
+				<transform position="-148.400, -322.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_72"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0037" mobility="1">
+				<transform position="-140.600, -354.400, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_45"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0035" mobility="1">
+				<transform position="-187.500, -362.400, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_43"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0033" mobility="1">
+				<transform position="-235.500, -362.400, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_41"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0002" mobility="1">
+				<transform position="-106.200, -322.700, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_hd_71"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0013" mobility="1">
+				<transform position="-123.800, -322.600, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_71"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0021" mobility="1">
+				<transform position="-208.900, -303.600, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_86"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0012" mobility="1">
+				<transform position="-160.000, -306.700, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_68"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0022" mobility="1">
+				<transform position="-221.200, -285.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_87"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0023" mobility="1">
+				<transform position="-222.300, -262.100, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_88"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0011" mobility="1">
+				<transform position="-137.500, -312.500, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_67"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0043" mobility="1">
+				<transform position="-19.600, -49.200, 8.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_area_slod4__split_sdn"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0109" mobility="1">
+				<transform position="300.000, -223.700, -3.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_gangplank2"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0107" mobility="1">
+				<transform position="-226.300, -367.500, 0.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_pre_es_gate1_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0105" mobility="1">
+				<transform position="-226.300, -367.500, 0.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_es_gate1_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0078" mobility="1">
+				<transform position="-185.700, -114.100, -0.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_08_cistern"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0081" mobility="1">
+				<transform position="-153.000, 113.500, -4.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_gala_water_pool"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0087" mobility="1">
+				<transform position="-157.100, -299.600, -2.452" rotation_euler="0.027, -0.017, -1.570" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_railroadtrackpile01x"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0119" mobility="1">
+				<transform position="273.500, 95.200, -0.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_slm_02_frag02_frag"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0118" mobility="1">
+				<transform position="277.400, 95.500, -0.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_slm_02_frag01_frag"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0062" mobility="1">
+				<transform position="200.100, -183.500, 10.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_07_window_ipl"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0110" mobility="1">
+				<transform position="309.300, -229.400, -3.552" rotation_euler="0.070, -3.089, 0.922" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_gangplanks1"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0064" mobility="1">
+				<transform position="88.700, -25.200, 5.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn02_water"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0085" mobility="1">
+				<transform position="132.100, 21.000, 4.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_postironnbx01x002"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0086" mobility="1">
+				<transform position="136.500, 21.000, 4.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_postironnbx01x"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0077" mobility="1">
+				<transform position="46.400, 143.000, -4.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_01_water_pool"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0046" mobility="1">
+				<transform position="320.900, -273.000, -0.052" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx001_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0047" mobility="1">
+				<transform position="292.600, -233.200, -1.152" rotation_euler="-0.365, 0.326, 2.330" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx002_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0048" mobility="1">
+				<transform position="317.900, -254.400, 10.948" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx003_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0049" mobility="1">
+				<transform position="336.700, -254.200, -0.052" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx004_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0098" mobility="1">
+				<transform position="345.600, -243.200, -3.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipmed1x_em_slod003"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0096" mobility="1">
+				<transform position="-168.300, -439.500, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod032"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0095" mobility="1">
+				<transform position="79.100, -419.000, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod029"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0088" mobility="1">
+				<transform position="382.600, -156.000, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod003"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0089" mobility="1">
+				<transform position="76.200, -425.600, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod010"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0090" mobility="1">
+				<transform position="-150.500, -428.200, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod013"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0097" mobility="1">
+				<transform position="360.800, -400.300, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipmed1x_em_slod002"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0091" mobility="1">
+				<transform position="-176.800, -411.100, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod014"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0094" mobility="1">
+				<transform position="294.400, -296.500, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod019"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0093" mobility="1">
+				<transform position="108.600, -387.900, -1.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod016"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0092" mobility="1">
+				<transform position="69.000, -524.100, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod015"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0099" mobility="1">
+				<transform position="73.400, -391.800, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipmed1x_em_slod005"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0058" mobility="1">
+				<transform position="-20.100, -124.100, 13.048" rotation_euler="0.000, -0.000, 2.444" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_02_bulbs4_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0065" mobility="1">
+				<transform position="88.700, -25.200, 6.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn02_water_prop"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0177" mobility="1">
+				<transform position="90.400, -275.300, -1.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwr01pr_combo01_dslod"/>
+				</components>
+			</game_entity>
+				</children>
+			</game_entity>
+		</children>
+	</game_entity>
+	<game_entity name="rdr2_sdn_lod_1to1" mobility="1">
+		<transform position="0.000, 0.000, 0.000" rotation_euler="0.000, 0.000, 0.000"/>
+		<children>
+			<game_entity name="sdn_f0114" mobility="1">
+				<transform position="-393.700, -122.300, -3.152" rotation_euler="0.001, 0.003, 0.349" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_train_crrg4_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0113" mobility="1">
+				<transform position="-313.800, -327.100, -0.452" rotation_euler="0.000, 0.000, -0.100" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_train_crrg2_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0165" mobility="1">
+				<transform position="-314.900, -340.700, 0.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro18_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0166" mobility="1">
+				<transform position="-342.100, -190.300, -3.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro19_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0167" mobility="1">
+				<transform position="-365.700, -146.900, -5.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro21_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0032" mobility="1">
+				<transform position="-259.400, -361.100, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_40"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0019" mobility="1">
+				<transform position="-268.300, -323.100, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_77"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0020" mobility="1">
+				<transform position="-291.500, -324.300, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_78"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0018" mobility="1">
+				<transform position="-244.300, -322.900, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_76"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0031" mobility="1">
+				<transform position="-283.200, -359.400, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_39"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0117" mobility="1">
+				<transform position="171.000, -79.900, 4.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_res_doctor_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0042" mobility="1">
+				<transform position="215.400, -375.700, -4.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_area_07std1_slod4"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0069" mobility="1">
+				<transform position="-44.300, -12.200, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_confed_02_bf"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0060" mobility="1">
+				<transform position="99.500, -142.700, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_03_bankwalldest"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0102" mobility="1">
+				<transform position="253.000, -228.900, -0.252" rotation_euler="0.000, 0.000, -0.874" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie03_train_crrga_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0076" mobility="1">
+				<transform position="143.500, -49.500, 9.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_03_galleryclosed"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0108" mobility="1">
+				<transform position="-233.100, -379.300, -0.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_warebridge_des_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0104" mobility="1">
+				<transform position="-231.300, -391.900, -8.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_dmain_dest"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0084" mobility="1">
+				<transform position="302.400, -129.900, 2.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_mrk_04_buildsite_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0111" mobility="1">
+				<transform position="323.300, -222.200, -8.452" rotation_euler="0.000, -0.000, 0.687" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_slod_docks_es"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0083" mobility="1">
+				<transform position="302.400, -129.900, 2.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_mrk_04_buildsite_es_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0133" mobility="1">
+				<transform position="345.600, -243.200, -3.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0213_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0130" mobility="1">
+				<transform position="78.800, -419.100, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0209_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0132" mobility="1">
+				<transform position="265.000, -452.500, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0211_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0131" mobility="1">
+				<transform position="-168.300, -439.500, 0.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0210_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0103" mobility="1">
+				<transform position="153.800, -312.700, -0.652" rotation_euler="0.000, 0.000, -0.436" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie03_train_crrgb_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0112" mobility="1">
+				<transform position="250.800, -292.100, -1.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_slod_docksendcon"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0075" mobility="1">
+				<transform position="144.900, -37.700, 8.948" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_03_gall_shutopen"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0156" mobility="1">
+				<transform position="-22.000, -337.000, -0.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0162" mobility="1">
+				<transform position="-170.000, -213.000, -1.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitr_stden_fnc_02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0051" mobility="1">
+				<transform position="316.800, -254.100, -2.952" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_gk_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0052" mobility="1">
+				<transform position="319.600, -255.800, 5.748" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_int_upper"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0100" mobility="1">
+				<transform position="115.300, -336.700, -0.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie02_crrg_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0155" mobility="1">
+				<transform position="-21.700, -337.000, -0.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0137" mobility="1">
+				<transform position="360.800, -400.300, -0.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0312_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0134" mobility="1">
+				<transform position="76.200, -425.600, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0307_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0135" mobility="1">
+				<transform position="382.600, -156.000, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0309_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0136" mobility="1">
+				<transform position="-150.500, -428.300, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0310_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0044" mobility="1">
+				<transform position="143.500, -49.500, 9.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_art_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0070" mobility="1">
+				<transform position="-44.100, -11.300, 5.648" rotation_euler="0.000, -0.000, 0.785" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_confed_02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0082" mobility="1">
+				<transform position="206.100, -188.200, 10.548" rotation_euler="0.000, 0.000, -0.958" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_hotel_3rd_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0129" mobility="1">
+				<transform position="393.700, -79.200, -1.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0111_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0128" mobility="1">
+				<transform position="68.600, -524.300, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0110_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0127" mobility="1">
+				<transform position="294.600, -296.000, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0109_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0126" mobility="1">
+				<transform position="-177.300, -411.000, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0108_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0125" mobility="1">
+				<transform position="108.600, -387.900, 0.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_combo0107_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0106" mobility="1">
+				<transform position="-231.300, -390.700, -2.352" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_ipl_slod_01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0055" mobility="1">
+				<transform position="126.600, -358.000, 4.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_river02x_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0054" mobility="1">
+				<transform position="138.200, -369.000, 0.248" rotation_euler="0.000, -0.000, 1.571" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_river02x_rail"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0056" mobility="1">
+				<transform position="97.800, -402.600, 0.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_shp_05_ropes"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0053" mobility="1">
+				<transform position="232.100, -343.200, -5.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_river01x_ramp"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0057" mobility="1">
+				<transform position="-118.300, -404.300, 0.448" rotation_euler="0.000, 0.000, -0.175" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_shp_10_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0050" mobility="1">
+				<transform position="-28.200, -423.200, -0.352" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_crane_02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0123" mobility="1">
+				<transform position="-144.300, -407.700, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb08_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0122" mobility="1">
+				<transform position="404.300, -171.000, -6.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb07_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0124" mobility="1">
+				<transform position="330.900, -414.700, -6.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb10_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0121" mobility="1">
+				<transform position="73.400, -391.800, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newbo04pr_comb06_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0116" mobility="1">
+				<transform position="-49.700, -158.300, 4.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_police_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0059" mobility="1">
+				<transform position="-23.900, -120.800, 6.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_02_opera3_light_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0061" mobility="1">
+				<transform position="196.800, -170.600, 4.448" rotation_euler="0.000, -0.000, 2.182" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_07_dragon1_l1"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0141" mobility="1">
+				<transform position="166.200, -166.000, 9.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo05_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0138" mobility="1">
+				<transform position="166.700, -273.800, 1.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0140" mobility="1">
+				<transform position="268.800, -153.700, 7.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo04_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0139" mobility="1">
+				<transform position="47.700, -128.100, 13.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newcordpr_combo02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0066" mobility="1">
+				<transform position="15.100, -78.600, 7.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_apts_02_a_sign"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0068" mobility="1">
+				<transform position="33.900, -14.000, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_balzac_01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0073" mobility="1">
+				<transform position="15.500, -15.900, 8.148" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_gosling_01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0074" mobility="1">
+				<transform position="-1.900, -15.800, 7.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_tailorsign"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0072" mobility="1">
+				<transform position="-30.700, -51.700, 13.248" rotation_euler="1.565, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_ctyhall_main_lod_r2"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0071" mobility="1">
+				<transform position="-30.700, -51.700, 13.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_ctyhall_main_lod_r"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0120" mobility="1">
+				<transform position="-4.100, -8.500, 6.148" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_tailor01_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0067" mobility="1">
+				<transform position="-3.100, -83.700, 8.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn_01_apts_02_b_sign"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0045" mobility="1">
+				<transform position="100.600, -29.600, 6.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_barber_int"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0063" mobility="1">
+				<transform position="99.400, -5.400, 11.848" rotation_euler="0.000, -0.000, 1.571" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn02_636_det01"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0144" mobility="1">
+				<transform position="143.200, -46.200, 10.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newfrrdpr_combo03_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0142" mobility="1">
+				<transform position="44.500, -40.500, 12.948" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newfrrdpr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0143" mobility="1">
+				<transform position="257.700, -57.100, 6.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newfrrdpr_combo02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0145" mobility="1">
+				<transform position="82.700, 36.500, 3.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newga01pr_props_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0080" mobility="1">
+				<transform position="34.100, 140.900, -5.152" rotation_euler="0.000, -0.000, 1.396" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_exotic"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0146" mobility="1">
+				<transform position="-71.800, -63.500, 2.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newga06pr_props_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0079" mobility="1">
+				<transform position="-222.600, -65.900, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_bron_waterfountain"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0148" mobility="1">
+				<transform position="-177.300, -179.700, 1.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props09_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0147" mobility="1">
+				<transform position="-65.700, -76.400, 7.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props08_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0151" mobility="1">
+				<transform position="-83.300, 2.300, 8.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props12_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0152" mobility="1">
+				<transform position="-148.200, -70.300, 4.848" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props13_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0153" mobility="1">
+				<transform position="6.000, -113.900, 9.448" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props14_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0150" mobility="1">
+				<transform position="21.400, 27.800, 6.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props11_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0149" mobility="1">
+				<transform position="-164.200, 20.700, 5.948" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newgardpr_props10_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0154" mobility="1">
+				<transform position="-217.100, -374.800, 0.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi01pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0158" mobility="1">
+				<transform position="-6.300, -374.900, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props06_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0101" mobility="1">
+				<transform position="-8.600, -354.300, -0.152" rotation_euler="0.010, -0.000, 1.573" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie02_train_crrg6_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0159" mobility="1">
+				<transform position="160.100, -367.900, -0.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props07_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0160" mobility="1">
+				<transform position="-124.700, -383.700, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props08_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0157" mobility="1">
+				<transform position="65.500, -382.800, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi02pr_props05_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0161" mobility="1">
+				<transform position="239.200, -293.400, -1.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpi03pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0163" mobility="1">
+				<transform position="-188.000, -236.700, -1.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitr_stden_fnc_02a_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0115" mobility="1">
+				<transform position="-164.800, -329.400, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_train_crrg_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0170" mobility="1">
+				<transform position="-171.500, -266.200, 1.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0168" mobility="1">
+				<transform position="-133.300, -312.400, 1.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro22_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0169" mobility="1">
+				<transform position="-225.800, -180.000, -4.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro23_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0164" mobility="1">
+				<transform position="-226.500, -291.900, 0.748" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newpitrpr_pro17_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0171" mobility="1">
+				<transform position="174.300, 177.100, -3.952" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newru01pr_props01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0173" mobility="1">
+				<transform position="124.400, 257.800, -4.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newru02pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0172" mobility="1">
+				<transform position="8.600, 212.500, -5.252" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newru02pr_combo0102_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0174" mobility="1">
+				<transform position="302.900, 35.500, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newsl01pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0175" mobility="1">
+				<transform position="272.700, 93.800, -3.352" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newsl02pr_combo_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0176" mobility="1">
+				<transform position="172.800, 82.000, 1.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newslcepr01_com01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0178" mobility="1">
+				<transform position="-13.200, -204.800, -0.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwr03pr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0179" mobility="1">
+				<transform position="-12.800, -279.500, 6.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo01_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0180" mobility="1">
+				<transform position="13.500, -153.200, 11.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo02_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0182" mobility="1">
+				<transform position="183.900, -288.500, 7.248" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo04_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0181" mobility="1">
+				<transform position="-200.000, -324.700, 3.648" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo03_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0184" mobility="1">
+				<transform position="118.700, -380.900, -0.252" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo06_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0183" mobility="1">
+				<transform position="-168.400, -373.500, -0.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwrrdpr_combo05_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0038" mobility="1">
+				<transform position="-118.500, -345.400, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_46"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0036" mobility="1">
+				<transform position="-163.600, -360.200, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_44"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0028" mobility="1">
+				<transform position="-203.900, -249.800, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_95"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0026" mobility="1">
+				<transform position="-165.700, -278.700, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_93"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0024" mobility="1">
+				<transform position="-127.100, -307.100, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_91"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0008" mobility="1">
+				<transform position="-135.200, -329.200, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_60"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0010" mobility="1">
+				<transform position="-182.800, -332.300, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_64"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0009" mobility="1">
+				<transform position="-158.300, -335.200, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_63"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0034" mobility="1">
+				<transform position="-211.500, -362.800, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_42"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0015" mobility="1">
+				<transform position="-172.400, -322.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_73"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0004" mobility="1">
+				<transform position="-123.200, -334.600, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_53"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0007" mobility="1">
+				<transform position="-182.900, -345.600, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_56"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0006" mobility="1">
+				<transform position="-163.100, -348.200, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_55"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0005" mobility="1">
+				<transform position="-144.500, -343.900, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_54"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0017" mobility="1">
+				<transform position="-220.300, -322.700, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_75"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0041" mobility="1">
+				<transform position="-215.100, -239.800, -2.952" rotation_euler="0.802, 1.566, 1.574" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rrcross_05"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0040" mobility="1">
+				<transform position="-206.800, -247.900, -2.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rrcross_04"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0001" mobility="1">
+				<transform position="-96.400, -336.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_hd_47"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0039" mobility="1">
+				<transform position="-93.100, -328.000, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rrcross_02"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0003" mobility="1">
+				<transform position="-68.600, -327.300, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_hd_rails_111"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0030" mobility="1">
+				<transform position="-54.100, -329.000, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_sle043"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0029" mobility="1">
+				<transform position="-221.300, -233.400, -2.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_96"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0027" mobility="1">
+				<transform position="-185.000, -264.500, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_94"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0025" mobility="1">
+				<transform position="-146.500, -293.000, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_92"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0016" mobility="1">
+				<transform position="-196.400, -322.500, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_74"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0014" mobility="1">
+				<transform position="-148.400, -322.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_72"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0037" mobility="1">
+				<transform position="-140.600, -354.400, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_45"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0035" mobility="1">
+				<transform position="-187.500, -362.400, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_43"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0033" mobility="1">
+				<transform position="-235.500, -362.400, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_rc_lod_41"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0002" mobility="1">
+				<transform position="-106.200, -322.700, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_hd_71"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0013" mobility="1">
+				<transform position="-123.800, -322.600, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_71"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0021" mobility="1">
+				<transform position="-208.900, -303.600, -2.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_86"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0012" mobility="1">
+				<transform position="-160.000, -306.700, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_68"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0022" mobility="1">
+				<transform position="-221.200, -285.400, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_87"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0023" mobility="1">
+				<transform position="-222.300, -262.100, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_88"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0011" mobility="1">
+				<transform position="-137.500, -312.500, -2.652" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="n_1114_r_c_lod_67"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0043" mobility="1">
+				<transform position="-19.600, -49.200, 8.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_area_slod4__split_sdn"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0109" mobility="1">
+				<transform position="300.000, -223.700, -3.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_gangplank2"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0107" mobility="1">
+				<transform position="-226.300, -367.500, 0.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_pre_es_gate1_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0105" mobility="1">
+				<transform position="-226.300, -367.500, 0.348" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_01_es_gate1_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0078" mobility="1">
+				<transform position="-185.700, -114.100, -0.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_08_cistern"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0081" mobility="1">
+				<transform position="-153.000, 113.500, -4.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_gala_water_pool"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0087" mobility="1">
+				<transform position="-157.100, -299.600, -2.452" rotation_euler="0.027, -0.017, -1.570" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_railroadtrackpile01x"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0119" mobility="1">
+				<transform position="273.500, 95.200, -0.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_slm_02_frag02_frag"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0118" mobility="1">
+				<transform position="277.400, 95.500, -0.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_slm_02_frag01_frag"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0062" mobility="1">
+				<transform position="200.100, -183.500, 10.548" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_07_window_ipl"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0110" mobility="1">
+				<transform position="309.300, -229.400, -3.552" rotation_euler="0.070, -3.089, 0.922" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_pie_03_gangplanks1"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0064" mobility="1">
+				<transform position="88.700, -25.200, 5.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn02_water"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0085" mobility="1">
+				<transform position="132.100, 21.000, 4.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_postironnbx01x002"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0086" mobility="1">
+				<transform position="136.500, 21.000, 4.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_postironnbx01x"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0077" mobility="1">
+				<transform position="46.400, 143.000, -4.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_gar_01_water_pool"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0046" mobility="1">
+				<transform position="320.900, -273.000, -0.052" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx001_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0047" mobility="1">
+				<transform position="292.600, -233.200, -1.152" rotation_euler="-0.365, 0.326, 2.330" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx002_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0048" mobility="1">
+				<transform position="317.900, -254.400, 10.948" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx003_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0049" mobility="1">
+				<transform position="336.700, -254.200, -0.052" rotation_euler="0.000, 0.000, -0.873" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_boats_01_gk_vfx004_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0098" mobility="1">
+				<transform position="345.600, -243.200, -3.452" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipmed1x_em_slod003"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0096" mobility="1">
+				<transform position="-168.300, -439.500, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod032"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0095" mobility="1">
+				<transform position="79.100, -419.000, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod029"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0088" mobility="1">
+				<transform position="382.600, -156.000, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod003"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0089" mobility="1">
+				<transform position="76.200, -425.600, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod010"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0090" mobility="1">
+				<transform position="-150.500, -428.200, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod013"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0097" mobility="1">
+				<transform position="360.800, -400.300, -2.752" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipmed1x_em_slod002"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0091" mobility="1">
+				<transform position="-176.800, -411.100, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod014"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0094" mobility="1">
+				<transform position="294.400, -296.500, -2.052" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod019"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0093" mobility="1">
+				<transform position="108.600, -387.900, -1.852" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod016"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0092" mobility="1">
+				<transform position="69.000, -524.100, -2.152" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipcutter1x_em_slod015"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0099" mobility="1">
+				<transform position="73.400, -391.800, -2.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_p_shipmed1x_em_slod005"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0058" mobility="1">
+				<transform position="-20.100, -124.100, 13.048" rotation_euler="0.000, -0.000, 2.444" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_com_02_bulbs4_em_slod"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0065" mobility="1">
+				<transform position="88.700, -25.200, 6.048" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="new_frn02_water_prop"/>
+				</components>
+			</game_entity>
+			<game_entity name="sdn_f0177" mobility="1">
+				<transform position="90.400, -275.300, -1.552" rotation_euler="0.000, -0.000, -0.000" scale="1.000, 1.000, 1.000"/>
+				<components>
+					<meta_mesh_component name="newwr01pr_combo01_dslod"/>
+				</components>
+			</game_entity>
+		</children>
+	</game_entity>
+</prefabs>
