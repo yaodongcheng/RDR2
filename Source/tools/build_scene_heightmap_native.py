@@ -4,8 +4,8 @@
 ## 为什么需要这张
 
 `deliverable/terrain/stages/02_river_carve/height_16bit_4m.png` 来自
-`build_final_map_heightmap.py` → `deliverable/heightmap/continent_height_4m.png`，
-那个脚本是给**骑砍2 大地图**用的，会**主动改地形**：
+`make_terrain_stages.py` + `carve_rivers.py`（旧版由已停用的 `build_final_map_heightmap.py` 生成到
+`deliverable/heightmap/`，该目录 **2026-11-08 已删**），那套是给**骑砍2 大地图**用的，会**主动改地形**：
 抬西北高原、压南边平原、**把内陆水系挖平到固定深度**（河 12~35 / 塘 8~18 / 湖 25~60 / 海 90~300）。
 
 场景地形却直接读这张图 ⇒ 城里河段被挖成一片死平（实测安尼斯堡 x≥2960 处恒定 z=7.1，

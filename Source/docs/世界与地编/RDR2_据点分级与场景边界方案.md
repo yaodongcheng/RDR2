@@ -506,7 +506,7 @@ manifest 的 Blender 世界包围盒逐条对，2,293 条最大误差 **0.005 m*
 
 ## 附录 A：数据与重跑
 
-数据与图由 `D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\` 下的脚本生成：
+数据与图由 **`Source\tools\`** 下的脚本生成（2026-11-08 从 `_scratch\settlement_plan\` 归位；数据 JSON/PNG 仍留在 `_scratch\settlement_plan\`）：
 
 | 脚本 | 作用 | 状态 |
 |---|---|---|
@@ -518,9 +518,9 @@ manifest 的 Blender 世界包围盒逐条对，2,293 条最大误差 **0.005 m*
 **重跑顺序**（改任何数据后）：
 
 ```powershell
-Set-Location "D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan"
-python -X utf8 build_scene_division.py
-python -X utf8 build_settlement_map.py
+Set-Location "h:\SteamLibrary\steamapps\common\Mount & Blade II Bannerlord\Modules\RDR2\Source"
+python -X utf8 tools\build_scene_division.py
+python -X utf8 tools\build_settlement_map.py
 ```
 
 **`build_scene_division.py` 每次都会打印自检**，最后一行必须是 `PASS`；不是 `PASS` 就不要往下做。

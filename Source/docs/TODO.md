@@ -137,7 +137,7 @@
 | `tools/gen_scene_list_md.py`（新） | 生成 `场景对照表.md`（id ↔ 中文名 ↔ 规模） |
 | `tools/scene_terrain.py`（改） | `scene_water_level` 改为「只认两大水系、按面积占比二选一、都不足 5% 不铺」 |
 | `tools/export_scene_terrain_maps.py`（改） | 停止生成白 mask；json 增加 `color_png` / `color_res_m`；接上地图边界裁剪（含 P） |
-| `docs/世界与地编/regions_viewer.html`（改，是**生成物**，改的是 `D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\build_settlement_map.py` 再重跑） | ①点一个场景后，别的区域变淡、缺口/重叠默认关；②只剩两个框：**黑实线＝能走的范围**、**蓝虚线＝远景范围**，尺寸写在框上；③两边都夹进地图画面区 ⇒ **图上画的 = 高度图范围 = blend 里的地面**（56 张已逐个比对通过）；④框上只写实际尺寸，配置值放右侧面板单列；⑤地图边界改深色点线、字跟着线走 |
+| `docs/世界与地编/regions_viewer.html`（改，是**生成物**，改的是 `Source\tools\build_settlement_map.py` 再重跑） | ①点一个场景后，别的区域变淡、缺口/重叠默认关；②只剩两个框：**黑实线＝能走的范围**、**蓝虚线＝远景范围**，尺寸写在框上；③两边都夹进地图画面区 ⇒ **图上画的 = 高度图范围 = blend 里的地面**（56 张已逐个比对通过）；④框上只写实际尺寸，配置值放右侧面板单列；⑤地图边界改深色点线、字跟着线走 |
 
 ### 二、待解决（按优先级）
 
@@ -1194,7 +1194,7 @@ P 口径实测：**32 个据点有室内**（野地一律 `0/0`），合计 **12
     否则深放大时字会变成几十像素）；标签去掉据点前缀（`bla_new_bank_ext` → `new_bank_ext`）、
     同一栋楼的多个室内只标一次、与方块间距按屏幕像素算；
   · 深放大（view.w < 220）时**不画据点大名字和星标**，否则会盖住整片房间。
-- **生成器不是手改 HTML**：改的是 `D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\build_settlement_map.py`
+- **生成器不是手改 HTML**：改的是 `Source\tools\build_settlement_map.py`
   （新增 `_load_rooms()` + `drawRooms()` + `#l-rooms` 图层），重跑该脚本产出页面。
 - 现状：全图 **171 间**有室内（圣丹尼斯 21 / 瓦伦丁 12 / 黑水镇 12 …）。
 
@@ -1278,9 +1278,11 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 
 **遗留（更新于 2026-11-04）**：
 
-1. ✅ **3 个小点位没有远景碎片**（`dow` / `twi` / `abe`）—— **已解决**：现成
-   `tools/build_miniatures.py`（46 据点微缩代理，合计 84,502 面；abe 330 / dow 252 / twi 362），
-   已重跑，产物在 `deliverable/miniatures/`。**不要再另造减面工具。**
+1. ⛔ **3 个小点位没有远景碎片**（`dow` / `twi` / `abe`）—— 原方案「拿
+   `tools/build_miniatures.py` 的 46 据点微缩代理（84,502 面）兜底」**已废止（2026-11-08）**：
+   `deliverable/miniatures/` 已删除，这条路线被判为不如直接复用 `export/previews/`
+   （`docs/世界与地编/RDR2_微缩模型_经验与失败路径.md`）；四个微缩/沙盒脚本已加停用闸门。
+   现状：`dow` 在 11-05 分组里已有碎片。
 2. ✅ **网格导出**：`tools/build_lod_prefabs.py` 已按组出 `deliverable/manifests/prefabs/<group_id>.json`
    （55 组 / 2,324 碎片，`gx,gy,gz` 相对组锚点）；**OBJ/GLB 不另导**——骑砍2 侧按 prefab JSON 实例化。
 3. 237 个 `lod` 实例在解包里没有网格（摆不出来），和「817 个 archetype 缺模型」同一类（已接受）。
@@ -1329,7 +1331,7 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 | 据点两两重叠 | 0 |
 | **PASS** | ✅ True |
 
-### 数据与脚本（都在 `D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\`）
+### 数据与脚本（数据在 `D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\`；**脚本已于 2026-11-08 归位 `Source\tools\`**）
 
 | 文件 | 作用 |
 |---|---|
@@ -1337,11 +1339,11 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
 | **`docs/世界与地编/scene_overrides.json`** | 🔴 **人工改动 + 进 git**（用户导出合并进来的）：`settlements`（改过的据点矩形）+ `wilds_final`（**12 块野地的最终清单**，权威）。构建脚本**优先读这份**，读不到才回落到 `_scratch/settlement_plan/` 那份 |
 | `settlements_p.json` / `bubbles.json` | 据点 / 野地的 P 多边形（构建产物） |
 | `scene_division_check.json` | 自检数字 |
-| `build_scene_division.py` | **唯一入口**：读上面这些 → 算 P/T/W/O → 写 `scene_specs.json` 等 |
-| `build_settlement_map.py` | 生成页面 `docs/世界与地编/regions_viewer.html`（含编辑模式） |
-| `autofix_gaps.py` | 自动补缝（把窄缝用≤300 m 的边延伸补掉；用前先备份 overrides） |
+| `tools\build_scene_division.py` | **唯一入口**：读上面这些 → 算 P/T/W/O → 写 `scene_specs.json` 等 |
+| `tools\build_settlement_map.py` | 生成页面 `docs/世界与地编/regions_viewer.html`（含编辑模式） |
+| `tools\autofix_gaps.py` | 自动补缝（把窄缝用≤300 m 的边延伸补掉；用前先备份 overrides） |
 
-**重跑**：`python -X utf8 build_scene_division.py` → `python -X utf8 build_settlement_map.py`（输出最后一行必须是 `PASS`）。
+**重跑**（脚本已归位 `Source\tools\`，在工作区根目录执行）：`python -X utf8 tools\build_scene_division.py` → `python -X utf8 tools\build_settlement_map.py`（输出最后一行必须是 `PASS`）。
 
 ### 页面 / 编辑器（`docs/世界与地编/regions_viewer.html`）
 
@@ -1425,7 +1427,7 @@ CSV 里带 `part_key` 列；`build_lod_groups.py` 会自动用部件替换整块
   | 硬台阶对齐（下半整块平移） | ≈0 | 23 条累计**漂移发白**，整图报废（已删） |
   | **柔化（±40 m 垂直模糊）** | 硬线消失 | 缝附近 80 m 软过渡、轻微糊 |
 - 柔化产物（**未覆盖源文件、未进管线**）：`export\world\world_ground_final_out_seamsoft.png`
-- 对比图：`_scratch\color_repaint\cmp_soft_A.png` / `cmp_soft_SE.png`
+- 对比图：`_scratch\color_repaint\cmp_soft_A.png` / `cmp_soft_SE.png`（2026-11-08 临时区清理时已删）
 - **待用户选**：① 用柔化版（要重跑 final/stages/weights）② 保持原样 ③ 柔化+轻色调对齐组合。
 - 实话：真正无缝需要源瓦片一致（重新导出/统一校色），纯后处理只能在「硬线」和「糊」之间取舍。
 
@@ -1779,7 +1781,7 @@ cmd /c 'tools\run.cmd D:\BrainMaker\大镖客2解包分析\_logs\continent_v24.l
 | `deliverable\blender\regions\19_wild2000_04_02.blend1` | Blender 自动备份（860 MB） | ✅ 已不存在（用户已清） |
 | `_logs\test2.bat` / `test_launcher.bat` / `bat_dump.txt` | 调试 bat 临时文件 | ✅ 已不存在（用户已清） |
 | `deliverable\blender\regions_support\_probe_cards_wide.json` / `_probe_crosscards.json` | 一次性探针输出 | ⏳ 仍在（约 0 MB）；`regions/` 清理时一并删 |
-| 探针预览图 `deliverable\blender\scenes\shots\` + `_scratch\sdn_check\` | 本轮场景核对用 | ⏳ 12 MB，看完可删 |
+| 探针预览图 `deliverable\blender\scenes\shots\` + `_scratch\sdn_check\` | 本轮场景核对用 | ✅ `_scratch\sdn_check\` 已删（2026-11-08）；`scenes\shots\` 保留 |
 
 ---
 

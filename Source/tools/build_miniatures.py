@@ -1,5 +1,13 @@
 """把 46 个据点从"18 万个实例"压成"一块可以直接摆在沙盒大地图上的微缩模型"。
 
+⚠️ **2026-11-08 已停用**：产物 `deliverable/miniatures/` 已被删除，这条"微缩模型"路线经 6 版试下来
+   被判为**不如直接复用 `export/previews/`**（见 `docs/世界与地编/RDR2_微缩模型_经验与失败路径.md`）；
+   输入 `deliverable/heightmap/` 也已在同日删除。运行会直接报错退出。
+   若将来要复活：高度源改读 `terrain/stages/02_river_carve/height_r16.raw`，meta 改读同目录 `meta.json`
+   的 `height.px` / `height.zmin` / `height.zmax`（旧版是 `heightmap.*`，键名不同）。
+
+历史说明（下面是旧口径，仅作参考）：
+
 产物
   deliverable/miniatures/models/<code>.glb     每个据点 1 个 GLB（单 mesh、单 material）
   deliverable/miniatures/tex/<code>.png        每个据点 1 张贴图（512² 调色板图集）
@@ -932,6 +940,10 @@ def write_glb(path, mesh, png_path, name):
 
 
 def main():
+    raise SystemExit(
+        'build_miniatures.py 已停用（2026-11-08）：产物 deliverable/miniatures/ 与输入 deliverable/heightmap/ 均已删除。\n'
+        '  城市预览的现行入口 = export/previews/（见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）'
+    )
     ap = argparse.ArgumentParser()
     ap.add_argument('--code', default='')
     args = ap.parse_args()

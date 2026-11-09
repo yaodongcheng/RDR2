@@ -20,6 +20,27 @@
 > 按职责分类。所有脚本从项目根目录运行：`uv run python tools/<脚本>.py`
 > 脚本之间用 `sys.path.insert(0, tools)` + `import 模块名` 互相引用，**不要移动文件**。
 
+## 据点分级 / 场景划分（2026-11-08 从 `_scratch\settlement_plan\` 归位，13 个）
+
+> **数据仍在** `D:\BrainMaker\大镖客2解包分析\_scratch\settlement_plan\`（`scene_specs.json` / `settlements_p.json` /
+> `bubbles.json` / 计划 CSV / 分区图）—— 脚本里用绝对常量 `BASE` 指过去，移动后指向不变、无需改代码。
+> 规格与口径见 [`docs/世界与地编/RDR2_据点分级与场景边界方案.md`](../docs/世界与地编/RDR2_据点分级与场景边界方案.md)。
+
+- `build_scene_division.py` **✅ 现行唯一入口**：据点计划 CSV / 水网掩码 / 地图框 → 算 P/T/W/O →
+  写 `scene_specs.json` / `settlements_p.json` / `bubbles.json` / `scene_division_check.json` / `docs\世界与地编\scene_list.csv`。
+  末行必须 `PASS`。2026-11-08 实测重跑 = 与 git 版**逐字节一致**（瓜玛那行的定案值原先靠手改 CSV 补，
+  已在这次归位时挪进生成器，否则重跑会把它清空）。
+- `build_settlement_map.py` **✅ 现行**：生成 `docs\世界与地编\regions_viewer.html`（含编辑模式；页面导出的
+  `scene_overrides.json` 由上一个脚本应用）。
+- `autofix_gaps.py` 自动补缝（把 ≤300 m 的窄缝用边延伸补掉；**用前先备份 overrides**）。
+- `build_plan.py` **上游**：产出 `settlements_plan.csv` / `wild_anchors.csv`（上面入口脚本的输入）+ 三张总图。
+- 🪦 已被 `build_scene_division.py` 取代（文档已标注，只在复现旧结论时才跑）：`build_polygons.py` /
+  `clip_data.py` / `build_rects.py` / `build_bubbles.py` / `build_regions_viewer.py`（运行即退出）。
+- 早期阶段的一次性步骤（现行链不调用）：`build_viewer.py`（旧查看器页面）· `build_region_merge.py`
+  （44 块领地合并成 22 区域）· `build_sdn_crop.py`（圣丹尼斯特写图）· `update_doc_table.py`（回写文档表格）。
+- ⚠️ **同名陷阱**：本目录原有的 `build_regions.py` 是「批量生成区域裁剪 **blend**」的驱动，与
+  `build_region_merge.py`（44 块领地 → 22 区域）**不是一件事**，别搞混。
+
 ## 槽位三贴图：漫反射 + 法线 + 高光（2026-10-30 新增，5 个）
 
 > 背景见 `docs/格式与资产/README_贴图与材质管线.md` §11.4。一句话：

@@ -1,5 +1,10 @@
 """微缩模型 v4：乐高化（GoT 开场那种"特征建筑做成积木模型"）。
 
+⚠️ **2026-11-08 已停用**：产物 `deliverable/miniatures/` 已删除，路线被判为不如直接复用 `export/previews/`
+   （见 `docs/世界与地编/RDR2_微缩模型_经验与失败路径.md`）；输入 `deliverable/heightmap/` 也已删除。
+   运行会直接报错退出。复活办法同 `build_miniatures.py`（高度源 → `terrain/stages/02_river_carve/`，
+   meta 键是 `height.*` 不是 `heightmap.*`）。
+
 按用户定的方向：
   1. 只挑当前城市的**特征建筑**（教堂 / 车站 / 银行 / 庄园 / 工厂 / 码头 / 轮船…），其余普通房子**直接忽略**；
   2. 特征建筑用**体素化（voxelize）**变成乐高块：真实网格 → 占位格子 → 只留外表面 → 沿轴合并成四边形；
@@ -376,6 +381,10 @@ def feature_score(name, sx, sy, sz, tris):
 
 
 def main():
+    raise SystemExit(
+        'build_miniatures_lego.py 已停用（2026-11-08）：产物 deliverable/miniatures/ 与输入 deliverable/heightmap/ 均已删除。\n'
+        '  城市预览的现行入口 = export/previews/（见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）'
+    )
     ap = argparse.ArgumentParser()
     ap.add_argument('--code', default='')
     ap.add_argument('--max-features', type=int, default=46)

@@ -1,5 +1,11 @@
 """给"权力的游戏开场风格"沙盒大地图烘焙底图：高度 + 地面彩图 + 据点摆放表。
 
+⚠️ **2026-11-08 已停用**：产物目录 `deliverable/miniatures/map/data/` 已随 `miniatures/` 整体删除，
+   沙盒大地图这条路线被判为不如直接复用 `export/previews/`（见 `docs/世界与地编/RDR2_微缩模型_经验与失败路径.md`）；
+   输入 `deliverable/heightmap/` 也已删除。运行会直接报错退出。
+   若将来要复活：高度源改读 `terrain/stages/02_river_carve/height_r16.raw`，meta 改读同目录 `meta.json`
+   的 `height.px` / `height.zmin` / `height.zmax`（旧版 `heightmap.*`），世界框在 `world.x0/y0/x1/y1`。
+
 为什么不让网页自己读原始数据
   原始高度图 2 692×2 006、地面彩图 12 296²（213 MB），网页加载会很慢。
   这里一次性降采样成"够看"的尺寸，网页只读 3 个小文件。
@@ -30,6 +36,10 @@ MAP_SCALE = 1.0 / 29.0
 
 
 def main():
+    raise SystemExit(
+        'build_sandbox_map.py 已停用（2026-11-08）：产物 deliverable/miniatures/map/data/ 与输入 deliverable/heightmap/ 均已删除。\n'
+        '  城市预览的现行入口 = export/previews/（见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）'
+    )
     os.makedirs(OUT, exist_ok=True)
     meta = json.load(open(HEIGHT_META, encoding='utf-8'))
     hm = meta['heightmap']

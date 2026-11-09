@@ -1,5 +1,10 @@
 """微缩模型 v2：用**游戏里的真实建筑网格**做，不再拿方块代理。
 
+⚠️ **2026-11-08 已停用**：产物 `deliverable/miniatures/` 已删除，路线被判为不如直接复用 `export/previews/`
+   （见 `docs/世界与地编/RDR2_微缩模型_经验与失败路径.md`）；输入 `deliverable/heightmap/` 也已删除。
+   运行会直接报错退出。复活办法同 `build_miniatures.py`（高度源 → `terrain/stages/02_river_carve/`，
+   meta 键是 `height.*` 不是 `heightmap.*`）。
+
 和 v1 的区别
   v1：每个街区塞一个"盒 + 坡屋顶"代理，远看是纸片。
   v2：逐实例加载 assets/lib_native 里真实的 .mdl，按模型自身尺寸做顶点聚类减面
@@ -765,6 +770,10 @@ def build_one(s, ledger, insts, terr, density):
 
 
 def main():
+    raise SystemExit(
+        'build_miniatures_real.py 已停用（2026-11-08）：产物 deliverable/miniatures/ 与输入 deliverable/heightmap/ 均已删除。\n'
+        '  城市预览的现行入口 = export/previews/（见 docs/世界与地编/RDR2_微缩模型_经验与失败路径.md）'
+    )
     ap = argparse.ArgumentParser()
     ap.add_argument('--code', default='')
     ap.add_argument('--density', type=float, default=1.0)

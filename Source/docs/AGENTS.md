@@ -130,7 +130,7 @@ any(joaat(os.path.splitext(os.path.basename(p))[0]) == h
 | **前缀 = 类别** | 无前缀 = 管线正式步骤（进 `tools/README.md` 主表）· `_check_*` = 只读体检/断言（任意 blend 可跑，打印判定）· `_probe_*` = 一次性探针/渲图（出证据用，不进管线） |
 | **必须登记** | 新脚本必须往 `tools/README.md` 加一行：用途 / 输入 / 输出 / 类别。**没登记 = 下轮清理时删** |
 | **一轮内收口** | `_probe_*` 在本轮结束前二选一：**删**，或**转正**（保留 + 登记 + docstring 写明对应交接章节）。D 盘根不留任何 `.py` |
-| **输出目录** | 🔴 **探针产物一律放项目自己的 `D:\BrainMaker\大镖客2解包分析\_scratch\<主题>\`**（2026-11-01 用户裁定：`D:\BrainMaker\` 是**多项目共用根**，RDR2 的东西放它自己的目录里；「跑完就删」不等于「可以乱放」）。历史目录 `_railcheck/` / `_test/` 只读保留；**已登记的 7 个证据脚本沿用 `_railcheck/`**（交接 §16.6 引用了那批图），不再新建同级目录。~~旧写法 `D:\BrainMaker\_probe\<主题>\`~~ 已**废止并搬迁**（2026-11-01 收归）：历史内容在 `大镖客2解包分析\_scratch\_probe_legacy\`，根上已无 `_probe\` |
+| **输出目录** | 🔴 **探针产物一律放项目自己的 `D:\BrainMaker\大镖客2解包分析\_scratch\<主题>\`**（2026-11-01 用户裁定：`D:\BrainMaker\` 是**多项目共用根**，RDR2 的东西放它自己的目录里；「跑完就删」不等于「可以乱放」）。历史目录 `_railcheck/` / `_test/` 只读保留；**已登记的 7 个证据脚本沿用 `_railcheck/`**（交接 §16.6 引用了那批图），不再新建同级目录。~~旧写法 `D:\BrainMaker\_probe\<主题>\`~~ 已**废止并搬迁**（2026-11-01 收归）：历史内容曾收进 `大镖客2解包分析\_scratch\_probe_legacy\`，该目录已于 **2026-11-08 临时区清理**中删除；根上已无 `_probe\` |
 | **路径写法** | `sys.path` 用 `os.path.dirname(os.path.abspath(__file__))`；数据根用常量 `ROOT = r'D:/BrainMaker/大镖客2解包分析'`（既有约定），不写散落绝对路径 |
 | **交付前** | `python -m py_compile <文件>` 过；`_check_*` 至少能在一个指定 blend（或 `--factory-startup`）上跑通并打印判定 |
 
@@ -177,6 +177,9 @@ any(joaat(os.path.splitext(os.path.basename(p))[0]) == h
 | `D:\BrainMaker\_logs\`（4,742 个日志 + 根上的 `build_v1*.log` / `reclass_v17.log`） | `大镖客2解包分析\_logs\` |
 | `_tmp\`（`nested_*.rpf` 解包临时区，15 GB） | `大镖客2解包分析\_tmp\`（`set TEMP` 的写法已同步） |
 | `_probe\` / `_test\` / `_railcheck\` / `_tmp_itemtex\` / `tmp_rdr_probe\` | `大镖客2解包分析\_scratch\` 下的同名目录（`_probe` → `_probe_legacy`） |
+
+> 🔴 **2026-11-08 临时区清理**（`_scratch` 7.80 GB → 0.92 GB）：`_probe_legacy` / `_tmp_itemtex` / `tmp_rdr_probe`、`two_layer\region20_prev.blend`、`_test` 里 7 个实验 blend 已删。
+> **仍在**：`_test\`（只留小图/tsv，文档引用的 `ab\v12_on.png` 在）、`railcheck\`、`int_align\`、`fenceshop_align\`、`val_stable\`、`settlement_plan\`（**只剩数据 JSON/PNG**——13 个生成器脚本已于同日归位 `Source\tools\`）、`lod_groups\`、`obsolete_models\`。
 
 > 根上剩下的 `.claude` / `.codex` / `tools`（Ghidra + JDK + SW2 逆向工具）/ `仁王…` / `势力` 等 = **其他项目或跨项目工具**，不属 RDR2，别动。
 
@@ -655,9 +658,11 @@ x[3097.4,3414.6] y[−731.1,−487.9]；未拆整块 `new_area_slod4` 不再存�
 3. **README §6「已知缺口」里已有的，就是已接受的**：
    - 缺 albedo 的小道具（硬币/罐头/书/杯子等）：**扫 25 个 props 包 + `gtxd.rpf` + 3,696 个 ytd 全无**，
      用近似色代替 —— 所以 `mesh_texture_audit.csv` 里那 1,688 个缺 albedo **不是新发现**；
-   - `abe` / `dow` / `twi` 没有远景碎片：**现成** `tools/build_miniatures.py`（46 据点 /
-     84,502 面）就是它们的"高清减面兜底"，不要另写工具；
-   - 单城真实模型/微缩模型早就有（README §2.3b + `RDR2_沙箱大地图_微缩模型规格.md`），别重造。
+   - `abe` / `dow` / `twi` 没有远景碎片：~~拿 `tools/build_miniatures.py` 的微缩代理兜底~~
+     **2026-11-08 废止** —— `deliverable/miniatures/` 已删，该路线被判为不如 `export/previews/`
+     （`docs/世界与地编/RDR2_微缩模型_经验与失败路径.md`），四个微缩/沙盒脚本已加停用闸门；
+   - 单城真实模型早就有（README §2.3b + `RDR2_沙箱大地图_微缩模型规格.md`），别重造；
+     **微缩模型这条路线已判死，别再开新版本。**
 
 **动作**：写"补数据/补资产"工具前，先 `grep` 一下 README §6 / TODO / `tools/` 里的相关名字
 （`miniature` / `relink` / `extract_*` / `audit_*`），确认没有现成管线；有就**跑它**，没有才新写。
