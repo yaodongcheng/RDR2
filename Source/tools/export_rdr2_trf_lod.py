@@ -14,6 +14,8 @@ TRF 能：`<名>.<子网格序>` = LOD0，`<名>.lod<N>.<子网格序>` = 第 N 
 - **只给 ≥ `--lod-min-faces`（默认 2000）面的模型出多档**；小件只出 LOD0（原版也是小件不做 LOD）
 - 材质：一个材质一个子网格（RDR2 数据天然如此）；材质名 = **albedo 贴图名原样**（TRF 无 63 字符限制）
 - 坐标：`.mdl` 局部坐标（米，Z 上）；UV 的 V 翻成 `1-v`
+  （🔴 2026-11-09 实机 A/B 定案：引擎认 `1-v`。翻 V 统一在 `read_mdl()` 做一次，
+   全档一致；此前只有 `make_part()` 翻、LOD0 漏翻 → 近景采到 V 镜像的另一块图）
 - 写法：复用 `tools/OpenTrf/trf_meta_mesh_exporter.py`（与引擎侧真样例对过账的同一份）
 
 ## 用法
@@ -77,7 +79,11 @@ def read_mdl(path, tex_names):
         nrm = (np.frombuffer(buf, dtype="<f4", count=vc * 3, offset=no).reshape(-1, 3)
                if no else np.zeros((vc, 3), dtype=np.float32))
         uv = (np.frombuffer(buf, dtype="<f4", count=vc * 2, offset=uo).reshape(-1, 2)
-              if uo else np.zeros((vc, 2), dtype=np.float32))
+              if uo else np.zeros((vc, 2), dtype=np.float32)).copy()
+        # 🔴 2026-11-09 实机 A/B 定案：引擎按「左下原点」采样，TRF 里必须写 1-v
+        #    （原始 .ydr 是左上原点）。这一步以前只在 make_part() 里做 ⇒ LOD0 漏翻，
+        #    近景网格采样到 V 镜像的另一块图（花园十字消失）。统一在这里翻一次。
+        uv[:, 1] = 1.0 - uv[:, 1]
         idx = np.frombuffer(buf, dtype="<u4", count=ic, offset=io_).reshape(-1, 3)
         good = (idx < vc).all(axis=1)
         if not good.all():
@@ -106,8 +112,7 @@ def make_part(name, mat, pos, nrm, uv, tri):
     me.from_pydata(pos.tolist(), [], tri.tolist())
     me.update()
     uvl = me.uv_layers.new(name="UVMap")
-    co = np.array(uv, dtype=np.float32, copy=True)
-    co[:, 1] = 1.0 - co[:, 1]          # V 翻转（与既有口径一致）
+    co = np.array(uv, dtype=np.float32, copy=True)   # read_mdl 已统一翻 V（全档一致），这里不再翻
     loop_uv = np.empty((len(me.loops), 2), dtype=np.float32)
     for i, lp in enumerate(me.loops):
         loop_uv[i] = co[lp.vertex_index]

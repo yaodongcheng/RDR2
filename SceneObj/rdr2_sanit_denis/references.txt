@@ -1,0 +1,21 @@
+20
+texture cg_50c_5b
+texture desert_floor_a
+texture desert_floor_a_h
+texture desert_floor_a_n
+texture desert_floor_a_s
+texture ground_grass_b_d
+texture ground_grass_b_h
+texture ground_grass_b_n
+texture ground_grass_b_s
+texture ground_mud_a_d
+texture ground_mud_a_h
+texture ground_mud_a_n
+texture lens_dirt
+texture lens_star
+texture rock_cliff_b_d
+texture rock_cliff_b_h
+texture rock_cliff_b_n
+texture rock_cliff_b_s
+texture semi_cloudy_2
+texture sun_core2
