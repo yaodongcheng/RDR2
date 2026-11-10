@@ -35,9 +35,11 @@ LOD_MIN_FACES = 2000
 
 # 2026-11-05 用户裁定：除地形/埋地/水面/占位/区内 lod 外，其余类全导
 # （贴花 / 道路 / 石块 / 植被也导，先看效果，不一定最终用）。
+# 2026-11-10 用户补充：建筑贴花 / 室内贴花 / 轨道贴花 都是游戏里看得见的，一并导入。
 IMPORT_CLASSES = {
     'bldg', 'part', 'prop', 'junk', 'veg', 'rock', 'stone', 'struct', 'ruin', 'veh',
     'rail', 'rail_decal', 'road', 'decal', 'unknown', 'lod_out',
+    'bldg_decal', 'int_decal', 'track_decal',
 }
 EXCLUDE_CLASSES = {'terrain_cell', 'terrain_lod', 'underground', 'watertile',
                    'placeholder', 'lod'}

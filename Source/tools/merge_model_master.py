@@ -33,6 +33,12 @@ FIELDS = ['name', 'model_hash', 'mdl', 'trf', 'faces', 'bytes',
 
 def main():
     base = list(csv.DictReader(io.open(EXPORT, encoding='utf-8-sig')))
+    # 🔴 2026-11-10：保留清单里已有的其它列（fbx / trf_faces / lod_levels …）。
+    # 原来只写 FIELDS 11 列，重跑会把 LOD 与 FBX 列整片冲掉。
+    fields = list(base[0].keys()) if base else list(FIELDS)
+    for fld in FIELDS:
+        if fld not in fields:
+            fields.append(fld)
     by_hash = {}
     for r in base:
         by_hash[(r.get('model_hash') or '').lower()] = r
@@ -53,22 +59,24 @@ def main():
     out = []
     for h, r in by_hash.items():
         e = agg.get(h)
+        row = dict(r)
         if not e:
-            out.append([r.get('name', ''), r.get('model_hash', ''), r.get('mdl', ''),
-                        r.get('trf', ''), r.get('faces', ''), r.get('bytes', ''),
-                        0, 0, '', '', 0])
+            row.update({'slots': 0, 'material_count': 0, 'materials': '',
+                        'material_status': '', 'no_tex_slots': 0})
+            out.append(row)
             continue
         mats = e['materials'] or ['no_tex']
         status = e['statuses'][0] if len(mats) == 1 else 'multi'
-        out.append([r.get('name', ''), r.get('model_hash', ''), r.get('mdl', ''),
-                    r.get('trf', ''), r.get('faces', ''), r.get('bytes', ''),
-                    e['slots'], len(mats), '|'.join(mats), status, e['no_tex']])
+        row.update({'slots': e['slots'], 'material_count': len(mats),
+                    'materials': '|'.join(mats), 'material_status': status,
+                    'no_tex_slots': e['no_tex']})
+        out.append(row)
 
     with io.open(EXPORT, 'w', encoding='utf-8-sig', newline='') as f:
-        w = csv.writer(f)
-        w.writerow(FIELDS)
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+        w.writeheader()
         w.writerows(out)
-    print('models %d -> %s（字段: %s）' % (len(out), EXPORT, ','.join(FIELDS)))
+    print('models %d -> %s（字段: %s）' % (len(out), EXPORT, ','.join(fields)))
 
 
 if __name__ == '__main__':

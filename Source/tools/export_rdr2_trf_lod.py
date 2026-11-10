@@ -397,8 +397,11 @@ def main():
         out_path = os.path.join(out_dir, name + ".trf")
         if os.path.exists(out_path) and not a.overwrite:
             skip += 1
-            out_rows.append([name, name + ".trf", r.get("faces", ""),
-                             "", "", os.path.getsize(out_path)])
+            # 🔴 2026-11-10：跳过时**保留清单里已有的 LOD 字段**。
+            # 原来这里写空串，续跑一次就把 lod_faces / lod_levels 冲成空（实测踩过）。
+            out_rows.append([name, name + ".trf", r.get("trf_faces") or r.get("faces", ""),
+                             r.get("lod_faces", ""), r.get("lod_levels", ""),
+                             os.path.getsize(out_path)])
             continue
         try:
             parts = read_mdl(os.path.join(LIB, r["mdl"]), tex_names)
@@ -440,6 +443,7 @@ def _write_manifest(manifest, out_rows):
         r["lod_faces"] = g[3]
         r["lod_levels"] = g[4]
         r["trf_lod_bytes"] = g[5]
+        r["bytes"] = g[5]          # 文件本体大小也一起刷新（否则重出 LOD 后这列是旧值）
     for fld in ("trf", "trf_faces", "lod_faces", "lod_levels", "trf_lod_bytes"):
         if fld not in fields:
             fields.append(fld)

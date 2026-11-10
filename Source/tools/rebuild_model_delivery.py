@@ -76,6 +76,17 @@ def main():
     os.makedirs(OBS, exist_ok=True)
     os.makedirs(M, exist_ok=True)
 
+    # 列集合 = 现有两份清单表头的并集（🔴 2026-11-10：原来只写 6 列，重跑会把
+    # fbx / LOD / 材质列整片冲掉；这里改成「保留旧列，只更新文件字段」）
+    fields = ['name', 'model_hash', 'mdl', 'trf', 'faces', 'bytes']
+    for man in (MAN_IMP, MAN_EXT):
+        if os.path.exists(man):
+            with io.open(man, encoding='utf-8-sig') as f:
+                hdr = next(csv.reader(f), [])
+            for c in hdr:
+                if c and c not in fields:
+                    fields.append(c)
+
     out = {'models': [], 'extra': []}
     moved = exported = obsolete = 0
     fail = []
@@ -114,8 +125,11 @@ def main():
             except Exception as e:
                 fail.append((name, repr(e)))
                 continue
-        out[folder].append([name, r['model_hash'], r['mdl'], name + '.trf',
-                            r['faces'], os.path.getsize(dst)])
+        row = dict(old[h][1]) if h in old else {}
+        row.update({'name': name, 'model_hash': r['model_hash'], 'mdl': r['mdl'],
+                    'trf': name + '.trf', 'faces': r['faces'],
+                    'bytes': str(os.path.getsize(dst))})
+        out[folder].append(row)
         if i % 500 == 0:
             print('[rebuild] %d/%d moved=%d exported=%d fail=%d' %
                   (i, len(target), moved, exported, len(fail)), flush=True)
@@ -133,8 +147,8 @@ def main():
 
     for folder, path in (('models', MAN_IMP), ('extra', MAN_EXT)):
         with io.open(path, 'w', encoding='utf-8-sig', newline='') as f:
-            w = csv.writer(f)
-            w.writerow(['name', 'model_hash', 'mdl', 'trf', 'faces', 'bytes'])
+            w = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+            w.writeheader()
             w.writerows(out[folder])
 
     print('[rebuild] done: models=%d extra=%d moved=%d exported=%d obsolete=%d fail=%d' %

@@ -41,17 +41,27 @@ def main():
     models, tex = idx['models'], idx['tex']
 
     trf_of = {}
-    if os.path.exists(EXPORT):
-        for r in csv.DictReader(io.open(EXPORT, encoding='utf-8-sig')):
-            trf_of[int(r['model_hash'], 16)] = r.get('trf') or ''
+    for man in (EXPORT, os.path.join(MANIFESTS, 'models_export_extra.csv')):
+        if not os.path.exists(man):
+            continue
+        for r in csv.DictReader(io.open(man, encoding='utf-8-sig')):
+            try:
+                trf_of[int(r['model_hash'], 16)] = r.get('trf') or ''
+            except (KeyError, ValueError):
+                continue
 
     status_of = {}
     if os.path.exists(MATS):
         for r in csv.DictReader(io.open(MATS, encoding='utf-8-sig')):
             status_of[r['material']] = r.get('status') or ''
 
-    rows = [r for r in csv.DictReader(io.open(IMPORT, encoding='utf-8-sig'))
-            if r.get('import') == '1']
+    # 🔴 2026-11-10：口径从「只做导入子集」改成「两份交付清单全做」。
+    # 原因：打包（stage_rdr2_models）会把 models_extra 里场景用到的模型也装进批次，
+    # 而它们原来在材质表里没有行 → 建不出材质 → 编辑器「Unable to find material」弹窗。
+    rows = []
+    for man in (EXPORT, os.path.join(MANIFESTS, 'models_export_extra.csv')):
+        if os.path.exists(man):
+            rows.extend(csv.DictReader(io.open(man, encoding='utf-8-sig')))
 
     out = []
     stat = collections.Counter()
