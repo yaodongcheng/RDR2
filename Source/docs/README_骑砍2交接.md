@@ -106,7 +106,7 @@ deliverable\  ≈79 GB / 128,069 files（2026-11-08 实测）
 | `items_export.csv` | 917 | **道具清单**：id/name/category/package/gltf/dest/bytes | ✅ 第一版 |
 | `material_textures.csv` | 11,206 | **材质三件套**：material/albedo/normal/ma/models/slots/status | ✅ 材质接线 |
 | `model_materials.csv` | 71,841 | **模型 → 材质逐槽表**：model/trf/trf_mesh/slot/material/albedo/normal/ma/faces/verts/status | ✅ 精确对应 |
-| `model_name_fix.csv` | 45 | 44 个 bigmap-only 模型的 hash→真名修正记录 | 记录 |
+| `model_name_fix.csv` | 358 | 44 个 bigmap-only + **157 个 `e_<hash>`** 的真名修正记录（2026-11-09 补；TRF/FBX 与 TRF 内部 part 名同步改名） | 记录 |
 | `asset_inventory_models.csv` | 44,729 | 全量 44,728 个模型（含不导的类） | 对账用 |
 | `asset_inventory_textures.csv` | 30,357 | 全量 30,356 张贴图 | 对账用 |
 | `asset_inventory_scenes.csv` | 57 | 每场景对象/唯一模型/面数/导入面数 | ✅ 预算用 |

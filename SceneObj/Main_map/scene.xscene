@@ -61,7 +61,178 @@
 			</scripts>
 		</game_entity>
 		<game_entity name="rdr2_sdn_lod_test" prefab="rdr2_sdn_lod" mobility="1">
-			<transform position="670.600, 262.000, 5.685" rotation_euler="0.000, 0.000, 0.000"/>
+			<transform position="670.324, 261.978, 5.686" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_adl_lod_test" prefab="rdr2_adl_lod" mobility="1">
+			<transform position="448.283, 537.086, 24.361" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_agu_lod_test" prefab="rdr2_agu_lod" mobility="1">
+			<transform position="585.415, -157.388, 5.612" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_ann_lod_test" prefab="rdr2_ann_lod" mobility="1">
+			<transform position="693.796, 441.325, 6.436" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_arm_lod_test" prefab="rdr2_arm_lod" mobility="1">
+			<transform position="226.870, 158.314, 1.397" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_bee_lod_test" prefab="rdr2_bee_lod" mobility="1">
+			<transform position="373.929, 246.889, 8.050" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_bla_lod_test" prefab="rdr2_bla_lod" mobility="1">
+			<transform position="425.224, 241.268, 5.736" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_bra_lod_test" prefab="rdr2_bra_lod" mobility="1">
+			<transform position="566.286, 220.343, 5.798" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_but_lod_test" prefab="rdr2_but_lod" mobility="1">
+			<transform position="665.973, 413.013, 8.160" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_cal_lod_test" prefab="rdr2_cal_lod" mobility="1">
+			<transform position="617.060, 247.305, 5.371" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_che_lod_test" prefab="rdr2_che_lod" mobility="1">
+			<transform position="459.245, 468.696, 17.232" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_cle_lod_test" prefab="rdr2_cle_lod" mobility="1">
+			<transform position="539.183, 269.996, 6.029" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_col_lod_test" prefab="rdr2_col_lod" mobility="1">
+			<transform position="395.333, 519.391, 23.568" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_cor_lod_test" prefab="rdr2_cor_lod" mobility="1">
+			<transform position="524.919, 387.716, 9.832" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_dewclm_lod_test" prefab="rdr2_dewclm_lod" mobility="1">
+			<transform position="536.188, 254.484, 5.350" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_dow_lod_test" prefab="rdr2_dow_lod" mobility="1">
+			<transform position="428.427, 369.188, 8.955" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_eme_lod_test" prefab="rdr2_eme_lod" mobility="1">
+			<transform position="589.444, 370.445, 8.448" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_fom_lod_test" prefab="rdr2_fom_lod" mobility="1">
+			<transform position="187.571, 96.586, 4.895" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_gap_lod_test" prefab="rdr2_gap_lod" mobility="1">
+			<transform position="61.195, 114.066, 0.966" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_gua_lod_test" prefab="rdr2_gua_lod" mobility="1">
+			<transform position="589.858, -181.536, 7.057" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_han_lod_test" prefab="rdr2_han_lod" mobility="1">
+			<transform position="330.287, 401.879, 11.803" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_hso_lod_test" prefab="rdr2_hso_lod" mobility="1">
+			<transform position="479.144, 342.126, 8.937" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_lag_lod_test" prefab="rdr2_lag_lod" mobility="1">
+			<transform position="635.469, 294.353, 5.317" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_lak_lod_test" prefab="rdr2_lak_lod" mobility="1">
+			<transform position="650.361, 289.981, 5.248" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_lon_lod_test" prefab="rdr2_lon_lod" mobility="1">
+			<transform position="427.364, 290.943, 6.411" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_man_lod_test" prefab="rdr2_man_lod" mobility="1">
+			<transform position="347.041, 226.696, 10.413" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_mfr_lod_test" prefab="rdr2_mfr_lod" mobility="1">
+			<transform position="316.529, 171.946, 6.547" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_mic_lod_test" prefab="rdr2_mic_lod" mobility="1">
+			<transform position="376.097, 432.790, 25.358" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_old_lod_test" prefab="rdr2_old_lod" mobility="1">
+			<transform position="512.295, 451.317, 14.719" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_ora_lod_test" prefab="rdr2_ora_lod" mobility="1">
+			<transform position="632.780, 284.569, 5.286" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_pro_lod_test" prefab="rdr2_pro_lod" mobility="1">
+			<transform position="305.873, 374.084, 12.521" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_rat_lod_test" prefab="rdr2_rat_lod" mobility="1">
+			<transform position="117.760, 191.622, 3.169" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_rho_lod_test" prefab="rdr2_rho_lod" mobility="1">
+			<transform position="574.966, 254.383, 7.528" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_rid_lod_test" prefab="rdr2_rid_lod" mobility="1">
+			<transform position="145.683, 150.504, 1.379" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_roc_lod_test" prefab="rdr2_roc_lod" mobility="1">
+			<transform position="701.314, 501.703, 13.812" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_sha_lod_test" prefab="rdr2_sha_lod" mobility="1">
+			<transform position="623.372, 213.997, 5.248" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_sis_lod_test" prefab="rdr2_sis_lod" mobility="1">
+			<transform position="720.271, 301.015, 3.610" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_sod_lod_test" prefab="rdr2_sod_lod" mobility="1">
+			<transform position="621.404, 386.575, 10.173" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_str_lod_test" prefab="rdr2_str_lod" mobility="1">
+			<transform position="360.585, 318.709, 13.451" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_tum_lod_test" prefab="rdr2_tum_lod" mobility="1">
+			<transform position="98.418, 131.768, 2.134" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_val_lod_test" prefab="rdr2_val_lod" mobility="1">
+			<transform position="466.691, 400.422, 10.511" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_van_lod_test" prefab="rdr2_van_lod" mobility="1">
+			<transform position="696.178, 377.415, 6.289" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wal_lod_test" prefab="rdr2_wal_lod" mobility="1">
+			<transform position="397.401, 377.207, 8.340" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wap_lod_test" prefab="rdr2_wap_lod" mobility="1">
+			<transform position="520.654, 504.359, 19.342" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_01_lod_test" prefab="rdr2_wild_01_lod" mobility="1">
+			<transform position="357.218, 498.128, 24.201" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_02_lod_test" prefab="rdr2_wild_02_lod" mobility="1">
+			<transform position="533.071, 498.128, 17.793" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_03_lod_test" prefab="rdr2_wild_03_lod" mobility="1">
+			<transform position="691.157, 498.128, 13.371" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_04_lod_test" prefab="rdr2_wild_04_lod" mobility="1">
+			<transform position="416.680, 360.445, 8.340" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_05_lod_test" prefab="rdr2_wild_05_lod" mobility="1">
+			<transform position="669.375, 360.445, 6.416" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_06_lod_test" prefab="rdr2_wild_06_lod" mobility="1">
+			<transform position="353.545, 254.233, 8.687" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_07_lod_test" prefab="rdr2_wild_07_lod" mobility="1">
+			<transform position="520.433, 214.866, 2.896" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_08_lod_test" prefab="rdr2_wild_08_lod" mobility="1">
+			<transform position="682.905, 214.866, 2.896" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_09_lod_test" prefab="rdr2_wild_09_lod" mobility="1">
+			<transform position="194.703, 171.939, 3.059" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_10_lod_test" prefab="rdr2_wild_10_lod" mobility="1">
+			<transform position="61.779, 104.002, 0.770" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_11_lod_test" prefab="rdr2_wild_11_lod" mobility="1">
+			<transform position="353.866, 157.481, 6.959" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_wild_12_lod_test" prefab="rdr2_wild_12_lod" mobility="1">
+			<transform position="269.670, 56.200, 0.996" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_twi_lod_test" prefab="rdr2_twi_lod" mobility="1">
+			<transform position="205.979, 191.198, 2.022" rotation_euler="0.000, 0.000, 0.000"/>
+		</game_entity>
+		<game_entity name="rdr2_abe_lod_test" prefab="rdr2_abe_lod" mobility="1">
+			<transform position="616.725, 339.039, 6.182" rotation_euler="0.000, 0.000, 0.000"/>
 		</game_entity>
 	</entities>
 	<terrain enabled="true" node_dimension_x="16" node_dimension_y="12" node_size="48.000" lod_multiplier="1.000" min_height="0.000" max_height="50.000" vista_normalmap="" vista_diffuse_name="rdr2_map_colormap" vista_diffuse_blend_type="1" vista_diffuse_blend_amount="1.000" vista_layer_detail_distance="10000.000" vista_albedo_multiplier="0.670" vista_detail_albedo_name="" vista_detail_normal_name="" vista_detail_tile="20.000" vista_tileset="none" use_dynamic_weather_effects="0" dynamic_flowmap_texture_name="" colormap_detail_level="-1" ao_intensity="4.000">

@@ -8,6 +8,26 @@
 
 ---
 
+## 🔴 待办总表（2026-11-09 立 · 按用户裁定排序）
+
+### 1. 模型 3D 视觉要素（当前优先）
+
+- [ ] **58 个 LOD prefab 实机验收**：位置 / 朝向 / 缩放 / 缺件；对照 `AssetSources\ImortReady\rdr2_lod_fragments\prefab_anchors.csv`。
+- [x] **163 个「缺件」= 交付表命名缺陷（2026-11-09 已补齐）**：`models_export.csv` 里 157 个模型名是 `e_<hash>`（names.txt 缺父名）；已用 `name_source` 反推真名，并**连 TRF / FBX / TRF 内部 part 名一起改名**（`tools\fix_model_names.py --apply`，报告 `model_name_fix.csv` 358 行）。补齐包 `AssetSources\ImortReady\rdr2_lod_extra\`（97 张贴图 + 157 个 TRF）已导入；材质 475 个（69 + 406）。重跑 prefab 后 **56 组 2,481/2,481 碎片全部纳入，known_missing=0**。
+- [ ] **接着做**：ModKit Publish → `to_game_mode.bat` → 进游戏验收大地图远景（58 个 prefab 实体已在场景里，prefab 内容已更新）。
+- [ ] **twi / abe 占位替换**：当前用原版 `map_village_a` ×0.45；待换成对应建筑群落的 LOD6（landmark：`abe_ext_01` / `twi_01_road01` 等）。
+- [ ] （可选）LOD 减面质量 / 贴图图集复核。
+
+### 2. 世界数据（据点 / 文化 / 派系）—— **最后做**
+
+- 现状：`settlements.xml` / `spcultures.xml` / `spkingdoms.xml` / `spclans.xml` / `spnpccharacters.xml` 全是空壳（0 据点 / 0 文化 / 0 王国 / 0 家族 / 0 NPC）⇒ 大地图上没有据点图标、旗帜、圆形贴花。
+- 迁移底稿：旧 `Modules\RD2\ModuleData\` = 45 Settlement（9 town / 11 castle / 22 village / 2 hideout / 1 retirement）/ 7 Culture / 8 Kingdom / 32 Clan / 37 NPC。
+- ⚠️ RD2 的 `posX/posY` 是**旧地图坐标**（sdn 648.2/303.6 vs 当前 670.324/261.978），必须按 `prefab_anchors.csv` 重算。
+- 图标：`<Settlement>` 上 `map_icon="town|castle_a|village_a|..."`（原版 hideout 即此法）；四件套（`bo_town` / `town_circle_decal` / `gate_position` / `banner_pos`）是 prefab 子实体。
+- **前置：第 1 项完成后再开工。**
+
+---
+
 ## 🟢 2026-11-08（第二轮）· 交付格式改 FBX（用户裁定「模型和角色只认 FBX」）
 
 > **一句话**：模型 / 角色 / 武器 / 道具全部从 TRF / GLB / glTF 改出 **FBX**；角色**不绑骨架、不重定向**。
